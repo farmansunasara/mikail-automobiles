@@ -1,0 +1,189 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Models\Product;
+use App\Models\Category;
+use App\Models\Subcategory;
+use App\Models\ProductComponent;
+use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
+use Illuminate\Support\Facades\DB;
+
+class ProductController extends Controller
+{
+    /**
+     * Display a listing of the resource.
+     */
+    public function index(Request $request)
+    {
+        $query = Product::with('category', 'subcategory');
+
+        if ($request->filled('search')) {
+            $query->where('name', 'like', '%' . $request->search . '%');
+        }
+        if ($request->filled('category_id')) {
+            $query->where('category_id', $request->category_id);
+        }
+        if ($request->filled('subcategory_id')) {
+            $query->where('subcategory_id', $request->subcategory_id);
+        }
+        if ($request->filled('color')) {
+            $query->where('color', 'like', '%' . $request->color . '%');
+        }
+
+        $products = $query->latest()->paginate(10);
+        $categories = Category::all();
+        
+        // Get unique colors for filter dropdown
+        $colors = Product::whereNotNull('color')
+            ->where('color', '!=', '')
+            ->distinct()
+            ->pluck('color')
+            ->sort();
+
+        return view('products.index', compact('products', 'categories', 'colors'));
+    }
+
+    /**
+     * Show the form for creating a new resource.
+     */
+    public function create()
+    {
+        $categories = Category::all();
+        $products = Product::where('is_composite', false)->get();
+        return view('products.create', compact('categories', 'products'));
+    }
+
+    /**
+     * Store a newly created resource in storage.
+     */
+    public function store(Request $request)
+    {
+        $request->validate([
+            'name' => 'required|string|max:255|unique:products,name',
+            'category_id' => 'required|exists:categories,id',
+            'subcategory_id' => 'required|exists:subcategories,id',
+            'color' => 'nullable|string|max:100',
+            'price' => 'required|numeric|min:0',
+            'quantity' => 'required|integer|min:0',
+            'hsn_code' => 'nullable|string|max:50',
+            'gst_rate' => 'required|numeric|min:0',
+            'is_composite' => 'boolean',
+            'components' => 'nullable|array',
+            'components.*.component_product_id' => 'required_if:is_composite,1|exists:products,id',
+            'components.*.quantity_needed' => 'required_if:is_composite,1|integer|min:1',
+        ]);
+
+        DB::transaction(function () use ($request) {
+            $product = Product::create($request->except('components'));
+
+            if ($request->boolean('is_composite') && $request->has('components')) {
+                foreach ($request->components as $componentData) {
+                    $product->components()->create($componentData);
+                }
+            }
+        });
+
+        return redirect()->route('products.index')->with('success', 'Product created successfully.');
+    }
+
+    /**
+     * Display the specified resource.
+     */
+    public function show(Product $product)
+    {
+        $product->load('category', 'subcategory', 'components.componentProduct');
+        return view('products.show', compact('product'));
+    }
+
+    /**
+     * Show the form for editing the specified resource.
+     */
+    public function edit(Product $product)
+    {
+        $categories = Category::all();
+        $subcategories = $product->category ? $product->category->subcategories : [];
+        $simpleProducts = Product::where('is_composite', false)->where('id', '!=', $product->id)->get();
+        $product->load('components');
+        
+        return view('products.edit', compact('product', 'categories', 'subcategories', 'simpleProducts'));
+    }
+
+    /**
+     * Update the specified resource in storage.
+     */
+    public function update(Request $request, Product $product)
+    {
+        $request->validate([
+            'name' => ['required','string','max:255',Rule::unique('products')->ignore($product->id)],
+            'category_id' => 'required|exists:categories,id',
+            'subcategory_id' => 'required|exists:subcategories,id',
+            'color' => 'nullable|string|max:100',
+            'price' => 'required|numeric|min:0',
+            'quantity' => 'required|integer|min:0',
+            'hsn_code' => 'nullable|string|max:50',
+            'gst_rate' => 'required|numeric|min:0',
+            'is_composite' => 'boolean',
+            'components' => 'nullable|array',
+            'components.*.component_product_id' => 'required_if:is_composite,1|exists:products,id',
+            'components.*.quantity_needed' => 'required_if:is_composite,1|integer|min:1',
+        ]);
+
+        DB::transaction(function () use ($request, $product) {
+            $product->update($request->except('components'));
+
+            $product->components()->delete();
+            if ($request->boolean('is_composite') && $request->has('components')) {
+                foreach ($request->components as $componentData) {
+                    $product->components()->create($componentData);
+                }
+            }
+        });
+
+        return redirect()->route('products.index')->with('success', 'Product updated successfully.');
+    }
+
+    /**
+     * Remove the specified resource from storage.
+     */
+    public function destroy(Product $product)
+    {
+        if ($product->invoiceItems()->exists()) {
+            return redirect()->route('products.index')->with('error', 'Cannot delete product with associated invoices.');
+        }
+
+        DB::transaction(function () use ($product) {
+            $product->components()->delete();
+            $product->delete();
+        });
+
+        return redirect()->route('products.index')->with('success', 'Product deleted successfully.');
+    }
+
+    /**
+     * Search for products via API.
+     */
+    public function search(Request $request)
+    {
+        $query = Product::query();
+        if ($request->filled('term')) {
+            $query->where('name', 'like', '%' . $request->term . '%');
+        }
+        $products = $query->take(15)->get(['id', 'name', 'price', 'quantity', 'hsn_code', 'gst_rate']);
+        return response()->json($products);
+    }
+    
+    /**
+     * Get components for a composite product.
+     */
+    public function getComponents(Product $product)
+    {
+        if (!$product->is_composite) {
+            return response()->json(['message' => 'This product is not a composite product.'], 422);
+        }
+
+        $components = $product->components()->with('componentProduct:id,name')->get();
+        return response()->json($components);
+    }
+}
