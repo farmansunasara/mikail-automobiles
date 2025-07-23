@@ -16,7 +16,7 @@
         </div>
     </div>
     <div class="card-body">
-        <form action="{{ route('products.index') }}" method="GET" class="mb-3">
+        <form action="{{ route('products.index') }}" method="GET" class="mb-3" id="filter-form">
             <div class="row">
                 <div class="col-md-3">
                     <input type="text" name="search" class="form-control" placeholder="Search by name..." value="{{ request('search') }}">
@@ -43,7 +43,9 @@
                     </select>
                 </div>
                 <div class="col-md-1">
-                    <button type="submit" class="btn btn-primary btn-block">Filter</button>
+                    <button type="submit" class="btn btn-primary btn-block" id="filter-btn">
+                        <span class="btn-text">Filter</span>
+                    </button>
                 </div>
                 <div class="col-md-2">
                     <a href="{{ route('products.index') }}" class="btn btn-secondary btn-block">Clear</a>
@@ -51,7 +53,7 @@
             </div>
         </form>
 
-        <div class="table-responsive">
+        <div class="table-responsive" id="products-table-container">
             <table class="table table-bordered">
                 <thead>
                     <tr>

@@ -72,7 +72,7 @@
             <div class="card-header">
                 <h3 class="card-title">Monthly Sales Chart</h3>
             </div>
-            <div class="card-body">
+            <div class="card-body" id="chart-container" style="position: relative; min-height: 300px;">
                 <canvas id="salesChart"></canvas>
             </div>
         </div>
@@ -150,38 +150,52 @@
 @push('scripts')
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
-    const salesChartCtx = document.getElementById('salesChart').getContext('2d');
-    const salesChart = new Chart(salesChartCtx, {
-        type: 'line',
-        data: {
-            labels: {!! json_encode(array_column($monthlySales, 'month')) !!},
-            datasets: [{
-                label: 'Monthly Sales (₹)',
-                data: {!! json_encode(array_column($monthlySales, 'sales')) !!},
-                backgroundColor: 'rgba(60,141,188,0.9)',
-                borderColor: 'rgba(60,141,188,0.8)',
-                pointRadius: false,
-                pointColor: '#3b8bba',
-                pointStrokeColor: 'rgba(60,141,188,1)',
-                pointHighlightFill: '#fff',
-                pointHighlightStroke: 'rgba(60,141,188,1)',
-                fill: true
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            scales: {
-                y: {
-                    beginAtZero: true,
-                    ticks: {
-                        callback: function(value, index, values) {
-                            return '₹' + value;
+$(document).ready(function() {
+    // Show chart loader
+    showChartLoader($('#chart-container'));
+    
+    // Simulate loading delay for better UX
+    setTimeout(function() {
+        const salesChartCtx = document.getElementById('salesChart').getContext('2d');
+        const salesChart = new Chart(salesChartCtx, {
+            type: 'line',
+            data: {
+                labels: {!! json_encode(array_column($monthlySales, 'month')) !!},
+                datasets: [{
+                    label: 'Monthly Sales (₹)',
+                    data: {!! json_encode(array_column($monthlySales, 'sales')) !!},
+                    backgroundColor: 'rgba(60,141,188,0.9)',
+                    borderColor: 'rgba(60,141,188,0.8)',
+                    pointRadius: false,
+                    pointColor: '#3b8bba',
+                    pointStrokeColor: 'rgba(60,141,188,1)',
+                    pointHighlightFill: '#fff',
+                    pointHighlightStroke: 'rgba(60,141,188,1)',
+                    fill: true
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            callback: function(value, index, values) {
+                                return '₹' + value;
+                            }
                         }
+                    }
+                },
+                animation: {
+                    onComplete: function() {
+                        // Hide chart loader when animation completes
+                        hideChartLoader($('#chart-container'));
                     }
                 }
             }
-        }
-    });
+        });
+    }, 800); // Small delay to show the loader
+});
 </script>
 @endpush
