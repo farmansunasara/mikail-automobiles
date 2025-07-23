@@ -29,6 +29,8 @@ Route::middleware('auth')->group(function () {
     Route::resource('products', ProductController::class);
     Route::get('/api/products/search', [ProductController::class, 'search'])->name('api.products.search');
     Route::get('/api/products/{product}/components', [ProductController::class, 'getComponents'])->name('api.products.components');
+    Route::get('/api/products/{product}/stock', [ProductController::class, 'getStock'])->name('api.products.stock');
+    Route::get('/api/products/variants/{productName}', [ProductController::class, 'getProductVariants'])->name('api.products.variants');
     
     // Stock Management
     Route::get('/stock', [StockController::class, 'index'])->name('stock.index');
@@ -45,6 +47,8 @@ Route::middleware('auth')->group(function () {
     Route::get('/invoices/{invoice}/pdf', [InvoiceController::class, 'downloadPdf'])->name('invoices.pdf');
     Route::get('/invoices/{invoice}/download', [InvoiceController::class, 'downloadPdf'])->name('invoices.download');
     Route::get('/invoices/{invoice}/preview', [InvoiceController::class, 'preview'])->name('invoices.preview');
+    Route::post('/invoices/{invoice}/mark-paid', [InvoiceController::class, 'markAsPaid'])->name('invoices.mark-paid');
+    Route::post('/invoices/{invoice}/update-status', [InvoiceController::class, 'updateStatus'])->name('invoices.update-status');
     
     // Reports
     Route::get('/reports', [ReportController::class, 'index'])->name('reports.index');
