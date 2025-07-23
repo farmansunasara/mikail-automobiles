@@ -24,11 +24,40 @@ class StockController extends Controller
     {
         $query = Product::with('category', 'subcategory');
 
+        // Search by product name
         if ($request->filled('search')) {
             $query->where('name', 'like', '%' . $request->search . '%');
         }
 
-        $products = $query->latest()->paginate(15);
+        // Filter by category
+        if ($request->filled('category_id')) {
+            $query->where('category_id', $request->category_id);
+        }
+
+        // Filter by color
+        if ($request->filled('color')) {
+            $query->where('color', $request->color);
+        }
+
+        // Filter by stock status
+        if ($request->filled('stock_status')) {
+            switch ($request->stock_status) {
+                case 'critical':
+                    $query->where('quantity', '<=', 5);
+                    break;
+                case 'low':
+                    $query->where('quantity', '<=', 10)->where('quantity', '>', 5);
+                    break;
+                case 'medium':
+                    $query->where('quantity', '<=', 20)->where('quantity', '>', 10);
+                    break;
+                case 'good':
+                    $query->where('quantity', '>', 20);
+                    break;
+            }
+        }
+
+        $products = $query->latest()->paginate(15)->appends($request->query());
         return view('stock.index', compact('products'));
     }
 

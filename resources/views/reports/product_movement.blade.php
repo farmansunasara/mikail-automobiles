@@ -42,6 +42,7 @@
                     <tr>
                         <th>Date</th>
                         <th>Product</th>
+                        <th>Color</th>
                         <th>Type</th>
                         <th>Quantity</th>
                         <th>Notes</th>
@@ -53,6 +54,15 @@
                         <td>{{ $log->created_at->format('d M, Y H:i A') }}</td>
                         <td><a href="{{ route('products.show', $log->product) }}">{{ $log->product->name }}</a></td>
                         <td>
+                            @if($log->product->color)
+                                <span class="badge" style="background-color: {{ \App\Helpers\ColorHelper::getColorCode($log->product->color) }}; color: {{ \App\Helpers\ColorHelper::getTextColor($log->product->color) }};">
+                                    {{ $log->product->color }}
+                                </span>
+                            @else
+                                <span class="badge badge-secondary">N/A</span>
+                            @endif
+                        </td>
+                        <td>
                             <span class="badge badge-{{ $log->change_type == 'inward' ? 'success' : 'danger' }}">
                                 {{ ucfirst($log->change_type) }}
                             </span>
@@ -62,7 +72,7 @@
                     </tr>
                     @empty
                     <tr>
-                        <td colspan="5" class="text-center">No product movement found for the selected criteria.</td>
+                        <td colspan="6" class="text-center">No product movement found for the selected criteria.</td>
                     </tr>
                     @endforelse
                 </tbody>
