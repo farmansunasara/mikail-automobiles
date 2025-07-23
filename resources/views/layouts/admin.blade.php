@@ -130,6 +130,98 @@
             animation: spin 1s linear infinite;
             z-index: 6;
         }
+        
+        /* Global Pagination Styling Fix */
+        .pagination {
+            margin: 0;
+            display: flex !important;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .pagination .page-item {
+            margin: 0 1px;
+        }
+        
+        .pagination .page-link {
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            min-width: 38px;
+            min-height: 38px;
+            padding: 0.5rem 0.75rem;
+            border: 1px solid #dee2e6;
+            border-radius: 0.25rem;
+            color: #007bff;
+            text-decoration: none;
+            background-color: #fff;
+            transition: all 0.15s ease-in-out;
+            line-height: 1;
+        }
+        
+        .pagination .page-link:hover {
+            background-color: #e9ecef;
+            border-color: #adb5bd;
+            color: #0056b3;
+            text-decoration: none;
+        }
+        
+        .pagination .page-link:focus {
+            box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+            text-decoration: none;
+        }
+        
+        .pagination .page-item.active .page-link {
+            background-color: #007bff;
+            border-color: #007bff;
+            color: #fff;
+        }
+        
+        .pagination .page-item.disabled .page-link {
+            color: #6c757d;
+            background-color: #fff;
+            border-color: #dee2e6;
+            cursor: not-allowed;
+            opacity: 0.65;
+        }
+        
+        .pagination .page-link svg,
+        .pagination .page-link i {
+            font-size: 0.875rem;
+            width: 16px;
+            height: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        /* Fix for Laravel pagination arrows */
+        .pagination .page-link[rel="prev"],
+        .pagination .page-link[rel="next"] {
+            font-weight: bold;
+        }
+        
+        /* Responsive pagination */
+        @media (max-width: 576px) {
+            .pagination .page-link {
+                min-width: 32px;
+                min-height: 32px;
+                padding: 0.375rem 0.5rem;
+                font-size: 0.875rem;
+            }
+            
+            .pagination .page-link svg,
+            .pagination .page-link i {
+                font-size: 0.75rem;
+                width: 14px;
+                height: 14px;
+            }
+        }
+        
+        /* Ensure pagination container is centered */
+        .d-flex.justify-content-center .pagination {
+            margin: 0 auto;
+        }
     </style>
     @stack('styles')
 </head>

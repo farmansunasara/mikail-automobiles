@@ -27,6 +27,7 @@
                     <tr>
                         <th>ID</th>
                         <th>Product</th>
+                        <th>Color</th>
                         <th>Category</th>
                         <th>Current Quantity</th>
                         <th>Action</th>
@@ -37,6 +38,15 @@
                     <tr>
                         <td>{{ $product->id }}</td>
                         <td><a href="{{ route('products.show', $product) }}">{{ $product->name }}</a></td>
+                        <td>
+                            @if($product->color)
+                                <span class="badge" style="background-color: {{ \App\Helpers\ColorHelper::getColorCode($product->color) }}; color: {{ \App\Helpers\ColorHelper::getTextColor($product->color) }};">
+                                    {{ $product->color }}
+                                </span>
+                            @else
+                                <span class="badge badge-secondary">N/A</span>
+                            @endif
+                        </td>
                         <td>{{ $product->category->name }}</td>
                         <td><span class="badge badge-danger">{{ $product->quantity }}</span></td>
                         <td>
@@ -45,7 +55,7 @@
                     </tr>
                     @empty
                     <tr>
-                        <td colspan="5" class="text-center">No products are below the stock threshold.</td>
+                        <td colspan="6" class="text-center">No products are below the stock threshold.</td>
                     </tr>
                     @endforelse
                 </tbody>

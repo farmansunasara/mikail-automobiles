@@ -37,6 +37,7 @@
                     <tr>
                         <th>ID</th>
                         <th>Product</th>
+                        <th>Color</th>
                         <th>Category</th>
                         <th>Quantity</th>
                         <th>Price</th>
@@ -48,6 +49,15 @@
                     <tr>
                         <td>{{ $product->id }}</td>
                         <td><a href="{{ route('products.show', $product) }}">{{ $product->name }}</a></td>
+                        <td>
+                            @if($product->color)
+                                <span class="badge" style="background-color: {{ \App\Helpers\ColorHelper::getColorCode($product->color) }}; color: {{ \App\Helpers\ColorHelper::getTextColor($product->color) }};">
+                                    {{ $product->color }}
+                                </span>
+                            @else
+                                <span class="badge badge-secondary">N/A</span>
+                            @endif
+                        </td>
                         <td>{{ $product->category->name }}</td>
                         <td>{{ $product->quantity }}</td>
                         <td>₹{{ number_format($product->price, 2) }}</td>
@@ -55,7 +65,7 @@
                     </tr>
                     @empty
                     <tr>
-                        <td colspan="6" class="text-center">No products found.</td>
+                        <td colspan="7" class="text-center">No products found.</td>
                     </tr>
                     @endforelse
                 </tbody>

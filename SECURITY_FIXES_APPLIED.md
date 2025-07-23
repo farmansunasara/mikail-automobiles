@@ -12,7 +12,6 @@ Fixed multiple SQL injection vulnerabilities in the Laravel application by repla
 
 ### 1. app/Http/Controllers/DashboardController.php
 **Issue**: Line 18 - Unsafe SQL calculation using `DB::raw('quantity * price')`
-```php
 // BEFORE (Vulnerable):
 $totalStockValue = Product::sum(\DB::raw('quantity * price'));
 
