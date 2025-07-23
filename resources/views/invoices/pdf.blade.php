@@ -22,7 +22,8 @@
     <div class="container">
         <div class="header">
             <h1>INVOICE</h1>
-            <p>{{ config('app.name', 'Laravel') }}</p>
+            <p><strong>{{ config('app.name') }}</strong></p>
+            <p>Automobile Parts & Services</p>
         </div>
 
         <div class="invoice-details">
@@ -49,22 +50,38 @@
                     <th>#</th>
                     <th>Product</th>
                     <th>HSN</th>
-                    <th>Qty</th>
                     <th>Price</th>
-                    <th>GST</th>
+                    <th>GST%</th>
+                    <th>Colors & Quantities</th>
                     <th>Total</th>
                 </tr>
             </thead>
             <tbody>
-                @foreach($invoice->items as $item)
+                @php
+                    $groupedItems = collect($invoice->items)->groupBy('product.name');
+                    $rowNumber = 1;
+                @endphp
+                
+                @foreach($groupedItems as $productName => $items)
+                @php
+                    $firstItem = $items->first();
+                    $totalSubtotal = $items->sum('subtotal');
+                @endphp
                 <tr>
-                    <td>{{ $loop->iteration }}</td>
-                    <td>{{ $item->product->name }}</td>
-                    <td>{{ $item->product->hsn_code }}</td>
-                    <td class="text-right">{{ $item->quantity }}</td>
-                    <td class="text-right">₹{{ number_format($item->price, 2) }}</td>
-                    <td class="text-right">{{ $item->gst_rate }}%</td>
-                    <td class="text-right">₹{{ number_format($item->subtotal, 2) }}</td>
+                    <td>{{ $rowNumber++ }}</td>
+                    <td><strong>{{ $productName }}</strong></td>
+                    <td>{{ $firstItem->product->hsn_code }}</td>
+                    <td class="text-right">Rs.{{ number_format($firstItem->price, 2) }}</td>
+                    <td class="text-right">{{ $firstItem->gst_rate }}%</td>
+                    <td>
+                        @foreach($items as $item)
+                        <div style="margin-bottom: 3px;">
+                            <strong>{{ $item->product->color ?? 'No Color' }}:</strong> {{ $item->quantity }} 
+                            <span style="font-size: 10px; color: #666;">(Rs.{{ number_format($item->subtotal, 2) }})</span>
+                        </div>
+                        @endforeach
+                    </td>
+                    <td class="text-right"><strong>Rs.{{ number_format($totalSubtotal, 2) }}</strong></td>
                 </tr>
                 @endforeach
             </tbody>
@@ -74,19 +91,19 @@
             <table class="totals-table">
                 <tr>
                     <td>Subtotal</td>
-                    <td class="text-right">₹{{ number_format($invoice->total_amount, 2) }}</td>
+                    <td class="text-right">Rs.{{ number_format($invoice->total_amount, 2) }}</td>
                 </tr>
                 <tr>
                     <td>CGST</td>
-                    <td class="text-right">₹{{ number_format($invoice->cgst, 2) }}</td>
+                    <td class="text-right">Rs.{{ number_format($invoice->cgst, 2) }}</td>
                 </tr>
                 <tr>
                     <td>SGST</td>
-                    <td class="text-right">₹{{ number_format($invoice->sgst, 2) }}</td>
+                    <td class="text-right">Rs.{{ number_format($invoice->sgst, 2) }}</td>
                 </tr>
                 <tr>
                     <td><strong>Grand Total</strong></td>
-                    <td class="text-right"><strong>₹{{ number_format($invoice->grand_total, 2) }}</strong></td>
+                    <td class="text-right"><strong>Rs.{{ number_format($invoice->grand_total, 2) }}</strong></td>
                 </tr>
             </table>
         </div>

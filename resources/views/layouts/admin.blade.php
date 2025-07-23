@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>{{ config('app.name', 'Laravel') }} | @yield('title')</title>
+    <title>{{ config('app.name') }} | @yield('title')</title>
 
     <!-- Google Font: Source Sans Pro -->
     <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,400i,700&display=fallback">
@@ -137,26 +137,29 @@
             display: flex !important;
             justify-content: center;
             align-items: center;
+            flex-wrap: wrap;
         }
         
         .pagination .page-item {
-            margin: 0 1px;
+            margin: 0 2px;
         }
         
         .pagination .page-link {
             display: flex !important;
             align-items: center !important;
             justify-content: center !important;
-            min-width: 38px;
-            min-height: 38px;
+            min-width: 40px;
+            min-height: 40px;
             padding: 0.5rem 0.75rem;
             border: 1px solid #dee2e6;
-            border-radius: 0.25rem;
-            color: #007bff;
+            border-radius: 0.375rem;
+            color: #495057;
             text-decoration: none;
             background-color: #fff;
             transition: all 0.15s ease-in-out;
-            line-height: 1;
+            line-height: 1.5;
+            font-weight: 400;
+            position: relative;
         }
         
         .pagination .page-link:hover {
@@ -164,16 +167,25 @@
             border-color: #adb5bd;
             color: #0056b3;
             text-decoration: none;
+            z-index: 2;
         }
         
         .pagination .page-link:focus {
             box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
             text-decoration: none;
+            z-index: 3;
         }
         
         .pagination .page-item.active .page-link {
             background-color: #007bff;
             border-color: #007bff;
+            color: #fff;
+            z-index: 1;
+        }
+        
+        .pagination .page-item.active .page-link:hover {
+            background-color: #0056b3;
+            border-color: #004085;
             color: #fff;
         }
         
@@ -183,14 +195,14 @@
             border-color: #dee2e6;
             cursor: not-allowed;
             opacity: 0.65;
+            pointer-events: none;
         }
         
-        .pagination .page-link svg,
+        /* Arrow styling */
         .pagination .page-link i {
-            font-size: 0.875rem;
-            width: 16px;
-            height: 16px;
-            display: flex;
+            font-size: 14px;
+            line-height: 1;
+            display: inline-flex;
             align-items: center;
             justify-content: center;
         }
@@ -198,29 +210,63 @@
         /* Fix for Laravel pagination arrows */
         .pagination .page-link[rel="prev"],
         .pagination .page-link[rel="next"] {
-            font-weight: bold;
+            font-weight: 500;
+            padding: 0.5rem 0.75rem;
+        }
+        
+        .pagination .page-link[rel="prev"] i,
+        .pagination .page-link[rel="next"] i {
+            margin: 0;
+        }
+        
+        /* Screen reader text */
+        .pagination .sr-only {
+            position: absolute !important;
+            width: 1px !important;
+            height: 1px !important;
+            padding: 0 !important;
+            margin: -1px !important;
+            overflow: hidden !important;
+            clip: rect(0, 0, 0, 0) !important;
+            white-space: nowrap !important;
+            border: 0 !important;
         }
         
         /* Responsive pagination */
         @media (max-width: 576px) {
-            .pagination .page-link {
-                min-width: 32px;
-                min-height: 32px;
-                padding: 0.375rem 0.5rem;
+            .pagination {
                 font-size: 0.875rem;
             }
             
-            .pagination .page-link svg,
+            .pagination .page-link {
+                min-width: 36px;
+                min-height: 36px;
+                padding: 0.375rem 0.5rem;
+            }
+            
             .pagination .page-link i {
-                font-size: 0.75rem;
-                width: 14px;
-                height: 14px;
+                font-size: 12px;
+            }
+            
+            .pagination .page-item {
+                margin: 0 1px;
             }
         }
         
         /* Ensure pagination container is centered */
         .d-flex.justify-content-center .pagination {
             margin: 0 auto;
+        }
+        
+        /* Additional AdminLTE compatibility */
+        .pagination .page-item:first-child .page-link {
+            border-top-left-radius: 0.375rem;
+            border-bottom-left-radius: 0.375rem;
+        }
+        
+        .pagination .page-item:last-child .page-link {
+            border-top-right-radius: 0.375rem;
+            border-bottom-right-radius: 0.375rem;
         }
     </style>
     @stack('styles')
@@ -291,7 +337,7 @@
 
     <!-- Main Footer -->
     <footer class="main-footer">
-        <strong>Copyright &copy; {{ date('Y') }} <a href="#">Mikail Automobiles</a>.</strong> All rights reserved.
+        <strong>Copyright &copy; {{ date('Y') }} <a href="#">{{ config('app.name') }}</a>.</strong> All rights reserved.
     </footer>
 </div>
 <!-- ./wrapper -->

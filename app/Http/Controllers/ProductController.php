@@ -186,4 +186,39 @@ class ProductController extends Controller
         $components = $product->components()->with('componentProduct:id,name')->get();
         return response()->json($components);
     }
+
+    /**
+     * Get product stock information for real-time validation
+     */
+    public function getStock(Product $product)
+    {
+        return response()->json([
+            'id' => $product->id,
+            'name' => $product->name,
+            'quantity' => $product->quantity,
+            'color' => $product->color,
+            'price' => $product->price,
+            'gst_rate' => $product->gst_rate,
+            'available' => $product->quantity > 0,
+            'low_stock' => $product->quantity <= 10, // Consider low stock threshold
+        ]);
+    }
+
+    /**
+     * Get all color variants for a product name
+     */
+    public function getProductVariants($productName)
+    {
+        $variants = Product::where('name', $productName)
+            ->where('is_composite', false)
+            ->orderBy('color')
+            ->get(['id', 'name', 'color', 'quantity', 'price', 'gst_rate', 'hsn_code']);
+
+        return response()->json([
+            'product_name' => $productName,
+            'variants' => $variants,
+            'has_variants' => $variants->count() > 1,
+            'total_stock' => $variants->sum('quantity')
+        ]);
+    }
 }

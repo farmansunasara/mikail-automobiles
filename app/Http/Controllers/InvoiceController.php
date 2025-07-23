@@ -41,6 +41,14 @@ class InvoiceController extends Controller
         if ($request->filled('end_date')) {
             $query->whereDate('invoice_date', '<=', $request->end_date);
         }
+        if ($request->filled('status')) {
+            $query->where('status', $request->status);
+        }
+        if ($request->filled('overdue') && $request->overdue == '1') {
+            $query->where('due_date', '<', now())
+                  ->where('status', '!=', 'paid')
+                  ->where('status', '!=', 'cancelled');
+        }
 
         $invoices = $query->latest()->paginate(10);
         $customers = Customer::orderBy('name')->get();
@@ -54,9 +62,14 @@ class InvoiceController extends Controller
     public function create()
     {
         $customers = Customer::orderBy('name')->get();
-        $products = Product::orderBy('name')->get();
+        // Get unique product names for the dropdown
+        $productNames = Product::where('is_composite', false)
+            ->select('name')
+            ->distinct()
+            ->orderBy('name')
+            ->pluck('name');
         $invoice_number = Invoice::generateInvoiceNumber();
-        return view('invoices.create', compact('customers', 'products', 'invoice_number'));
+        return view('invoices.create', compact('customers', 'productNames', 'invoice_number'));
     }
 
     /**
@@ -67,21 +80,57 @@ class InvoiceController extends Controller
         $request->validate([
             'customer_id' => 'required|exists:customers,id',
             'invoice_date' => 'required|date',
+            'due_date' => 'nullable|date|after_or_equal:invoice_date',
             'notes' => 'nullable|string',
             'items' => 'required|array|min:1',
-            'items.*.product_id' => 'required|exists:products,id',
-            'items.*.quantity' => 'required|integer|min:1',
+            'items.*.product_name' => 'required|string',
             'items.*.price' => 'required|numeric|min:0',
             'items.*.gst_rate' => 'required|numeric|min:0',
+            'items.*.colors' => 'required|array',
         ]);
 
         try {
-            DB::transaction(function () use ($request) {
+            // Collect all items with quantities > 0 and validate stock
+            $invoiceItems = [];
+            foreach ($request->items as $productRow) {
+                $price = $productRow['price'];
+                $gst_rate = $productRow['gst_rate'];
+                
+                foreach ($productRow['colors'] as $colorKey => $colorData) {
+                    $quantity = intval($colorData['quantity'] ?? 0);
+                    $product_id = $colorData['product_id'] ?? null;
+                    
+                    if ($quantity > 0 && $product_id) {
+                        $product = Product::find($product_id);
+                        if (!$product) {
+                            throw new \Exception("Product not found for {$productRow['product_name']} (Color Key: {$colorKey})");
+                        }
+                        if ($product->quantity < $quantity) {
+                            $colorName = $product->color ?? 'No Color';
+                            throw new \Exception("Insufficient stock for {$product->name} ({$colorName}). Available: {$product->quantity}, Required: {$quantity}");
+                        }
+                        
+                        $invoiceItems[] = [
+                            'product_id' => $product_id,
+                            'quantity' => $quantity,
+                            'price' => $price,
+                            'gst_rate' => $gst_rate,
+                        ];
+                    }
+                }
+            }
+
+            if (empty($invoiceItems)) {
+                throw new \Exception("Please add at least one item with quantity greater than 0");
+            }
+
+            DB::transaction(function () use ($request, $invoiceItems) {
                 $total_amount = 0;
                 $total_cgst = 0;
                 $total_sgst = 0;
 
-                foreach ($request->items as $item) {
+                // Calculate totals
+                foreach ($invoiceItems as $item) {
                     $subtotal = $item['quantity'] * $item['price'];
                     $gst_amount = ($subtotal * $item['gst_rate']) / 100;
                     $total_amount += $subtotal;
@@ -95,6 +144,8 @@ class InvoiceController extends Controller
                     'invoice_number' => Invoice::generateInvoiceNumber(),
                     'customer_id' => $request->customer_id,
                     'invoice_date' => $request->invoice_date,
+                    'due_date' => $request->due_date ?? now()->addDays(30),
+                    'status' => 'draft',
                     'notes' => $request->notes,
                     'total_amount' => $total_amount,
                     'cgst' => $total_cgst,
@@ -102,7 +153,8 @@ class InvoiceController extends Controller
                     'grand_total' => $grand_total,
                 ]);
 
-                foreach ($request->items as $item) {
+                // Create invoice items and update stock
+                foreach ($invoiceItems as $item) {
                     $product = Product::find($item['product_id']);
                     $subtotal = $item['quantity'] * $item['price'];
                     $gst_amount = ($subtotal * $item['gst_rate']) / 100;
@@ -163,13 +215,29 @@ class InvoiceController extends Controller
      */
     public function destroy(Invoice $invoice)
     {
-        // Add logic to revert stock if needed (complex)
-        DB::transaction(function () use ($invoice) {
-            $invoice->items()->delete();
-            $invoice->delete();
-        });
+        try {
+            DB::transaction(function () use ($invoice) {
+                // Restore stock for each item before deleting
+                foreach ($invoice->items as $item) {
+                    $this->stockService->inwardStock(
+                        $item->product, 
+                        $item->quantity, 
+                        "Stock restored from deleted Invoice #{$invoice->invoice_number}"
+                    );
+                }
+                
+                // Delete invoice items and invoice
+                $invoice->items()->delete();
+                $invoice->delete();
+            });
 
-        return redirect()->route('invoices.index')->with('success', 'Invoice deleted successfully. Note: Stock was not automatically reverted.');
+            return redirect()->route('invoices.index')
+                ->with('success', 'Invoice deleted successfully and stock has been restored.');
+                
+        } catch (\Exception $e) {
+            return redirect()->route('invoices.index')
+                ->with('error', 'Error deleting invoice: ' . $e->getMessage());
+        }
     }
 
     /**
@@ -189,5 +257,41 @@ class InvoiceController extends Controller
     {
         $invoice->load('customer', 'items.product');
         return view('invoices.pdf', compact('invoice'));
+    }
+
+    /**
+     * Mark invoice as paid
+     */
+    public function markAsPaid(Request $request, Invoice $invoice)
+    {
+        $request->validate([
+            'amount' => 'nullable|numeric|min:0|max:' . $invoice->amount_due,
+            'payment_date' => 'nullable|date',
+            'payment_method' => 'nullable|string|max:255'
+        ]);
+
+        $amount = $request->amount ?? $invoice->amount_due;
+        $date = $request->payment_date ?? now();
+        $method = $request->payment_method ?? 'Cash';
+
+        $invoice->markAsPaid($amount, $date, $method);
+
+        return redirect()->route('invoices.index')
+            ->with('success', 'Invoice marked as paid successfully.');
+    }
+
+    /**
+     * Update invoice status
+     */
+    public function updateStatus(Request $request, Invoice $invoice)
+    {
+        $request->validate([
+            'status' => 'required|in:draft,sent,paid,cancelled,overdue'
+        ]);
+
+        $invoice->update(['status' => $request->status]);
+
+        return redirect()->route('invoices.index')
+            ->with('success', 'Invoice status updated successfully.');
     }
 }
