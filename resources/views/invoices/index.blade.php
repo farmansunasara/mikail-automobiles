@@ -16,7 +16,7 @@
         </div>
     </div>
     <div class="card-body">
-        <form action="{{ route('invoices.index') }}" method="GET" class="mb-3">
+        <form action="{{ route('invoices.index') }}" method="GET" class="mb-3" id="invoice-filter-form">
             <div class="row">
                 <div class="col-md-3">
                     <input type="text" name="search" class="form-control" placeholder="Search invoice # or customer..." value="{{ request('search') }}">
@@ -36,12 +36,14 @@
                     <input type="date" name="end_date" class="form-control" value="{{ request('end_date') }}">
                 </div>
                 <div class="col-md-2">
-                    <button type="submit" class="btn btn-primary btn-block">Filter</button>
+                    <button type="submit" class="btn btn-primary btn-block" id="invoice-filter-btn">
+                        <span class="btn-text">Filter</span>
+                    </button>
                 </div>
             </div>
         </form>
 
-        <div class="table-responsive">
+        <div class="table-responsive" id="invoices-table-container">
             <table class="table table-bordered">
                 <thead>
                     <tr>

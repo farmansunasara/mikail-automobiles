@@ -45,7 +45,13 @@ class ReportController extends Controller
         }
 
         $stockReport = $query->orderBy('name')->paginate(20);
-        $totalValue = $query->sum(DB::raw('quantity * price'));
+        
+        // FIXED: Using selectRaw instead of DB::raw for security
+        $totalValue = Product::selectRaw('SUM(quantity * price) as total_value')
+                            ->when($request->filled('category_id'), function($q) use ($request) {
+                                return $q->where('category_id', $request->category_id);
+                            })
+                            ->value('total_value') ?? 0;
 
         return view('reports.stock_report', compact('stockReport', 'totalValue'));
     }
@@ -90,12 +96,15 @@ class ReportController extends Controller
 
         $salesReport = $query->latest()->paginate(20);
         
-        $totals = $query->select(
-            DB::raw('SUM(total_amount) as total_amount'),
-            DB::raw('SUM(cgst) as total_cgst'),
-            DB::raw('SUM(sgst) as total_sgst'),
-            DB::raw('SUM(grand_total) as grand_total')
-        )->first();
+        // FIXED: Using selectRaw instead of DB::raw for security
+        $totals = Invoice::selectRaw('
+            SUM(total_amount) as total_amount,
+            SUM(cgst) as total_cgst,
+            SUM(sgst) as total_sgst,
+            SUM(grand_total) as grand_total
+        ')
+        ->whereBetween('invoice_date', [$startDate, $endDate])
+        ->first();
 
         return view('reports.sales', compact('salesReport', 'totals', 'startDate', 'endDate'));
     }
@@ -111,14 +120,15 @@ class ReportController extends Controller
         
         $targetMonth = $request->filled('month') ? Carbon::parse($request->month) : Carbon::now();
         
+        // FIXED: Using selectRaw instead of DB::raw for security
         $gstReport = Invoice::whereYear('invoice_date', $targetMonth->year)
             ->whereMonth('invoice_date', $targetMonth->month)
-            ->select(
-                DB::raw('SUM(total_amount) as taxable_value'),
-                DB::raw('SUM(cgst) as total_cgst'),
-                DB::raw('SUM(sgst) as total_sgst'),
-                DB::raw('SUM(grand_total) as total_amount')
-            )
+            ->selectRaw('
+                SUM(total_amount) as taxable_value,
+                SUM(cgst) as total_cgst,
+                SUM(sgst) as total_sgst,
+                SUM(grand_total) as total_amount
+            ')
             ->first();
 
         $invoices = Invoice::with('customer')

@@ -11,9 +11,139 @@
     <link rel="stylesheet" href="{{ asset('vendor/fontawesome-free/css/all.min.css') }}">
     <!-- Theme style -->
     <link rel="stylesheet" href="{{ asset('vendor/adminlte/dist/css/adminlte.min.css') }}">
+    
+    <!-- Custom Loader Styles -->
+    <style>
+        /* Page Loader */
+        .page-loader {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.9);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+            transition: opacity 0.3s ease;
+        }
+        
+        .page-loader.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+        
+        /* Spinner Animation */
+        .loader-spinner {
+            width: 50px;
+            height: 50px;
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #007bff;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        /* Button Loader */
+        .btn-loading {
+            position: relative;
+            pointer-events: none;
+        }
+        
+        .btn-loading::after {
+            content: '';
+            position: absolute;
+            width: 16px;
+            height: 16px;
+            top: 50%;
+            left: 50%;
+            margin-left: -8px;
+            margin-top: -8px;
+            border: 2px solid transparent;
+            border-top: 2px solid #ffffff;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        
+        /* Table Loader */
+        .table-loader {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.8);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 10;
+        }
+        
+        /* Form Loader */
+        .form-loading {
+            position: relative;
+            pointer-events: none;
+            opacity: 0.6;
+        }
+        
+        /* Chart Loader */
+        .chart-loader {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 10;
+        }
+        
+        /* Overlay for content loading */
+        .content-loading {
+            position: relative;
+        }
+        
+        .content-loading::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.7);
+            z-index: 5;
+        }
+        
+        .content-loading::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 30px;
+            height: 30px;
+            margin: -15px 0 0 -15px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #007bff;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            z-index: 6;
+        }
+    </style>
     @stack('styles')
 </head>
 <body class="hold-transition sidebar-mini">
+    <!-- Page Loader -->
+    <div id="page-loader" class="page-loader">
+        <div class="text-center">
+            <div class="loader-spinner"></div>
+            <div class="mt-2">
+                <small class="text-muted">Loading...</small>
+            </div>
+        </div>
+    </div>
+
 <div class="wrapper">
 
     <!-- Navbar -->
@@ -81,6 +211,138 @@
 <script src="{{ asset('vendor/bootstrap/js/bootstrap.bundle.min.js') }}"></script>
 <!-- AdminLTE App -->
 <script src="{{ asset('vendor/adminlte/dist/js/adminlte.min.js') }}"></script>
+
+<!-- Custom Loader JavaScript -->
+<script>
+$(document).ready(function() {
+    // Hide page loader when document is ready
+    setTimeout(function() {
+        $('#page-loader').addClass('hidden');
+    }, 500);
+    
+    // Global AJAX setup for loaders
+    $.ajaxSetup({
+        beforeSend: function(xhr, settings) {
+            // Show loading state for AJAX requests
+            if (settings.showLoader !== false) {
+                showAjaxLoader();
+            }
+        },
+        complete: function(xhr, status) {
+            // Hide loading state after AJAX completes
+            hideAjaxLoader();
+        },
+        error: function(xhr, status, error) {
+            hideAjaxLoader();
+            // Show error message
+            showErrorMessage('An error occurred. Please try again.');
+        }
+    });
+    
+    // Form submission loaders
+    $('form').on('submit', function(e) {
+        var $form = $(this);
+        var $submitBtn = $form.find('button[type="submit"], input[type="submit"]');
+        
+        // Don't show loader for search forms (they reload the page)
+        if (!$form.hasClass('no-loader')) {
+            $submitBtn.addClass('btn-loading');
+            $submitBtn.prop('disabled', true);
+            $form.addClass('form-loading');
+        }
+    });
+    
+    // Link click loaders for navigation
+    $('a:not(.no-loader)').on('click', function(e) {
+        var href = $(this).attr('href');
+        
+        // Only show loader for internal links
+        if (href && href.indexOf('http') !== 0 && href !== '#' && !href.startsWith('javascript:')) {
+            showPageLoader();
+        }
+    });
+    
+    // PDF download loader
+    $('a[href*="pdf"], a[href*="download"]').on('click', function(e) {
+        var $btn = $(this);
+        $btn.addClass('btn-loading');
+        
+        // Remove loading state after a delay (since it's a download)
+        setTimeout(function() {
+            $btn.removeClass('btn-loading');
+        }, 3000);
+    });
+});
+
+// Loader utility functions
+function showPageLoader() {
+    $('#page-loader').removeClass('hidden');
+}
+
+function hidePageLoader() {
+    $('#page-loader').addClass('hidden');
+}
+
+function showAjaxLoader() {
+    // You can customize this based on the context
+    $('body').addClass('ajax-loading');
+}
+
+function hideAjaxLoader() {
+    $('body').removeClass('ajax-loading');
+}
+
+function showTableLoader($table) {
+    var $tableContainer = $table.closest('.table-responsive, .card-body');
+    if ($tableContainer.find('.table-loader').length === 0) {
+        $tableContainer.css('position', 'relative');
+        $tableContainer.append('<div class="table-loader"><div class="loader-spinner"></div></div>');
+    }
+}
+
+function hideTableLoader($table) {
+    var $tableContainer = $table.closest('.table-responsive, .card-body');
+    $tableContainer.find('.table-loader').remove();
+}
+
+function showContentLoader($element) {
+    $element.addClass('content-loading');
+}
+
+function hideContentLoader($element) {
+    $element.removeClass('content-loading');
+}
+
+function showErrorMessage(message) {
+    // Create a toast-like error message
+    var errorHtml = '<div class="alert alert-danger alert-dismissible fade show position-fixed" style="top: 20px; right: 20px; z-index: 10000; min-width: 300px;" role="alert">' +
+        message +
+        '<button type="button" class="close" data-dismiss="alert" aria-label="Close">' +
+        '<span aria-hidden="true">&times;</span>' +
+        '</button>' +
+        '</div>';
+    
+    $('body').append(errorHtml);
+    
+    // Auto-hide after 5 seconds
+    setTimeout(function() {
+        $('.alert.position-fixed').fadeOut();
+    }, 5000);
+}
+
+// Chart loader utility
+function showChartLoader($chartContainer) {
+    if ($chartContainer.find('.chart-loader').length === 0) {
+        $chartContainer.css('position', 'relative');
+        $chartContainer.append('<div class="chart-loader"><div class="loader-spinner"></div></div>');
+    }
+}
+
+function hideChartLoader($chartContainer) {
+    $chartContainer.find('.chart-loader').remove();
+}
+</script>
+
 @stack('scripts')
 </body>
 </html>

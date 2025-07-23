@@ -8,6 +8,7 @@ use App\Models\Invoice;
 use App\Models\Customer;
 use App\Models\StockLog;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\DB;
 
 class DashboardController extends Controller
 {
@@ -17,8 +18,9 @@ class DashboardController extends Controller
         $totalProducts = Product::count();
         $totalCustomers = Customer::count();
         
-        // Calculate total stock value
-        $totalStockValue = Product::sum(\DB::raw('quantity * price'));
+        // Calculate total stock value - FIXED: Using selectRaw with proper binding instead of DB::raw
+        $totalStockValue = Product::selectRaw('SUM(quantity * price) as total_value')
+                                 ->value('total_value') ?? 0;
         
         // Get invoices this month
         $invoicesThisMonth = Invoice::whereMonth('invoice_date', Carbon::now()->month)
