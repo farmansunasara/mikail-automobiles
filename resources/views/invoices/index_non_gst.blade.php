@@ -1,22 +1,22 @@
 @extends('layouts.admin')
 
-@section('title', 'GST Invoices')
+@section('title', 'Non-GST Invoices')
 
 @section('breadcrumbs')
 <li class="breadcrumb-item"><a href="{{ route('dashboard') }}">Dashboard</a></li>
-<li class="breadcrumb-item active">GST Invoices</li>
+<li class="breadcrumb-item active">Non-GST Invoices</li>
 @endsection
 
 @section('content')
 <div class="card">
     <div class="card-header">
-        <h3 class="card-title">All GST Invoices</h3>
+        <h3 class="card-title">All Non-GST Invoices</h3>
         <div class="card-tools">
-            <a href="{{ route('invoices.gst.create') }}" class="btn btn-primary">Create New GST Invoice</a>
+            <a href="{{ route('invoices.non_gst.create') }}" class="btn btn-primary">Create New Non-GST Invoice</a>
         </div>
     </div>
     <div class="card-body">
-        <form action="{{ route('invoices.gst.index') }}" method="GET" class="mb-3" id="invoice-filter-form">
+        <form action="{{ route('invoices.non_gst.index') }}" method="GET" class="mb-3" id="invoice-filter-form">
             <div class="row">
                 <div class="col-md-2">
                     <input type="text" name="search" class="form-control" placeholder="Search invoice # or customer..." value="{{ request('search') }}">
@@ -99,13 +99,8 @@
                         </td>
                         <td>
                             <div class="btn-group" role="group">
-                                @if($invoice->invoice_type === 'gst')
-                                    <a href="{{ route('invoices.gst.show', $invoice) }}" class="btn btn-sm btn-info">View</a>
-                                    <a href="{{ route('invoices.gst.download', $invoice) }}" class="btn btn-sm btn-success">PDF</a>
-                                @else
-                                    <a href="{{ route('invoices.non_gst.show', $invoice) }}" class="btn btn-sm btn-info">View</a>
-                                    <a href="{{ route('invoices.non_gst.download', $invoice) }}" class="btn btn-sm btn-success">PDF</a>
-                                @endif
+                                <a href="{{ route('invoices.non_gst.show', $invoice) }}" class="btn btn-sm btn-info">View</a>
+                                <a href="{{ route('invoices.non_gst.download', $invoice) }}" class="btn btn-sm btn-success">PDF</a>
                                 @if($invoice->status !== 'paid')
                                     <button type="button" class="btn btn-sm btn-warning" onclick="markAsPaid({{ $invoice->id }})">Mark Paid</button>
                                 @endif
@@ -119,7 +114,7 @@
                     </tr>
                     @empty
                     <tr>
-                        <td colspan="8" class="text-center">No invoices found.</td>
+                        <td colspan="8" class="text-center">No Non-GST invoices found.</td>
                     </tr>
                     @endforelse
                 </tbody>

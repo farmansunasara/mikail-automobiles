@@ -21,7 +21,8 @@ class Invoice extends Model
         'paid_amount',
         'paid_date',
         'payment_method',
-        'notes'
+        'notes',
+        'invoice_type' // Added invoice_type field
     ];
 
     protected $casts = [
@@ -102,5 +103,16 @@ class Invoice extends Model
         $lastInvoice = self::latest('id')->first();
         $nextNumber = $lastInvoice ? $lastInvoice->id + 1 : 1;
         return 'INV-' . date('Y') . '-' . str_pad($nextNumber, 4, '0', STR_PAD_LEFT);
+    }
+
+    // Helper methods to check invoice type
+    public function isGst(): bool
+    {
+        return $this->invoice_type === 'gst';
+    }
+
+    public function isNonGst(): bool
+    {
+        return $this->invoice_type === 'non_gst';
     }
 }

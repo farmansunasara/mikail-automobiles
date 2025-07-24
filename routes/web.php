@@ -1,20 +1,27 @@
 <?php
 
-use App\Http\Controllers\ProfileController;
-use App\Http\Controllers\DashboardController;
-use App\Http\Controllers\CategoryController;
-use App\Http\Controllers\ProductController;
-use App\Http\Controllers\StockController;
-use App\Http\Controllers\CustomerController;
-use App\Http\Controllers\InvoiceController;
-use App\Http\Controllers\ReportController;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\ProductController;
+use App\Http\Controllers\InvoiceController;
+use App\Http\Controllers\CustomerController;
+use App\Http\Controllers\StockController;
+use App\Http\Controllers\ReportController;
+use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\CategoryController;
 
 Route::get('/', function () {
     return redirect('/login');
 });
 
 Route::get('/dashboard', [DashboardController::class, 'index'])->middleware(['auth', 'verified'])->name('dashboard');
+
+// Redirect generic invoices.index to GST invoices index
+Route::middleware('auth')->group(function () {
+    Route::get('/invoices', function () {
+        return redirect()->route('invoices.gst.index');
+    })->name('invoices.index');
+});
 
 Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
@@ -31,6 +38,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/api/products/{product}/components', [ProductController::class, 'getComponents'])->name('api.products.components');
     Route::get('/api/products/{product}/stock', [ProductController::class, 'getStock'])->name('api.products.stock');
     Route::get('/api/products/variants/{productName}', [ProductController::class, 'getProductVariants'])->name('api.products.variants');
+    Route::get('/api/products/by-category', [ProductController::class, 'getProductsByCategory'])->name('api.products.by-category');
     
     // Stock Management
     Route::get('/stock', [StockController::class, 'index'])->name('stock.index');
@@ -42,13 +50,28 @@ Route::middleware('auth')->group(function () {
     Route::resource('customers', CustomerController::class);
     Route::get('/api/customers/search', [CustomerController::class, 'search'])->name('api.customers.search');
     
-    // Invoices Management
-    Route::resource('invoices', InvoiceController::class);
-    Route::get('/invoices/{invoice}/pdf', [InvoiceController::class, 'downloadPdf'])->name('invoices.pdf');
-    Route::get('/invoices/{invoice}/download', [InvoiceController::class, 'downloadPdf'])->name('invoices.download');
-    Route::get('/invoices/{invoice}/preview', [InvoiceController::class, 'preview'])->name('invoices.preview');
-    Route::post('/invoices/{invoice}/mark-paid', [InvoiceController::class, 'markAsPaid'])->name('invoices.mark-paid');
-    Route::post('/invoices/{invoice}/update-status', [InvoiceController::class, 'updateStatus'])->name('invoices.update-status');
+    // GST Invoices
+    Route::prefix('invoices/gst')->name('invoices.gst.')->group(function () {
+        Route::get('/', [InvoiceController::class, 'indexGst'])->name('index');
+        Route::get('/create', [InvoiceController::class, 'createGst'])->name('create');
+        Route::post('/', [InvoiceController::class, 'storeGst'])->name('store');
+        Route::get('/{invoice}', [InvoiceController::class, 'showGst'])->name('show');
+        Route::get('/{invoice}/download', [InvoiceController::class, 'downloadPdfGst'])->name('download');
+        Route::get('/{invoice}/preview', [InvoiceController::class, 'previewGst'])->name('preview');
+    });
+
+    // Non-GST Invoices
+    Route::prefix('invoices/non-gst')->name('invoices.non_gst.')->group(function () {
+        Route::get('/', [InvoiceController::class, 'indexNonGst'])->name('index');
+        Route::get('/create', [InvoiceController::class, 'createNonGst'])->name('create');
+        Route::post('/', [InvoiceController::class, 'storeNonGst'])->name('store');
+        Route::get('/{invoice}', [InvoiceController::class, 'showNonGst'])->name('show');
+        Route::get('/{invoice}/download', [InvoiceController::class, 'downloadPdfNonGst'])->name('download');
+        Route::get('/{invoice}/preview', [InvoiceController::class, 'previewNonGst'])->name('preview');
+    });
+    
+    // Common invoice routes (used by both GST and Non-GST)
+    Route::delete('/invoices/{invoice}', [InvoiceController::class, 'destroy'])->name('invoices.destroy');
     
     // Reports
     Route::get('/reports', [ReportController::class, 'index'])->name('reports.index');
