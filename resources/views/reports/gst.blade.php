@@ -85,7 +85,13 @@
                     @forelse($invoices as $invoice)
                     <tr>
                         <td>{{ $invoice->invoice_date->format('d M, Y') }}</td>
-                        <td><a href="{{ route('invoices.show', $invoice) }}">{{ $invoice->invoice_number }}</a></td>
+                        <td>
+                            @if($invoice->invoice_type === 'gst')
+                                <a href="{{ route('invoices.gst.show', $invoice) }}">{{ $invoice->invoice_number }}</a>
+                            @else
+                                <a href="{{ route('invoices.non_gst.show', $invoice) }}">{{ $invoice->invoice_number }}</a>
+                            @endif
+                        </td>
                         <td>{{ $invoice->customer->name }}</td>
                         <td>{{ $invoice->customer->gstin ?? 'N/A' }}</td>
                         <td>₹{{ number_format($invoice->total_amount, 2) }}</td>

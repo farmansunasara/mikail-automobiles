@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Invoice #{{ $invoice->invoice_number }}</title>
+    <title>Non-GST Invoice #{{ $invoice->invoice_number }}</title>
     <style>
         body { font-family: 'Helvetica', sans-serif; font-size: 12px; }
         .container { width: 100%; margin: 0 auto; }
@@ -50,9 +50,7 @@
                     <th>#</th>
                     <th>Category</th>
                     <th>Product</th>
-                    <th>HSN</th>
                     <th>Price</th>
-                    <th>GST%</th>
                     <th>Colors & Quantities</th>
                     <th>Total</th>
                 </tr>
@@ -77,9 +75,7 @@
                         @endif
                     </td>
                     <td><strong>{{ $productName }}</strong></td>
-                    <td>{{ $firstItem->product->hsn_code }}</td>
                     <td class="text-right">Rs.{{ number_format($firstItem->price, 2) }}</td>
-                    <td class="text-right">{{ $firstItem->gst_rate }}%</td>
                     <td>
                         @foreach($items as $item)
                         <div style="margin-bottom: 3px;">
@@ -99,14 +95,6 @@
                 <tr>
                     <td>Subtotal</td>
                     <td class="text-right">Rs.{{ number_format($invoice->total_amount, 2) }}</td>
-                </tr>
-                <tr>
-                    <td>CGST</td>
-                    <td class="text-right">Rs.{{ number_format($invoice->cgst, 2) }}</td>
-                </tr>
-                <tr>
-                    <td>SGST</td>
-                    <td class="text-right">Rs.{{ number_format($invoice->sgst, 2) }}</td>
                 </tr>
                 <tr>
                     <td><strong>Grand Total</strong></td>

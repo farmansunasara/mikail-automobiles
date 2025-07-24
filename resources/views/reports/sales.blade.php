@@ -91,7 +91,11 @@
                         <td>₹{{ number_format($invoice->sgst, 2) }}</td>
                         <td>₹{{ number_format($invoice->grand_total, 2) }}</td>
                         <td>
-                            <a href="{{ route('invoices.show', $invoice) }}" class="btn btn-sm btn-info">View</a>
+                            @if($invoice->invoice_type === 'gst')
+                                <a href="{{ route('invoices.gst.show', $invoice) }}" class="btn btn-sm btn-info">View</a>
+                            @else
+                                <a href="{{ route('invoices.non_gst.show', $invoice) }}" class="btn btn-sm btn-info">View</a>
+                            @endif
                         </td>
                     </tr>
                     @empty

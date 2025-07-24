@@ -46,6 +46,23 @@ class ProductController extends Controller
     }
 
     /**
+     * Get products filtered by category for invoice creation
+     */
+    public function getProductsByCategory(Request $request)
+    {
+        $request->validate([
+            'category_id' => 'required|exists:categories,id',
+        ]);
+
+        $products = Product::where('category_id', $request->category_id)
+            ->where('is_composite', false)
+            ->orderBy('name')
+            ->get(['id', 'name']);
+
+        return response()->json($products);
+    }
+
+    /**
      * Show the form for creating a new resource.
      */
     public function create()
@@ -76,7 +93,14 @@ class ProductController extends Controller
         ]);
 
         DB::transaction(function () use ($request) {
-            $product = Product::create($request->except('components'));
+            $productData = $request->except('components');
+            
+            // Handle empty HSN code
+            if (empty($productData['hsn_code'])) {
+                $productData['hsn_code'] = null;
+            }
+            
+            $product = Product::create($productData);
 
             if ($request->boolean('is_composite') && $request->has('components')) {
                 foreach ($request->components as $componentData) {
@@ -131,7 +155,14 @@ class ProductController extends Controller
         ]);
 
         DB::transaction(function () use ($request, $product) {
-            $product->update($request->except('components'));
+            $productData = $request->except('components');
+            
+            // Handle empty HSN code
+            if (empty($productData['hsn_code'])) {
+                $productData['hsn_code'] = null;
+            }
+            
+            $product->update($productData);
 
             $product->components()->delete();
             if ($request->boolean('is_composite') && $request->has('components')) {
@@ -207,17 +238,37 @@ class ProductController extends Controller
     /**
      * Get all color variants for a product name
      */
-    public function getProductVariants($productName)
+    public function getProductVariants($identifier)
     {
+        // Check if identifier is numeric (product ID) or string (product name)
+        if (is_numeric($identifier)) {
+            // Get by product ID - return all variants of the same product name
+            $product = Product::find($identifier);
+            if (!$product) {
+                return response()->json(['error' => 'Product not found'], 404);
+            }
+            $productName = $product->name;
+        } else {
+            // Get by product name
+            $productName = $identifier;
+        }
+
         $variants = Product::where('name', $productName)
             ->where('is_composite', false)
+            ->with(['category', 'subcategory'])
+            ->orderBy('category_id')
             ->orderBy('color')
-            ->get(['id', 'name', 'color', 'quantity', 'price', 'gst_rate', 'hsn_code']);
+            ->get(['id', 'name', 'color', 'quantity', 'price', 'gst_rate', 'hsn_code', 'category_id', 'subcategory_id']);
+
+        // Group variants by category
+        $groupedVariants = $variants->groupBy('category.name');
 
         return response()->json([
             'product_name' => $productName,
             'variants' => $variants,
+            'grouped_variants' => $groupedVariants,
             'has_variants' => $variants->count() > 1,
+            'has_multiple_categories' => $groupedVariants->count() > 1,
             'total_stock' => $variants->sum('quantity')
         ]);
     }

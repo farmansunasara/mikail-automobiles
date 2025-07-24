@@ -42,7 +42,7 @@
 @endsection
 
 @section('content')
-<form action="{{ route('invoices.store') }}" method="POST" id="invoice-form">
+<form action="{{ route('invoices.gst.store') }}" method="POST" id="invoice-form">
     @csrf
     
     <!-- Invoice Details at Top -->
@@ -105,33 +105,64 @@
     <div class="card mb-4">
         <div class="card-header">
             <h3 class="card-title">Invoice Items</h3>
-            <div class="card-tools">
-                <button type="button" id="add-product-btn" class="btn btn-primary btn-sm">
-                    <i class="fas fa-plus"></i> Add Product
-                </button>
-            </div>
         </div>
         <div class="card-body">
             <div class="table-responsive">
                 <table class="table table-bordered" id="items-table">
                     <thead>
                         <tr>
+                            <th>Category</th>
                             <th>Product</th>
+                            <th>Colors & Quantities</th>
                             <th>Price</th>
                             <th>GST%</th>
-                            <th>Colors & Quantities</th>
                             <th>Total</th>
                             <th></th>
                         </tr>
                     </thead>
                     <tbody>
-                        <!-- Product rows will be added here -->
+                        <tr class="product-row" data-product-index="0">
+                            <td>
+                                <select name="items[0][category_id]" class="form-control category-select" required>
+                                    <option value="">Select Category</option>
+                                    @foreach($categories as $category)
+                                        <option value="{{ $category->id }}">{{ $category->name }}</option>
+                                    @endforeach
+                                </select>
+                            </td>
+                            <td>
+                                <select name="items[0][product_id]" class="form-control product-select" required disabled>
+                                    <option value="">Select Product</option>
+                                </select>
+                            </td>
+                            <td class="colors-container">
+                                <!-- Colors & quantities will be dynamically loaded here -->
+                            </td>
+                            <td>
+                                <input type="number" name="items[0][price]" class="form-control price-input" step="0.01" readonly>
+                            </td>
+                            <td>
+                                <input type="number" name="items[0][gst_rate]" class="form-control gst-input" step="0.01" readonly>
+                            </td>
+                            <td class="text-right">
+                                <strong class="row-total">₹0.00</strong>
+                            </td>
+                            <td>
+                                <button type="button" class="remove-btn" onclick="removeProduct(0)" title="Remove">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </td>
+                        </tr>
                     </tbody>
                 </table>
             </div>
+
+            <div class="text-center mt-3">
+                <button type="button" class="btn btn-primary" id="add-new-item-btn">Add New Item</button>
+            </div>
             
-            <div class="text-center mt-3" id="no-products-message">
-                <p class="text-muted">No products added yet. Click "Add Product" to start.</p>
+            <div class="text-center mt-3" id="no-products-message" style="display:none;">
+                <p class="text-muted">No products added yet.</p>
             </div>
         </div>
     </div>
@@ -245,127 +276,103 @@ $(document).ready(function() {
             });
     }
 
-    function createProductRow(productData, index) {
-        var variants = productData.variants;
-        var productName = productData.product_name;
-        
-        // Get first variant for price and GST (assuming all variants have same price/GST)
-        var firstVariant = variants[0];
-        
-        // Create colors & quantities section
-        var colorsHtml = '';
-        
-        if (variants.length === 1 && (!variants[0].color || variants[0].color === null)) {
-            // Single product without colors
-            colorsHtml = `
-                <div class="color-item mb-2">
-                    <div class="row align-items-center">
-                        <div class="col-4">
-                            <span class="badge badge-secondary">No Color</span>
-                        </div>
-                        <div class="col-4">
-                            <input type="number" name="items[${index}][colors][single][quantity]" 
-                                   class="form-control form-control-sm quantity-input" 
-                                   min="0" max="${firstVariant.quantity}" value="0" 
-                                   data-max-stock="${firstVariant.quantity}"
-                                   onchange="validateQuantity(this); updateTotals();"
-                                   placeholder="Qty">
-                            <input type="hidden" name="items[${index}][colors][single][product_id]" value="${firstVariant.id}">
-                        </div>
-                        <div class="col-4">
-                            <small class="stock-info">${getStockInfo(firstVariant.quantity)}</small>
-                        </div>
-                    </div>
-                </div>
-            `;
-        } else {
-            // Multiple color variants
-            variants.forEach(function(variant, variantIndex) {
-                var colorName = variant.color || 'No Color';
-                var stockInfo = getStockInfo(variant.quantity);
-                var colorBadgeClass = getColorBadgeClass(colorName);
-                
-                colorsHtml += `
-                    <div class="color-item mb-2">
-                        <div class="row align-items-center">
-                            <div class="col-4">
-                                <span class="badge ${colorBadgeClass}">${colorName}</span>
-                            </div>
-                            <div class="col-4">
-                                <input type="number" name="items[${index}][colors][${variantIndex}][quantity]" 
-                                       class="form-control form-control-sm quantity-input" 
-                                       min="0" max="${variant.quantity}" value="0" 
-                                       data-max-stock="${variant.quantity}"
-                                       onchange="validateQuantity(this); updateTotals();"
-                                       placeholder="Qty">
-                                <input type="hidden" name="items[${index}][colors][${variantIndex}][product_id]" value="${variant.id}">
-                            </div>
-                            <div class="col-4">
-                                <small class="stock-info">${stockInfo}</small>
-                            </div>
-                        </div>
-                    </div>
-                `;
-            });
-        }
-        
-        var rowHtml = `
-            <tr class="product-row" data-product-index="${index}">
+    // Fix productIndex incrementation for new rows
+    $('#add-new-item-btn').click(function() {
+        var newIndex = productIndex;
+        var newRowHtml = `
+            <tr class="product-row" data-product-index="${newIndex}">
                 <td>
-                    <strong>${productName}</strong>
-                    <input type="hidden" name="items[${index}][product_name]" value="${productName}">
+                    <select name="items[${newIndex}][category_id]" class="form-control category-select" required>
+                        <option value="">Select Category</option>
+                        @foreach($categories as $category)
+                            <option value="{{ $category->id }}">{{ $category->name }}</option>
+                        @endforeach
+                    </select>
                 </td>
                 <td>
-                    <input type="number" name="items[${index}][price]" class="form-control price-input" 
-                           value="${firstVariant.price}" step="0.01" onchange="updateTotals();">
+                    <select name="items[${newIndex}][product_id]" class="form-control product-select" required disabled>
+                        <option value="">Select Product</option>
+                    </select>
+                </td>
+                <td class="colors-container"></td>
+                <td>
+                    <input type="number" name="items[${newIndex}][price]" class="form-control price-input" step="0.01" readonly>
                 </td>
                 <td>
-                    <input type="number" name="items[${index}][gst_rate]" class="form-control gst-input" 
-                           value="${firstVariant.gst_rate}" step="0.01" onchange="updateTotals();">
-                </td>
-                <td>
-                    <div class="colors-container">
-                        ${colorsHtml}
-                    </div>
+                    <input type="number" name="items[${newIndex}][gst_rate]" class="form-control gst-input" step="0.01" readonly>
                 </td>
                 <td class="text-right">
                     <strong class="row-total">₹0.00</strong>
                 </td>
                 <td>
-                    <button type="button" class="remove-btn" onclick="removeProduct(${index})" title="Remove">
+                    <button type="button" class="remove-btn" onclick="removeProduct(${newIndex})" title="Remove">
                         <i class="fas fa-times"></i>
                     </button>
                 </td>
             </tr>
         `;
+        $('#items-table tbody').append(newRowHtml);
+        updateNoProductsMessage();
+        productIndex++;
+    });
 
-        $('#items-table tbody').append(rowHtml);
-    }
+    // Update product select change handler to use product id instead of name
+    $(document).on('change', '.product-select', function() {
+        var $row = $(this).closest('tr');
+        var productId = $(this).val();
 
-    function getColorBadgeClass(colorName) {
-        const colorClasses = {
-            'black': 'badge-dark',
-            'red': 'badge-danger',
-            'blue': 'badge-primary',
-            'white': 'badge-light',
-            'green': 'badge-success',
-            'yellow': 'badge-warning',
-            'silver': 'badge-secondary',
-            'golden': 'badge-warning',
-            'clear': 'badge-info'
-        };
-        return colorClasses[colorName?.toLowerCase()] || 'badge-secondary';
-    }
-
-    function getStockInfo(quantity) {
-        if (quantity <= 0) {
-            return '<span class="stock-warning">Out of Stock</span>';
-        } else if (quantity <= 10) {
-            return '<span class="stock-low">Stock: ' + quantity + '</span>';
-        } else {
-            return '<span>Stock: ' + quantity + '</span>';
+        if (!productId) {
+            $row.find('.colors-container').empty();
+            $row.find('.price-input').val('');
+            $row.find('.gst-input').val('');
+            $row.find('.row-total').text('₹0.00');
+            updateTotals();
+            return;
         }
-    }
+
+        // Fetch product variants by product id
+        $.get('/api/products/variants/' + productId)
+            .done(function(data) {
+                if (data.variants && data.variants.length > 0) {
+                    // Recreate colors container
+                    var colorsHtml = '';
+                    data.variants.forEach(function(variant, index) {
+                        var colorName = variant.color || 'No Color';
+                        var stockInfo = getStockInfo(variant.quantity);
+                        var colorBadgeClass = getColorBadgeClass(colorName);
+                        colorsHtml += `
+                            <div class="color-item mb-2">
+                                <div class="row align-items-center">
+                                    <div class="col-3">
+                                        <span class="badge ${colorBadgeClass}">${colorName}</span>
+                                    </div>
+                                    <div class="col-3">
+                                        <input type="number" name="items[${$row.data('product-index')}][colors][${index}][quantity]" 
+                                               class="form-control form-control-sm quantity-input" 
+                                               min="0" max="${variant.quantity}" value="0" 
+                                               data-max-stock="${variant.quantity}"
+                                               onchange="validateQuantity(this); updateTotals();"
+                                               placeholder="Qty">
+                                        <input type="hidden" name="items[${$row.data('product-index')}][colors][${index}][product_id]" value="${variant.id}">
+                                    </div>
+                                    <div class="col-6">
+                                        <small class="stock-info">${stockInfo}</small>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                    });
+                    $row.find('.colors-container').html(colorsHtml);
+                    $row.find('.price-input').val(data.variants[0].price);
+                    $row.find('.gst-input').val(data.variants[0].gst_rate);
+                    $row.find('.row-total').text('₹0.00');
+                    updateTotals();
+                }
+            })
+            .fail(function() {
+                alert('Error loading product variants');
+            });
+    });
 
     window.removeProduct = function(index) {
         $(`.product-row[data-product-index="${index}"]`).remove();
@@ -452,6 +459,75 @@ $(document).ready(function() {
             e.preventDefault();
             alert('Please add at least one item with quantity greater than 0');
         }
+    });
+
+    function getColorBadgeClass(colorName) {
+        const colorClasses = {
+            'black': 'badge-dark',
+            'red': 'badge-danger',
+            'blue': 'badge-primary',
+            'white': 'badge-light',
+            'green': 'badge-success',
+            'yellow': 'badge-warning',
+            'silver': 'badge-secondary',
+            'golden': 'badge-warning',
+            'clear': 'badge-info'
+        };
+        return colorClasses[colorName?.toLowerCase()] || 'badge-secondary';
+    }
+
+    function getStockInfo(quantity) {
+        if (quantity <= 0) {
+            return '<span class="stock-warning">Out of Stock</span>';
+        } else if (quantity <= 10) {
+            return '<span class="stock-low">Stock: ' + quantity + '</span>';
+        } else {
+            return '<span>Stock: ' + quantity + '</span>';
+        }
+    }
+
+    // Event handler for category select change to update product dropdown
+    $(document).on('change', '.category-select', function() {
+        var $row = $(this).closest('tr');
+        var categoryId = $(this).val();
+        var $productSelect = $row.find('.product-select');
+
+        if (!categoryId) {
+            $productSelect.html('<option value="">Select Product</option>');
+            $productSelect.prop('disabled', true);
+            $row.find('.colors-container').empty();
+            $row.find('.price-input').val('');
+            $row.find('.gst-input').val('');
+            $row.find('.row-total').text('₹0.00');
+            updateTotals();
+            return;
+        }
+
+        // Fetch products by category
+        $.ajaxSetup({
+            headers: {
+                'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+            }
+        });
+        
+        $.get('/api/products/by-category', { category_id: categoryId })
+            .done(function(products) {
+                var options = '<option value="">Select Product</option>';
+                products.forEach(function(product) {
+                    options += `<option value="${product.id}">${product.name}</option>`;
+                });
+                $productSelect.html(options);
+                $productSelect.prop('disabled', false);
+                $row.find('.colors-container').empty();
+                $row.find('.price-input').val('');
+                $row.find('.gst-input').val('');
+                $row.find('.row-total').text('₹0.00');
+                updateTotals();
+            })
+            .fail(function(xhr, status, error) {
+                console.error('AJAX Error:', xhr.responseText);
+                alert('Error loading products for selected category: ' + error);
+            });
     });
 });
 </script>

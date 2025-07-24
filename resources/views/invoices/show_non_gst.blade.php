@@ -1,10 +1,10 @@
 @extends('layouts.admin')
 
-@section('title', 'Invoice Details')
+@section('title', 'Non-GST Invoice Details')
 
 @section('breadcrumbs')
 <li class="breadcrumb-item"><a href="{{ route('dashboard') }}">Dashboard</a></li>
-<li class="breadcrumb-item"><a href="{{ route('invoices.gst.index') }}">GST Invoices</a></li>
+<li class="breadcrumb-item"><a href="{{ route('invoices.non_gst.index') }}">Non-GST Invoices</a></li>
 <li class="breadcrumb-item active">Details</li>
 @endsection
 
@@ -58,9 +58,7 @@
                         <th>#</th>
                         <th>Category</th>
                         <th>Product</th>
-                        <th>HSN Code</th>
                         <th>Price</th>
-                        <th>GST%</th>
                         <th>Colors & Quantities</th>
                         <th>Subtotal</th>
                     </tr>
@@ -85,9 +83,7 @@
                             @endif
                         </td>
                         <td><strong>{{ $productName }}</strong></td>
-                        <td>{{ $firstItem->product->hsn_code }}</td>
                         <td>₹{{ number_format($firstItem->price, 2) }}</td>
-                        <td>{{ $firstItem->gst_rate }}%</td>
                         <td>
                             <div class="colors-display">
                                 @foreach($items as $item)
@@ -157,14 +153,6 @@
                         <td>₹{{ number_format($invoice->total_amount, 2) }}</td>
                     </tr>
                     <tr>
-                        <th>CGST ({{ $invoice->items->first()->gst_rate / 2 }}%)</th>
-                        <td>₹{{ number_format($invoice->cgst, 2) }}</td>
-                    </tr>
-                    <tr>
-                        <th>SGST ({{ $invoice->items->first()->gst_rate / 2 }}%)</th>
-                        <td>₹{{ number_format($invoice->sgst, 2) }}</td>
-                    </tr>
-                    <tr>
                         <th>Total:</th>
                         <td><strong>₹{{ number_format($invoice->grand_total, 2) }}</strong></td>
                     </tr>
@@ -178,8 +166,8 @@
     <!-- this row will not appear when printing -->
     <div class="row no-print">
         <div class="col-12">
-            <a href="{{ route('invoices.gst.preview', $invoice) }}" rel="noopener" target="_blank" class="btn btn-default"><i class="fas fa-print"></i> Print</a>
-            <a href="{{ route('invoices.gst.download', $invoice) }}" class="btn btn-primary float-right" style="margin-right: 5px;">
+            <a href="{{ route('invoices.non_gst.preview', $invoice) }}" rel="noopener" target="_blank" class="btn btn-default"><i class="fas fa-print"></i> Print</a>
+            <a href="{{ route('invoices.non_gst.download', $invoice) }}" class="btn btn-primary float-right" style="margin-right: 5px;">
                 <i class="fas fa-download"></i> Generate PDF
             </a>
         </div>
