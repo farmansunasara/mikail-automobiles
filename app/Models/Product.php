@@ -48,6 +48,16 @@ class Product extends Model
         return $this->hasMany(InvoiceItem::class);
     }
 
+    public function orderItems(): HasMany
+    {
+        return $this->hasMany(OrderItem::class);
+    }
+
+    public function stockReservations(): HasMany
+    {
+        return $this->hasMany(StockReservation::class);
+    }
+
     // For composite products - components that make up this product
     public function components(): HasMany
     {

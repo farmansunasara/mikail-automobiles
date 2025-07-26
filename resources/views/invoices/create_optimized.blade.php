@@ -50,6 +50,32 @@
     opacity: 0.6;
     pointer-events: none;
 }
+.composite-badge {
+    background-color: #28a745;
+    color: white;
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-size: 0.7em;
+    margin-left: 5px;
+}
+.component-info {
+    background-color: #f8f9fa;
+    border: 1px solid #dee2e6;
+    border-radius: 4px;
+    padding: 8px;
+    margin-top: 5px;
+    font-size: 0.85em;
+}
+.component-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 2px 0;
+}
+.component-stock-warning {
+    color: #dc3545;
+    font-weight: bold;
+}
 </style>
 @endpush
 
@@ -291,7 +317,8 @@ $(document).ready(function() {
             .done(function(products) {
                 let options = '<option value="">Select Product</option>';
                 products.forEach(function(product) {
-                    options += `<option value="${product.id}">${product.name}</option>`;
+                    const compositeBadge = product.is_composite ? '<span class="composite-badge">Composite</span>' : '';
+                    options += `<option value="${product.id}" data-is-composite="${product.is_composite}">${product.name}${compositeBadge}</option>`;
                 });
                 $productSelect.html(options).prop('disabled', false);
             })
@@ -340,10 +367,12 @@ $(document).ready(function() {
             const colorName = variant.color || 'Default';
             const stockClass = getStockClass(variant.quantity);
             const colorStyle = getColorStyle(colorName);
+            const isComposite = variant.is_composite;
             
             html += `
                 <div class="color-item">
                     <div class="color-badge" style="${colorStyle}">${colorName}</div>
+                    ${isComposite ? '<span class="composite-badge">Composite</span>' : ''}
                     <input type="number" 
                            name="items[${index}][variants][${variantIndex}][quantity]" 
                            class="form-control quantity-input" 
@@ -351,11 +380,34 @@ $(document).ready(function() {
                            max="${variant.quantity}" 
                            value="0" 
                            placeholder="Qty"
-                           onchange="updateTotals()">
+                           onchange="updateTotals()"
+                           data-is-composite="${isComposite}">
                     <input type="hidden" name="items[${index}][variants][${variantIndex}][product_id]" value="${variant.id}">
                     <div class="stock-info ${stockClass}">Stock: ${variant.quantity}</div>
                 </div>
             `;
+            
+            // Add component information for composite products
+            if (isComposite && variant.components && variant.components.length > 0) {
+                html += `
+                    <div class="component-info">
+                        <strong>Components:</strong>
+                        <div class="mt-1">
+                `;
+                variant.components.forEach(function(component) {
+                    const componentStockClass = getStockClass(component.component_product.quantity);
+                    html += `
+                        <div class="component-item">
+                            <span>${component.component_product.name} (${component.quantity_needed} pcs each)</span>
+                            <span class="stock-info ${componentStockClass}">Stock: ${component.component_product.quantity}</span>
+                        </div>
+                    `;
+                });
+                html += `
+                        </div>
+                    </div>
+                `;
+            }
         });
         
         $row.find('.colors-container').html(html);

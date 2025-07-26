@@ -59,8 +59,7 @@ class InvoiceController extends Controller
     {
         $customers = Customer::orderBy('name')->get();
         $categories = \App\Models\Category::orderBy('name')->get();
-        $productNames = Product::where('is_composite', false)
-            ->select('name')
+        $productNames = Product::select('name')
             ->distinct()
             ->orderBy('name')
             ->pluck('name');
@@ -209,8 +208,7 @@ class InvoiceController extends Controller
     {
         $customers = Customer::orderBy('name')->get();
         $categories = \App\Models\Category::orderBy('name')->get();
-        $productNames = Product::where('is_composite', false)
-            ->select('name')
+        $productNames = Product::select('name')
             ->distinct()
             ->orderBy('name')
             ->pluck('name');
