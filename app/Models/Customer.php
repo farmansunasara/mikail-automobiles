@@ -21,6 +21,11 @@ class Customer extends Model
         return $this->hasMany(Invoice::class);
     }
 
+    public function orders(): HasMany
+    {
+        return $this->hasMany(Order::class);
+    }
+
     public function getFormattedAddressAttribute(): string
     {
         return $this->address . ', ' . $this->state;

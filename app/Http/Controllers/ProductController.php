@@ -55,9 +55,8 @@ class ProductController extends Controller
         ]);
 
         $products = Product::where('category_id', $request->category_id)
-            ->where('is_composite', false)
             ->orderBy('name')
-            ->get(['id', 'name']);
+            ->get(['id', 'name', 'is_composite']);
 
         return response()->json($products);
     }
@@ -254,11 +253,10 @@ class ProductController extends Controller
         }
 
         $variants = Product::where('name', $productName)
-            ->where('is_composite', false)
-            ->with(['category', 'subcategory'])
+            ->with(['category', 'subcategory', 'components.componentProduct'])
             ->orderBy('category_id')
             ->orderBy('color')
-            ->get(['id', 'name', 'color', 'quantity', 'price', 'gst_rate', 'hsn_code', 'category_id', 'subcategory_id']);
+            ->get(['id', 'name', 'color', 'quantity', 'price', 'gst_rate', 'hsn_code', 'category_id', 'subcategory_id', 'is_composite']);
 
         // Group variants by category
         $groupedVariants = $variants->groupBy('category.name');

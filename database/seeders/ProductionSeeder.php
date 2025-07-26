@@ -10,10 +10,10 @@ use App\Models\Customer;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
 
-class DatabaseSeeder extends Seeder
+class ProductionSeeder extends Seeder
 {
     /**
-     * Seed the application's database.
+     * Seed the application's database for production.
      */
     public function run(): void
     {
@@ -40,32 +40,23 @@ class DatabaseSeeder extends Seeder
 
         // Create subcategories
         $subcategories = [
-            // Honda Activa 6G subcategories
             ['category_id' => 1, 'name' => 'Electrical'],
             ['category_id' => 1, 'name' => 'Body Parts'],
             ['category_id' => 1, 'name' => 'Engine Parts'],
             ['category_id' => 1, 'name' => 'Brake System'],
             ['category_id' => 1, 'name' => 'Suspension'],
-            
-            // Honda Activa 5G subcategories
             ['category_id' => 2, 'name' => 'Electrical'],
             ['category_id' => 2, 'name' => 'Body Parts'],
             ['category_id' => 2, 'name' => 'Engine Parts'],
             ['category_id' => 2, 'name' => 'Brake System'],
-            
-            // TVS Jupiter subcategories
             ['category_id' => 3, 'name' => 'Electrical'],
             ['category_id' => 3, 'name' => 'Body Parts'],
             ['category_id' => 3, 'name' => 'Engine Parts'],
             ['category_id' => 3, 'name' => 'Transmission'],
-            
-            // Bajaj Pulsar subcategories
             ['category_id' => 4, 'name' => 'Electrical'],
             ['category_id' => 4, 'name' => 'Body Parts'],
             ['category_id' => 4, 'name' => 'Engine Parts'],
             ['category_id' => 4, 'name' => 'Fuel System'],
-            
-            // Hero Splendor subcategories
             ['category_id' => 5, 'name' => 'Electrical'],
             ['category_id' => 5, 'name' => 'Body Parts'],
             ['category_id' => 5, 'name' => 'Engine Parts'],
@@ -133,61 +124,6 @@ class DatabaseSeeder extends Seeder
                 'gst_rate' => 28.00,
                 'is_composite' => false,
             ],
-            [
-                'name' => 'Air Filter',
-                'category_id' => 1,
-                'subcategory_id' => 3,
-                'color' => 'White',
-                'quantity' => 100,
-                'price' => 180.00,
-                'hsn_code' => '84213100',
-                'gst_rate' => 18.00,
-                'is_composite' => false,
-            ],
-            [
-                'name' => 'Spark Plug',
-                'category_id' => 1,
-                'subcategory_id' => 3,
-                'color' => 'Silver',
-                'quantity' => 200,
-                'price' => 120.00,
-                'hsn_code' => '85111000',
-                'gst_rate' => 18.00,
-                'is_composite' => false,
-            ],
-            [
-                'name' => 'Engine Oil',
-                'category_id' => 1,
-                'subcategory_id' => 3,
-                'color' => 'Golden',
-                'quantity' => 80,
-                'price' => 350.00,
-                'hsn_code' => '27101981',
-                'gst_rate' => 28.00,
-                'is_composite' => false,
-            ],
-            [
-                'name' => 'Brake Pad Set',
-                'category_id' => 1,
-                'subcategory_id' => 4,
-                'color' => 'Black',
-                'quantity' => 60,
-                'price' => 280.00,
-                'hsn_code' => '87089900',
-                'gst_rate' => 28.00,
-                'is_composite' => false,
-            ],
-            [
-                'name' => 'Chain Set',
-                'category_id' => 1,
-                'subcategory_id' => 3,
-                'color' => 'Silver',
-                'quantity' => 40,
-                'price' => 650.00,
-                'hsn_code' => '87149900',
-                'gst_rate' => 28.00,
-                'is_composite' => false,
-            ],
         ];
 
         foreach ($products as $productData) {
@@ -219,22 +155,6 @@ class DatabaseSeeder extends Seeder
                 'state' => 'Gujarat',
                 'gstin' => '24LMNOP9012Q3B7',
                 'email' => 'amit.patel@email.com',
-            ],
-            [
-                'name' => 'Sunita Singh',
-                'mobile' => '9876543213',
-                'address' => '321, Civil Lines, Delhi',
-                'state' => 'Delhi',
-                'gstin' => '07RSTUV3456W4C8',
-                'email' => 'sunita.singh@email.com',
-            ],
-            [
-                'name' => 'Vikram Motors',
-                'mobile' => '9876543214',
-                'address' => '654, Industrial Area, Chennai',
-                'state' => 'Tamil Nadu',
-                'gstin' => '33XYZAB7890D5E9',
-                'email' => 'info@vikrammotors.com',
             ],
         ];
 
