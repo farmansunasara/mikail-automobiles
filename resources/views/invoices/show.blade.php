@@ -94,7 +94,11 @@
                                 <div class="color-item mb-1">
                                     <div class="row align-items-center">
                                         <div class="col-4">
-                                            @if($item->product->color)
+                                            @if($item->colorVariant)
+                                                <span class="badge" style="background-color: {{ \App\Helpers\ColorHelper::getColorCode($item->colorVariant->color) }}; color: {{ \App\Helpers\ColorHelper::getTextColor($item->colorVariant->color) }};">
+                                                    {{ $item->colorVariant->color }}
+                                                </span>
+                                            @elseif($item->product->color)
                                                 @php
                                                     $colorClass = match(strtolower($item->product->color)) {
                                                         'black' => 'badge-dark',

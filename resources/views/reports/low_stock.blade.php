@@ -34,35 +34,31 @@
                     </tr>
                 </thead>
                 <tbody>
-                    @forelse($lowStockProducts as $product)
+                    @forelse($lowStockVariants as $variant)
                     <tr>
-                        <td>{{ $product->id }}</td>
-                        <td><a href="{{ route('products.show', $product) }}">{{ $product->name }}</a></td>
+                        <td>{{ $variant->id }}</td>
+                        <td><a href="{{ route('products.show', $variant->product) }}">{{ $variant->product->name }}</a></td>
                         <td>
-                            @if($product->color)
-                                <span class="badge" style="background-color: {{ \App\Helpers\ColorHelper::getColorCode($product->color) }}; color: {{ \App\Helpers\ColorHelper::getTextColor($product->color) }};">
-                                    {{ $product->color }}
-                                </span>
-                            @else
-                                <span class="badge badge-secondary">N/A</span>
-                            @endif
+                            <span class="badge" style="background-color: {{ \App\Helpers\ColorHelper::getColorCode($variant->color) }}; color: {{ \App\Helpers\ColorHelper::getTextColor($variant->color) }};">
+                                {{ $variant->color }}
+                            </span>
                         </td>
-                        <td>{{ $product->category->name }}</td>
-                        <td><span class="badge badge-danger">{{ $product->quantity }}</span></td>
+                        <td>{{ $variant->product->category->name }}</td>
+                        <td><span class="badge badge-danger">{{ $variant->quantity }}</span></td>
                         <td>
                             <a href="{{ route('stock.index') }}" class="btn btn-sm btn-success">Update Stock</a>
                         </td>
                     </tr>
                     @empty
                     <tr>
-                        <td colspan="6" class="text-center">No products are below the stock threshold.</td>
+                        <td colspan="6" class="text-center">No color variants are below the stock threshold.</td>
                     </tr>
                     @endforelse
                 </tbody>
             </table>
         </div>
         <div class="mt-3">
-            {{ $lowStockProducts->links() }}
+            {{ $lowStockVariants->links() }}
         </div>
     </div>
 </div>

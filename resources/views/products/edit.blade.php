@@ -22,13 +22,15 @@
                     <div class="form-group">
                         <label for="name">Product Name</label>
                         <input type="text" name="name" id="name" class="form-control @error('name') is-invalid @enderror" value="{{ old('name', $product->name) }}" required>
+                        <small class="form-text text-muted">You can use the same product name with different colors to create variants.</small>
                         @error('name') <span class="invalid-feedback">{{ $message }}</span> @enderror
                     </div>
                 </div>
                 <div class="col-md-6">
                     <div class="form-group">
                         <label for="color">Color</label>
-                        <input type="text" name="color" id="color" class="form-control @error('color') is-invalid @enderror" value="{{ old('color', $product->color) }}">
+                        <input type="text" name="color" id="color" class="form-control @error('color') is-invalid @enderror" value="{{ old('color', $product->color) }}" placeholder="e.g., Red, Blue, Black">
+                        <small class="form-text text-muted">Optional. Leave empty if product has no specific color.</small>
                         @error('color') <span class="invalid-feedback">{{ $message }}</span> @enderror
                     </div>
                 </div>

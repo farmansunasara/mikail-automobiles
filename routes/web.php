@@ -38,7 +38,9 @@ Route::middleware('auth')->group(function () {
     Route::get('/api/products/{product}/components', [ProductController::class, 'getComponents'])->name('api.products.components');
     Route::get('/api/products/{product}/stock', [ProductController::class, 'getStock'])->name('api.products.stock');
     Route::get('/api/products/variants/{productName}', [ProductController::class, 'getProductVariants'])->name('api.products.variants');
+    Route::get('/api/products/{product}/color-variants', [StockController::class, 'getProductColorVariants'])->name('api.products.color-variants');
     Route::get('/api/products/by-category', [ProductController::class, 'getProductsByCategory'])->name('api.products.by-category');
+    Route::get('/api/products/by-category-components', [ProductController::class, 'getProductsByCategoryForComponents'])->name('api.products.by-category-components');
     
     // Stock Management
     Route::get('/stock', [StockController::class, 'index'])->name('stock.index');

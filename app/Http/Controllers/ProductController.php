@@ -17,7 +17,7 @@ class ProductController extends Controller
      */
     public function index(Request $request)
     {
-        $query = Product::with('category', 'subcategory');
+        $query = Product::with(['category', 'subcategory', 'colorVariants']);
 
         if ($request->filled('search')) {
             $query->where('name', 'like', '%' . $request->search . '%');
@@ -29,16 +29,16 @@ class ProductController extends Controller
             $query->where('subcategory_id', $request->subcategory_id);
         }
         if ($request->filled('color')) {
-            $query->where('color', 'like', '%' . $request->color . '%');
+            $query->whereHas('colorVariants', function($q) use ($request) {
+                $q->where('color', 'like', '%' . $request->color . '%');
+            });
         }
 
         $products = $query->latest()->paginate(10);
         $categories = Category::all();
         
-        // Get unique colors for filter dropdown
-        $colors = Product::whereNotNull('color')
-            ->where('color', '!=', '')
-            ->distinct()
+        // Get unique colors for filter dropdown from color variants
+        $colors = \App\Models\ProductColorVariant::distinct()
             ->pluck('color')
             ->sort();
 
@@ -62,13 +62,30 @@ class ProductController extends Controller
     }
 
     /**
+     * Get products by category for composite product components
+     */
+    public function getProductsByCategoryForComponents(Request $request)
+    {
+        $request->validate([
+            'category_id' => 'required|exists:categories,id',
+        ]);
+
+        // Only return simple (non-composite) products for use as components
+        $products = Product::where('category_id', $request->category_id)
+            ->where('is_composite', false)
+            ->orderBy('name')
+            ->get(['id', 'name', 'is_composite']);
+
+        return response()->json($products);
+    }
+
+    /**
      * Show the form for creating a new resource.
      */
     public function create()
     {
         $categories = Category::all();
-        $products = Product::where('is_composite', false)->get();
-        return view('products.create', compact('categories', 'products'));
+        return view('products.create_with_color_variants', compact('categories'));
     }
 
     /**
@@ -77,30 +94,57 @@ class ProductController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'name' => 'required|string|max:255|unique:products,name',
+            'name' => [
+                'required',
+                'string',
+                'max:255',
+                Rule::unique('products')->where(function ($query) use ($request) {
+                    return $query->where('name', $request->name)
+                                ->where('category_id', $request->category_id)
+                                ->where('subcategory_id', $request->subcategory_id);
+                })
+            ],
             'category_id' => 'required|exists:categories,id',
             'subcategory_id' => 'required|exists:subcategories,id',
-            'color' => 'nullable|string|max:100',
             'price' => 'required|numeric|min:0',
-            'quantity' => 'required|integer|min:0',
             'hsn_code' => 'nullable|string|max:50',
             'gst_rate' => 'required|numeric|min:0',
             'is_composite' => 'boolean',
             'components' => 'nullable|array',
             'components.*.component_product_id' => 'required_if:is_composite,1|exists:products,id',
             'components.*.quantity_needed' => 'required_if:is_composite,1|integer|min:1',
+            'color_variants' => 'required|array|min:1',
+            'color_variants.*.color' => 'required|string|max:100',
+            'color_variants.*.quantity' => 'required|integer|min:0',
         ]);
 
         DB::transaction(function () use ($request) {
-            $productData = $request->except('components');
+            $productData = $request->except(['components', 'color_variants']);
             
             // Handle empty HSN code
             if (empty($productData['hsn_code'])) {
                 $productData['hsn_code'] = null;
             }
             
+            // Set default values for legacy fields
+            $productData['color'] = null;
+            $productData['quantity'] = 0;
+            
             $product = Product::create($productData);
 
+            // Create color variants
+            if ($request->has('color_variants')) {
+                foreach ($request->color_variants as $variant) {
+                    if (!empty($variant['color']) && $variant['quantity'] >= 0) {
+                        $product->colorVariants()->create([
+                            'color' => $variant['color'],
+                            'quantity' => $variant['quantity']
+                        ]);
+                    }
+                }
+            }
+
+            // Handle composite product components
             if ($request->boolean('is_composite') && $request->has('components')) {
                 foreach ($request->components as $componentData) {
                     $product->components()->create($componentData);
@@ -116,7 +160,7 @@ class ProductController extends Controller
      */
     public function show(Product $product)
     {
-        $product->load('category', 'subcategory', 'components.componentProduct');
+        $product->load('category', 'subcategory', 'components.componentProduct', 'colorVariants');
         return view('products.show', compact('product'));
     }
 
@@ -139,30 +183,58 @@ class ProductController extends Controller
     public function update(Request $request, Product $product)
     {
         $request->validate([
-            'name' => ['required','string','max:255',Rule::unique('products')->ignore($product->id)],
+            'name' => [
+                'required',
+                'string',
+                'max:255',
+                Rule::unique('products')->where(function ($query) use ($request) {
+                    return $query->where('name', $request->name)
+                                ->where('category_id', $request->category_id)
+                                ->where('subcategory_id', $request->subcategory_id);
+                })->ignore($product->id)
+            ],
             'category_id' => 'required|exists:categories,id',
             'subcategory_id' => 'required|exists:subcategories,id',
-            'color' => 'nullable|string|max:100',
             'price' => 'required|numeric|min:0',
-            'quantity' => 'required|integer|min:0',
             'hsn_code' => 'nullable|string|max:50',
             'gst_rate' => 'required|numeric|min:0',
             'is_composite' => 'boolean',
             'components' => 'nullable|array',
             'components.*.component_product_id' => 'required_if:is_composite,1|exists:products,id',
             'components.*.quantity_needed' => 'required_if:is_composite,1|integer|min:1',
+            'color_variants' => 'required|array|min:1',
+            'color_variants.*.color' => 'required|string|max:100',
+            'color_variants.*.quantity' => 'required|integer|min:0',
         ]);
 
         DB::transaction(function () use ($request, $product) {
-            $productData = $request->except('components');
+            $productData = $request->except(['components', 'color_variants']);
             
             // Handle empty HSN code
             if (empty($productData['hsn_code'])) {
                 $productData['hsn_code'] = null;
             }
             
+            // Set default values for legacy fields
+            $productData['color'] = null;
+            $productData['quantity'] = 0;
+            
             $product->update($productData);
 
+            // Update color variants
+            $product->colorVariants()->delete();
+            if ($request->has('color_variants')) {
+                foreach ($request->color_variants as $variant) {
+                    if (!empty($variant['color']) && $variant['quantity'] >= 0) {
+                        $product->colorVariants()->create([
+                            'color' => $variant['color'],
+                            'quantity' => $variant['quantity']
+                        ]);
+                    }
+                }
+            }
+
+            // Update components
             $product->components()->delete();
             if ($request->boolean('is_composite') && $request->has('components')) {
                 foreach ($request->components as $componentData) {
@@ -241,33 +313,139 @@ class ProductController extends Controller
     {
         // Check if identifier is numeric (product ID) or string (product name)
         if (is_numeric($identifier)) {
-            // Get by product ID - return all variants of the same product name
+            // Get by product ID - return all color variants of this product
             $product = Product::find($identifier);
             if (!$product) {
                 return response()->json(['error' => 'Product not found'], 404);
             }
-            $productName = $product->name;
+            
+            // Get color variants for this specific product
+            $colorVariants = $product->colorVariants()
+                ->orderBy('color')
+                ->get();
+            
+            $variants = [];
+            foreach ($colorVariants as $variant) {
+                $variantData = [
+                    'id' => $variant->id,
+                    'product_id' => $product->id,
+                    'name' => $product->name,
+                    'color' => $variant->color,
+                    'quantity' => $variant->quantity,
+                    'price' => $product->price,
+                    'gst_rate' => $product->gst_rate,
+                    'hsn_code' => $product->hsn_code,
+                    'category_id' => $product->category_id,
+                    'subcategory_id' => $product->subcategory_id,
+                    'is_composite' => $product->is_composite,
+                    'category' => $product->category,
+                    'subcategory' => $product->subcategory,
+                ];
+                
+                // For composite products, add component information and calculate available quantity
+                if ($product->is_composite) {
+                    $components = $product->components()->with('componentProduct.colorVariants')->get();
+                    $variantData['components'] = $components->map(function($component) {
+                        return [
+                            'id' => $component->id,
+                            'quantity_needed' => $component->quantity_needed,
+                            'component_product' => [
+                                'id' => $component->componentProduct->id,
+                                'name' => $component->componentProduct->name,
+                                'quantity' => $component->componentProduct->colorVariants->sum('quantity'), // Total stock across all colors
+                            ]
+                        ];
+                    });
+                    
+                    // Calculate how many composite products can be made based on component availability
+                    $maxAssembly = PHP_INT_MAX;
+                    foreach ($components as $component) {
+                        $componentTotalStock = $component->componentProduct->colorVariants->sum('quantity');
+                        $possibleAssembly = floor($componentTotalStock / $component->quantity_needed);
+                        $maxAssembly = min($maxAssembly, $possibleAssembly);
+                    }
+                    
+                    // For composite products, show the minimum of stored quantity and what can be assembled
+                    $variantData['quantity'] = min($variant->quantity, $maxAssembly === PHP_INT_MAX ? 0 : $maxAssembly);
+                }
+                
+                $variants[] = $variantData;
+            }
+            
+            return response()->json([
+                'product_name' => $product->name,
+                'variants' => $variants,
+                'has_variants' => count($variants) > 1,
+                'total_stock' => collect($variants)->sum('quantity')
+            ]);
+            
         } else {
-            // Get by product name
-            $productName = $identifier;
+            // Get by product name - return all products with this name across categories
+            $products = Product::where('name', $identifier)
+                ->with(['category', 'subcategory', 'colorVariants', 'components.componentProduct.colorVariants'])
+                ->orderBy('category_id')
+                ->get();
+
+            $allVariants = [];
+            foreach ($products as $product) {
+                foreach ($product->colorVariants as $variant) {
+                    $variantData = [
+                        'id' => $variant->id,
+                        'product_id' => $product->id,
+                        'name' => $product->name,
+                        'color' => $variant->color,
+                        'quantity' => $variant->quantity,
+                        'price' => $product->price,
+                        'gst_rate' => $product->gst_rate,
+                        'hsn_code' => $product->hsn_code,
+                        'category_id' => $product->category_id,
+                        'subcategory_id' => $product->subcategory_id,
+                        'is_composite' => $product->is_composite,
+                        'category' => $product->category,
+                        'subcategory' => $product->subcategory,
+                    ];
+                    
+                    // For composite products, add component information and calculate available quantity
+                    if ($product->is_composite) {
+                        $components = $product->components;
+                        $variantData['components'] = $components->map(function($component) {
+                            return [
+                                'id' => $component->id,
+                                'quantity_needed' => $component->quantity_needed,
+                                'component_product' => [
+                                    'id' => $component->componentProduct->id,
+                                    'name' => $component->componentProduct->name,
+                                    'quantity' => $component->componentProduct->colorVariants->sum('quantity'),
+                                ]
+                            ];
+                        });
+                        
+                        // Calculate how many composite products can be made
+                        $maxAssembly = PHP_INT_MAX;
+                        foreach ($components as $component) {
+                            $componentTotalStock = $component->componentProduct->colorVariants->sum('quantity');
+                            $possibleAssembly = floor($componentTotalStock / $component->quantity_needed);
+                            $maxAssembly = min($maxAssembly, $possibleAssembly);
+                        }
+                        
+                        $variantData['quantity'] = min($variant->quantity, $maxAssembly === PHP_INT_MAX ? 0 : $maxAssembly);
+                    }
+                    
+                    $allVariants[] = $variantData;
+                }
+            }
+
+            // Group variants by category
+            $groupedVariants = collect($allVariants)->groupBy('category.name');
+
+            return response()->json([
+                'product_name' => $identifier,
+                'variants' => $allVariants,
+                'grouped_variants' => $groupedVariants,
+                'has_variants' => count($allVariants) > 1,
+                'has_multiple_categories' => $groupedVariants->count() > 1,
+                'total_stock' => collect($allVariants)->sum('quantity')
+            ]);
         }
-
-        $variants = Product::where('name', $productName)
-            ->with(['category', 'subcategory', 'components.componentProduct'])
-            ->orderBy('category_id')
-            ->orderBy('color')
-            ->get(['id', 'name', 'color', 'quantity', 'price', 'gst_rate', 'hsn_code', 'category_id', 'subcategory_id', 'is_composite']);
-
-        // Group variants by category
-        $groupedVariants = $variants->groupBy('category.name');
-
-        return response()->json([
-            'product_name' => $productName,
-            'variants' => $variants,
-            'grouped_variants' => $groupedVariants,
-            'has_variants' => $variants->count() > 1,
-            'has_multiple_categories' => $groupedVariants->count() > 1,
-            'total_stock' => $variants->sum('quantity')
-        ]);
     }
 }

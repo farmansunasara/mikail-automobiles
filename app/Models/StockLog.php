@@ -9,6 +9,7 @@ class StockLog extends Model
 {
     protected $fillable = [
         'product_id',
+        'color_variant_id',
         'change_type',
         'quantity',
         'previous_quantity',
@@ -24,6 +25,11 @@ class StockLog extends Model
     public function product(): BelongsTo
     {
         return $this->belongsTo(Product::class);
+    }
+
+    public function colorVariant(): BelongsTo
+    {
+        return $this->belongsTo(ProductColorVariant::class, 'color_variant_id');
     }
 
     public function scopeInward($query)

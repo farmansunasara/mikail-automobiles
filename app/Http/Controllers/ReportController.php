@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Product;
+use App\Models\ProductColorVariant;
 use App\Models\Invoice;
 use App\Models\StockLog;
 use Illuminate\Http\Request;
@@ -25,12 +26,14 @@ class ReportController extends Controller
     public function lowStock(Request $request)
     {
         $threshold = $request->input('threshold', 10);
-        $lowStockProducts = Product::with('category', 'subcategory')
+        
+        // Get color variants with low stock
+        $lowStockVariants = ProductColorVariant::with(['product.category', 'product.subcategory'])
             ->where('quantity', '<', $threshold)
             ->orderBy('quantity', 'asc')
             ->paginate(20);
 
-        return view('reports.low_stock', compact('lowStockProducts', 'threshold'));
+        return view('reports.low_stock', compact('lowStockVariants', 'threshold'));
     }
 
     /**
@@ -38,20 +41,27 @@ class ReportController extends Controller
      */
     public function stockReport(Request $request)
     {
-        $query = Product::with('category', 'subcategory');
+        $query = ProductColorVariant::with(['product.category', 'product.subcategory']);
 
         if ($request->filled('category_id')) {
-            $query->where('category_id', $request->category_id);
+            $query->whereHas('product', function($q) use ($request) {
+                $q->where('category_id', $request->category_id);
+            });
         }
 
-        $stockReport = $query->orderBy('name')->paginate(20);
+        $stockReport = $query->orderBy('color')->paginate(20);
         
-        // FIXED: Using selectRaw instead of DB::raw for security
-        $totalValue = Product::selectRaw('SUM(quantity * price) as total_value')
-                            ->when($request->filled('category_id'), function($q) use ($request) {
-                                return $q->where('category_id', $request->category_id);
-                            })
-                            ->value('total_value') ?? 0;
+        // Calculate total value from color variants
+        $totalValue = ProductColorVariant::with('product')
+            ->when($request->filled('category_id'), function($q) use ($request) {
+                return $q->whereHas('product', function($subQ) use ($request) {
+                    $subQ->where('category_id', $request->category_id);
+                });
+            })
+            ->get()
+            ->sum(function($variant) {
+                return $variant->quantity * $variant->product->price;
+            });
 
         return view('reports.stock_report', compact('stockReport', 'totalValue'));
     }
@@ -61,7 +71,7 @@ class ReportController extends Controller
      */
     public function productMovement(Request $request)
     {
-        $query = StockLog::with('product');
+        $query = StockLog::with(['product', 'colorVariant']);
 
         if ($request->filled('product_id')) {
             $query->where('product_id', $request->product_id);

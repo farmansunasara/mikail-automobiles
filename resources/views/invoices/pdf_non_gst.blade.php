@@ -79,7 +79,7 @@
                     <td>
                         @foreach($items as $item)
                         <div style="margin-bottom: 3px;">
-                            <strong>{{ $item->product->color ?? 'No Color' }}:</strong> {{ $item->quantity }} 
+                            <strong>{{ $item->colorVariant ? $item->colorVariant->color : ($item->product->color ?? 'No Color') }}:</strong> {{ $item->quantity }} 
                             <span style="font-size: 10px; color: #666;">(Rs.{{ number_format($item->subtotal, 2) }})</span>
                         </div>
                         @endforeach

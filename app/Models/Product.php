@@ -58,6 +58,11 @@ class Product extends Model
         return $this->hasMany(StockReservation::class);
     }
 
+    public function colorVariants(): HasMany
+    {
+        return $this->hasMany(ProductColorVariant::class);
+    }
+
     // For composite products - components that make up this product
     public function components(): HasMany
     {
@@ -99,5 +104,56 @@ class Product extends Model
         }
 
         return true;
+    }
+
+    // Scope to find products by name regardless of color
+    public function scopeByName($query, $name)
+    {
+        return $query->where('name', $name);
+    }
+
+    // Scope to find color variants of a product
+    public function scopeColorVariants($query, $name)
+    {
+        return $query->where('name', $name)->orderBy('color');
+    }
+
+    // Get display name with color
+    public function getDisplayNameAttribute(): string
+    {
+        return $this->color ? "{$this->name} ({$this->color})" : $this->name;
+    }
+
+    // Get total stock across all color variants
+    public function getTotalColorVariantStock(): int
+    {
+        return $this->colorVariants()->sum('quantity');
+    }
+
+    // Check if product has color variants
+    public function hasColorVariants(): bool
+    {
+        return $this->colorVariants()->exists();
+    }
+
+    // Get color variant by color name
+    public function getColorVariant(string $color): ?ProductColorVariant
+    {
+        return $this->colorVariants()->where('color', $color)->first();
+    }
+
+    // Create or update color variant
+    public function updateColorVariant(string $color, int $quantity): ProductColorVariant
+    {
+        return $this->colorVariants()->updateOrCreate(
+            ['color' => $color],
+            ['quantity' => $quantity]
+        );
+    }
+
+    // Get total stock across all variants (legacy support)
+    public function getTotalStockAcrossVariants(): int
+    {
+        return $this->hasColorVariants() ? $this->getTotalColorVariantStock() : $this->quantity;
     }
 }

@@ -26,10 +26,40 @@
                             <dd>{{ $product->category->name }}</dd>
                             <dt>Subcategory</dt>
                             <dd>{{ $product->subcategory->name }}</dd>
-                            <dt>Color</dt>
-                            <dd>{{ $product->color ?? 'N/A' }}</dd>
-                            <dt>Quantity in Stock</dt>
-                            <dd>{{ $product->quantity }}</dd>
+                            <dt>Color Variants</dt>
+                            <dd>
+                                @if($product->colorVariants->count() > 0)
+                                    <div class="color-variants-display">
+                                        @foreach($product->colorVariants as $variant)
+                                            @php
+                                                $colorClass = match(strtolower($variant->color)) {
+                                                    'black' => 'badge-dark',
+                                                    'white' => 'badge-light text-dark',
+                                                    'red' => 'badge-danger',
+                                                    'blue' => 'badge-primary',
+                                                    'green' => 'badge-success',
+                                                    'yellow' => 'badge-warning text-dark',
+                                                    'orange' => 'badge-warning',
+                                                    'purple' => 'badge-info',
+                                                    'pink' => 'badge-info',
+                                                    'brown' => 'badge-secondary',
+                                                    'gray', 'grey' => 'badge-secondary',
+                                                    'silver' => 'badge-light text-dark',
+                                                    'gold', 'golden' => 'badge-warning text-dark',
+                                                    default => 'badge-secondary'
+                                                };
+                                            @endphp
+                                            <span class="badge {{ $colorClass }} mr-2 mb-1">
+                                                {{ ucfirst($variant->color) }}: {{ $variant->quantity }} pcs
+                                            </span>
+                                        @endforeach
+                                    </div>
+                                @else
+                                    <span class="text-muted">No color variants</span>
+                                @endif
+                            </dd>
+                            <dt>Total Quantity in Stock</dt>
+                            <dd><strong>{{ $product->colorVariants->sum('quantity') }} pcs</strong></dd>
                         </dl>
                     </div>
                     <div class="col-md-6">

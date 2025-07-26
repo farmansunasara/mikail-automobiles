@@ -45,27 +45,23 @@
                     </tr>
                 </thead>
                 <tbody>
-                    @forelse($stockReport as $product)
+                    @forelse($stockReport as $variant)
                     <tr>
-                        <td>{{ $product->id }}</td>
-                        <td><a href="{{ route('products.show', $product) }}">{{ $product->name }}</a></td>
+                        <td>{{ $variant->id }}</td>
+                        <td><a href="{{ route('products.show', $variant->product) }}">{{ $variant->product->name }}</a></td>
                         <td>
-                            @if($product->color)
-                                <span class="badge" style="background-color: {{ \App\Helpers\ColorHelper::getColorCode($product->color) }}; color: {{ \App\Helpers\ColorHelper::getTextColor($product->color) }};">
-                                    {{ $product->color }}
-                                </span>
-                            @else
-                                <span class="badge badge-secondary">N/A</span>
-                            @endif
+                            <span class="badge" style="background-color: {{ \App\Helpers\ColorHelper::getColorCode($variant->color) }}; color: {{ \App\Helpers\ColorHelper::getTextColor($variant->color) }};">
+                                {{ $variant->color }}
+                            </span>
                         </td>
-                        <td>{{ $product->category->name }}</td>
-                        <td>{{ $product->quantity }}</td>
-                        <td>₹{{ number_format($product->price, 2) }}</td>
-                        <td>₹{{ number_format($product->quantity * $product->price, 2) }}</td>
+                        <td>{{ $variant->product->category->name }}</td>
+                        <td>{{ $variant->quantity }}</td>
+                        <td>₹{{ number_format($variant->product->price, 2) }}</td>
+                        <td>₹{{ number_format($variant->quantity * $variant->product->price, 2) }}</td>
                     </tr>
                     @empty
                     <tr>
-                        <td colspan="7" class="text-center">No products found.</td>
+                        <td colspan="7" class="text-center">No color variants found.</td>
                     </tr>
                     @endforelse
                 </tbody>
