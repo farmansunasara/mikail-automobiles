@@ -54,7 +54,11 @@
                         <td>{{ $log->created_at->format('d M, Y H:i A') }}</td>
                         <td><a href="{{ route('products.show', $log->product) }}">{{ $log->product->name }}</a></td>
                         <td>
-                            @if($log->product->color)
+                            @if($log->colorVariant)
+                                <span class="badge" style="background-color: {{ \App\Helpers\ColorHelper::getColorCode($log->colorVariant->color) }}; color: {{ \App\Helpers\ColorHelper::getTextColor($log->colorVariant->color) }};">
+                                    {{ $log->colorVariant->color }}
+                                </span>
+                            @elseif($log->product->color)
                                 <span class="badge" style="background-color: {{ \App\Helpers\ColorHelper::getColorCode($log->product->color) }}; color: {{ \App\Helpers\ColorHelper::getTextColor($log->product->color) }};">
                                     {{ $log->product->color }}
                                 </span>
@@ -68,7 +72,7 @@
                             </span>
                         </td>
                         <td>{{ $log->quantity }}</td>
-                        <td>{{ $log->notes ?? 'N/A' }}</td>
+                        <td>{{ $log->remarks ?? 'N/A' }}</td>
                     </tr>
                     @empty
                     <tr>

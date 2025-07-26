@@ -61,8 +61,8 @@
                         <th>Name</th>
                         <th>Category</th>
                         <th>Subcategory</th>
-                        <th>Color</th>
-                        <th>Qty</th>
+                        <th>Colors & Quantities</th>
+                        <th>Total Qty</th>
                         <th>Price</th>
                         <th>Type</th>
                         <th>Actions</th>
@@ -76,13 +76,41 @@
                         <td>{{ $product->category->name }}</td>
                         <td>{{ $product->subcategory->name }}</td>
                         <td>
-                            @if($product->color)
-                                <span class="badge badge-secondary">{{ ucfirst($product->color) }}</span>
+                            @if($product->colorVariants->count() > 0)
+                                <div class="color-variants-display">
+                                    @foreach($product->colorVariants as $variant)
+                                        <div class="color-variant-item mb-1">
+                                            @php
+                                                $colorClass = match(strtolower($variant->color)) {
+                                                    'black' => 'badge-dark',
+                                                    'white' => 'badge-light text-dark',
+                                                    'red' => 'badge-danger',
+                                                    'blue' => 'badge-primary',
+                                                    'green' => 'badge-success',
+                                                    'yellow' => 'badge-warning text-dark',
+                                                    'orange' => 'badge-warning',
+                                                    'purple' => 'badge-info',
+                                                    'pink' => 'badge-info',
+                                                    'brown' => 'badge-secondary',
+                                                    'gray', 'grey' => 'badge-secondary',
+                                                    'silver' => 'badge-light text-dark',
+                                                    'gold', 'golden' => 'badge-warning text-dark',
+                                                    default => 'badge-secondary'
+                                                };
+                                            @endphp
+                                            <span class="badge {{ $colorClass }}">
+                                                {{ ucfirst($variant->color) }}: {{ $variant->quantity }}
+                                            </span>
+                                        </div>
+                                    @endforeach
+                                </div>
                             @else
-                                <span class="text-muted">-</span>
+                                <span class="text-muted">No colors</span>
                             @endif
                         </td>
-                        <td>{{ $product->quantity }}</td>
+                        <td>
+                            <strong>{{ $product->colorVariants->sum('quantity') }}</strong>
+                        </td>
                         <td>₹{{ number_format($product->price, 2) }}</td>
                         <td>
                             @if($product->is_composite)
@@ -103,7 +131,7 @@
                     </tr>
                     @empty
                     <tr>
-                        <td colspan="9" class="text-center">No products found.</td>
+                        <td colspan="8" class="text-center">No products found.</td>
                     </tr>
                     @endforelse
                 </tbody>

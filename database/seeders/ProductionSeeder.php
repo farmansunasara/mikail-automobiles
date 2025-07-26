@@ -20,7 +20,7 @@ class ProductionSeeder extends Seeder
         // Create admin user
         User::create([
             'name' => 'Admin User',
-            'email' => 'admin@mikailautomobiles.com',
+            'email' => 'admin@almikailautomobile.com',
             'password' => Hash::make('password'),
             'email_verified_at' => now(),
         ]);

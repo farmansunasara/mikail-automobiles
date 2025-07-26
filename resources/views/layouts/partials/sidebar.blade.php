@@ -10,7 +10,15 @@
         <!-- Sidebar user panel (optional) -->
         <div class="user-panel mt-3 pb-3 mb-3 d-flex">
             <div class="image">
-                <img src="{{ asset('vendor/adminlte/dist/img/user2-160x160.jpg') }}" class="img-circle elevation-2" alt="User Image">
+                @if(Auth::user()->avatar && file_exists(public_path('storage/avatars/' . Auth::user()->avatar)))
+                    <img src="{{ asset('storage/avatars/' . Auth::user()->avatar) }}" class="img-circle elevation-2" alt="User Image">
+                @else
+                    <!-- Fallback to a reliable default image or generate avatar from initials -->
+                    <div class="img-circle elevation-2 d-flex align-items-center justify-content-center" 
+                         style="width: 33px; height: 33px; background: linear-gradient(45deg, #007bff, #0056b3); color: white; font-weight: bold; font-size: 14px;">
+                        {{ strtoupper(substr(Auth::user()->name, 0, 1)) }}{{ strtoupper(substr(strstr(Auth::user()->name, ' '), 1, 1)) }}
+                    </div>
+                @endif
             </div>
             <div class="info">
                 <a href="#" class="d-block">{{ Auth::user()->name }}</a>

@@ -10,6 +10,7 @@ class InvoiceItem extends Model
     protected $fillable = [
         'invoice_id',
         'product_id',
+        'color_variant_id',
         'quantity',
         'price',
         'gst_rate',
@@ -34,6 +35,11 @@ class InvoiceItem extends Model
     public function product(): BelongsTo
     {
         return $this->belongsTo(Product::class);
+    }
+
+    public function colorVariant(): BelongsTo
+    {
+        return $this->belongsTo(ProductColorVariant::class, 'color_variant_id');
     }
 
     public function getTotalTaxAttribute(): float

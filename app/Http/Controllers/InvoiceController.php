@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Invoice;
 use App\Models\Customer;
 use App\Models\Product;
+use App\Models\ProductColorVariant;
 use App\Services\StockService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -90,16 +91,16 @@ class InvoiceController extends Controller
                         $quantity = intval($variantData['quantity'] ?? 0);
                         $product_id = $variantData['product_id'] ?? null;
                         if ($quantity > 0 && $product_id) {
-                            $product = Product::find($product_id);
-                            if (!$product) {
-                                throw new \Exception("Product not found (ID: {$product_id})");
+                            $colorVariant = ProductColorVariant::find($product_id);
+                            if (!$colorVariant) {
+                                throw new \Exception("Product color variant not found (ID: {$product_id})");
                             }
-                            if ($product->quantity < $quantity) {
-                                $colorName = $product->color ?? 'No Color';
-                                throw new \Exception("Insufficient stock for {$product->name} ({$colorName}). Available: {$product->quantity}, Required: {$quantity}");
+                            if ($colorVariant->quantity < $quantity) {
+                                throw new \Exception("Insufficient stock for {$colorVariant->product->name} ({$colorVariant->color}). Available: {$colorVariant->quantity}, Required: {$quantity}");
                             }
                             $invoiceItems[] = [
-                                'product_id' => $product_id,
+                                'color_variant_id' => $product_id,
+                                'product_id' => $colorVariant->product_id,
                                 'quantity' => $quantity,
                                 'price' => $price,
                                 'gst_rate' => $gst_rate,
@@ -143,12 +144,13 @@ class InvoiceController extends Controller
                 ]);
 
                 foreach ($invoiceItems as $item) {
-                    $product = Product::find($item['product_id']);
+                    $colorVariant = ProductColorVariant::find($item['color_variant_id']);
                     $subtotal = $item['quantity'] * $item['price'];
                     $gst_amount = ($subtotal * $item['gst_rate']) / 100;
 
                     $invoice->items()->create([
                         'product_id' => $item['product_id'],
+                        'color_variant_id' => $item['color_variant_id'],
                         'quantity' => $item['quantity'],
                         'price' => $item['price'],
                         'gst_rate' => $item['gst_rate'],
@@ -157,7 +159,7 @@ class InvoiceController extends Controller
                         'subtotal' => $subtotal,
                     ]);
 
-                    $this->stockService->outwardStock($product, $item['quantity'], "Sale via Invoice #{$invoice->invoice_number}");
+                    $this->stockService->outwardColorVariantStock($colorVariant, $item['quantity'], "Sale via Invoice #{$invoice->invoice_number}");
                 }
             });
 
@@ -237,15 +239,16 @@ class InvoiceController extends Controller
                         $quantity = intval($variantData['quantity'] ?? 0);
                         $product_id = $variantData['product_id'] ?? null;
                         if ($quantity > 0 && $product_id) {
-                            $product = Product::find($product_id);
-                            if (!$product) {
-                                throw new \Exception("Product not found (ID: {$product_id})");
+                            $colorVariant = ProductColorVariant::find($product_id);
+                            if (!$colorVariant) {
+                                throw new \Exception("Product color variant not found (ID: {$product_id})");
                             }
-                            if ($product->quantity < $quantity) {
-                                throw new \Exception("Insufficient stock for {$product->name}. Available: {$product->quantity}, Required: {$quantity}");
+                            if ($colorVariant->quantity < $quantity) {
+                                throw new \Exception("Insufficient stock for {$colorVariant->product->name} ({$colorVariant->color}). Available: {$colorVariant->quantity}, Required: {$quantity}");
                             }
                             $invoiceItems[] = [
-                                'product_id' => $product_id,
+                                'color_variant_id' => $product_id,
+                                'product_id' => $colorVariant->product_id,
                                 'quantity' => $quantity,
                                 'price' => $price,
                                 'gst_rate' => 0,
@@ -282,11 +285,12 @@ class InvoiceController extends Controller
                 ]);
 
                 foreach ($invoiceItems as $item) {
-                    $product = Product::find($item['product_id']);
+                    $colorVariant = ProductColorVariant::find($item['color_variant_id']);
                     $subtotal = $item['quantity'] * $item['price'];
 
                     $invoice->items()->create([
                         'product_id' => $item['product_id'],
+                        'color_variant_id' => $item['color_variant_id'],
                         'quantity' => $item['quantity'],
                         'price' => $item['price'],
                         'gst_rate' => 0,
@@ -295,7 +299,7 @@ class InvoiceController extends Controller
                         'subtotal' => $subtotal,
                     ]);
 
-                    $this->stockService->outwardStock($product, $item['quantity'], "Sale via Non-GST Invoice #{$invoice->invoice_number}");
+                    $this->stockService->outwardColorVariantStock($colorVariant, $item['quantity'], "Sale via Non-GST Invoice #{$invoice->invoice_number}");
                 }
             });
 
@@ -308,39 +312,39 @@ class InvoiceController extends Controller
 
     public function showGst(Invoice $invoice)
     {
-        $invoice->load('customer', 'items.product.category', 'items.product.subcategory');
+        $invoice->load('customer', 'items.product.category', 'items.product.subcategory', 'items.colorVariant');
         return view('invoices.show', compact('invoice'))->with('invoice_type', 'gst');
     }
 
     public function showNonGst(Invoice $invoice)
     {
-        $invoice->load('customer', 'items.product.category', 'items.product.subcategory');
+        $invoice->load('customer', 'items.product.category', 'items.product.subcategory', 'items.colorVariant');
         return view('invoices.show_non_gst', compact('invoice'))->with('invoice_type', 'non_gst');
     }
 
     public function downloadPdfGst(Invoice $invoice)
     {
-        $invoice->load('customer', 'items.product.category', 'items.product.subcategory');
+        $invoice->load('customer', 'items.product.category', 'items.product.subcategory', 'items.colorVariant');
         $pdf = Pdf::loadView('invoices.pdf', compact('invoice'));
         return $pdf->download('invoice-' . $invoice->invoice_number . '.pdf');
     }
 
     public function downloadPdfNonGst(Invoice $invoice)
     {
-        $invoice->load('customer', 'items.product.category', 'items.product.subcategory');
+        $invoice->load('customer', 'items.product.category', 'items.product.subcategory', 'items.colorVariant');
         $pdf = Pdf::loadView('invoices.pdf_non_gst', compact('invoice'));
         return $pdf->download('invoice-' . $invoice->invoice_number . '.pdf');
     }
 
     public function previewGst(Invoice $invoice)
     {
-        $invoice->load('customer', 'items.product.category', 'items.product.subcategory');
+        $invoice->load('customer', 'items.product.category', 'items.product.subcategory', 'items.colorVariant');
         return view('invoices.pdf', compact('invoice'));
     }
 
     public function previewNonGst(Invoice $invoice)
     {
-        $invoice->load('customer', 'items.product.category', 'items.product.subcategory');
+        $invoice->load('customer', 'items.product.category', 'items.product.subcategory', 'items.colorVariant');
         return view('invoices.pdf_non_gst', compact('invoice'));
     }
 
@@ -359,11 +363,26 @@ class InvoiceController extends Controller
         try {
             DB::transaction(function () use ($invoice) {
                 foreach ($invoice->items as $item) {
-                    $this->stockService->inwardStock(
-                        $item->product, 
-                        $item->quantity, 
-                        "Stock restored from deleted Invoice #{$invoice->invoice_number}"
-                    );
+                    // Find the color variant that was used for this invoice item
+                    // Since we're storing product_id in invoice_items, we need to find the color variant
+                    // that was actually sold. For now, we'll restore to the first available color variant
+                    // of this product. In a future enhancement, we could store color_variant_id in invoice_items.
+                    $colorVariant = $item->product->colorVariants()->first();
+                    
+                    if ($colorVariant) {
+                        $this->stockService->inwardColorVariantStock(
+                            $colorVariant, 
+                            $item->quantity, 
+                            "Stock restored from deleted Invoice #{$invoice->invoice_number}"
+                        );
+                    } else {
+                        // Fallback to old method if no color variants exist
+                        $this->stockService->inwardStock(
+                            $item->product, 
+                            $item->quantity, 
+                            "Stock restored from deleted Invoice #{$invoice->invoice_number}"
+                        );
+                    }
                 }
                 $invoice->items()->delete();
                 $invoice->delete();
