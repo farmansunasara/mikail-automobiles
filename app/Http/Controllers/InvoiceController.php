@@ -75,6 +75,8 @@ class InvoiceController extends Controller
             'invoice_date' => 'required|date',
             'due_date' => 'nullable|date|after_or_equal:invoice_date',
             'notes' => 'nullable|string',
+            'discount_type' => 'nullable|numeric|in:0,1',
+            'discount_value' => 'nullable|numeric|min:0',
             'items' => 'required|array|min:1',
             'items.*.price' => 'required|numeric|min:0',
             'items.*.gst_rate' => 'required|numeric|min:0',
@@ -121,13 +123,38 @@ class InvoiceController extends Controller
 
                 foreach ($invoiceItems as $item) {
                     $subtotal = $item['quantity'] * $item['price'];
-                    $gst_amount = ($subtotal * $item['gst_rate']) / 100;
                     $total_amount += $subtotal;
+                }
+
+                // Calculate discount
+                $discount_type = $request->discount_type ?? 0;
+                $discount_value = $request->discount_value ?? 0;
+                $discount_amount = 0;
+
+                if ($discount_value > 0) {
+                    if ($discount_type == 1) {
+                        // Percentage discount
+                        $discount_amount = ($total_amount * $discount_value) / 100;
+                    } else {
+                        // Fixed amount discount
+                        $discount_amount = min($discount_value, $total_amount);
+                    }
+                }
+
+                $after_discount = $total_amount - $discount_amount;
+
+                // Calculate GST on discounted amount
+                foreach ($invoiceItems as $item) {
+                    $subtotal = $item['quantity'] * $item['price'];
+                    // Apply proportional discount to this item
+                    $item_discount = $total_amount > 0 ? ($subtotal / $total_amount) * $discount_amount : 0;
+                    $item_after_discount = $subtotal - $item_discount;
+                    $gst_amount = ($item_after_discount * $item['gst_rate']) / 100;
                     $total_cgst += $gst_amount / 2;
                     $total_sgst += $gst_amount / 2;
                 }
 
-                $grand_total = $total_amount + $total_cgst + $total_sgst;
+                $grand_total = $after_discount + $total_cgst + $total_sgst;
 
                 $invoice = Invoice::create([
                     'invoice_number' => Invoice::generateInvoiceNumber(),
@@ -137,6 +164,9 @@ class InvoiceController extends Controller
                     'status' => 'draft',
                     'notes' => $request->notes,
                     'total_amount' => $total_amount,
+                    'discount_type' => $discount_type,
+                    'discount_value' => $discount_value,
+                    'discount_amount' => $discount_amount,
                     'cgst' => $total_cgst,
                     'sgst' => $total_sgst,
                     'grand_total' => $grand_total,
@@ -225,6 +255,8 @@ class InvoiceController extends Controller
             'invoice_date' => 'required|date',
             'due_date' => 'nullable|date|after_or_equal:invoice_date',
             'notes' => 'nullable|string',
+            'discount_type' => 'nullable|numeric|in:0,1',
+            'discount_value' => 'nullable|numeric|min:0',
             'items' => 'required|array|min:1',
             'items.*.price' => 'required|numeric|min:0',
             'items.*.variants' => 'required|array',
@@ -268,7 +300,23 @@ class InvoiceController extends Controller
                     $subtotal = $item['quantity'] * $item['price'];
                     $total_amount += $subtotal;
                 }
-                $grand_total = $total_amount;
+
+                // Calculate discount
+                $discount_type = $request->discount_type ?? 0;
+                $discount_value = $request->discount_value ?? 0;
+                $discount_amount = 0;
+
+                if ($discount_value > 0) {
+                    if ($discount_type == 1) {
+                        // Percentage discount
+                        $discount_amount = ($total_amount * $discount_value) / 100;
+                    } else {
+                        // Fixed amount discount
+                        $discount_amount = min($discount_value, $total_amount);
+                    }
+                }
+
+                $grand_total = $total_amount - $discount_amount;
 
                 $invoice = Invoice::create([
                     'invoice_number' => Invoice::generateInvoiceNumber(),
@@ -278,6 +326,9 @@ class InvoiceController extends Controller
                     'status' => 'draft',
                     'notes' => $request->notes,
                     'total_amount' => $total_amount,
+                    'discount_type' => $discount_type,
+                    'discount_value' => $discount_value,
+                    'discount_amount' => $discount_amount,
                     'cgst' => 0,
                     'sgst' => 0,
                     'grand_total' => $grand_total,

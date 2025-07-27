@@ -205,6 +205,24 @@
                                 <td class="text-right" id="subtotal">₹0.00</td>
                             </tr>
                             <tr>
+                                <th>Discount:</th>
+                                <td class="text-right">
+                                    <div class="input-group input-group-sm">
+                                        <select name="discount_type" id="discount_type" class="form-control" style="max-width: 80px;">
+                                            <option value="0">₹</option>
+                                            <option value="1">%</option>
+                                        </select>
+                                        <input type="number" name="discount_value" id="discount_value" class="form-control"
+                                               placeholder="0" min="0" step="0.01" value="0" style="max-width: 80px;">
+                                    </div>
+                                    <small class="text-muted" id="discount_amount_display">₹0.00</small>
+                                </td>
+                            </tr>
+                            <tr>
+                                <th>After Discount:</th>
+                                <td class="text-right" id="after_discount">₹0.00</td>
+                            </tr>
+                            <tr>
                                 <th>CGST:</th>
                                 <td class="text-right" id="cgst">₹0.00</td>
                             </tr>
@@ -475,13 +493,57 @@ $(document).ready(function() {
             grandCgst += gstAmount / 2;
             grandSgst += gstAmount / 2;
         });
+
+        // Calculate discount
+        var discountType = parseFloat($('#discount_type').val()) || 0;
+        var discountValue = parseFloat($('#discount_value').val()) || 0;
+        var discountAmount = 0;
+
+        if (discountValue > 0) {
+            if (discountType == 1) {
+                // Percentage discount
+                discountAmount = (grandSubtotal * discountValue) / 100;
+            } else {
+                // Fixed amount discount
+                discountAmount = Math.min(discountValue, grandSubtotal);
+            }
+        }
+
+        var afterDiscount = grandSubtotal - discountAmount;
         
-        const grandTotal = grandSubtotal + grandCgst + grandSgst;
+        // Recalculate GST on discounted amount
+        var discountedCgst = 0;
+        var discountedSgst = 0;
         
+        $('.product-row').each(function() {
+            const $row = $(this);
+            const price = parseFloat($row.find('.price-input').val()) || 0;
+            const gstRate = parseFloat($row.find('.gst-input').val()) || 0;
+            let rowTotal = 0;
+
+            $row.find('.quantity-input').each(function() {
+                const qty = parseInt($(this).val()) || 0;
+                rowTotal += qty * price;
+            });
+
+            // Apply proportional discount to this row
+            var rowDiscount = grandSubtotal > 0 ? (rowTotal / grandSubtotal) * discountAmount : 0;
+            var rowAfterDiscount = rowTotal - rowDiscount;
+            var gstAmount = (rowAfterDiscount * gstRate) / 100;
+            
+            discountedCgst += gstAmount / 2;
+            discountedSgst += gstAmount / 2;
+        });
+
+        var grand_total = afterDiscount + discountedCgst + discountedSgst;
+
+        // Update display
         $('#subtotal').text('₹' + grandSubtotal.toFixed(2));
-        $('#cgst').text('₹' + grandCgst.toFixed(2));
-        $('#sgst').text('₹' + grandSgst.toFixed(2));
-        $('#grand_total').text('₹' + grandTotal.toFixed(2));
+        $('#discount_amount_display').text('₹' + discountAmount.toFixed(2));
+        $('#after_discount').text('₹' + afterDiscount.toFixed(2));
+        $('#cgst').text('₹' + discountedCgst.toFixed(2));
+        $('#sgst').text('₹' + discountedSgst.toFixed(2));
+        $('#grand_total').text('₹' + grand_total.toFixed(2));
     };
     
     // Form validation
@@ -505,6 +567,11 @@ $(document).ready(function() {
         
         // Disable submit button to prevent double submission
         $('#submit-btn').prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Creating...');
+    });
+    
+    // Add discount change handlers
+    $('#discount_type, #discount_value').on('change keyup', function() {
+        updateTotals();
     });
     
     // Add first item automatically

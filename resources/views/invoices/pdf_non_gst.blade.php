@@ -3,42 +3,140 @@
 <head>
     <title>Non-GST Invoice #{{ $invoice->invoice_number }}</title>
     <style>
-        body { font-family: 'Helvetica', sans-serif; font-size: 12px; }
-        .container { width: 100%; margin: 0 auto; }
-        .header, .footer { text-align: center; }
-        .header h1 { margin: 0; }
-        .invoice-details { margin-bottom: 20px; }
-        .invoice-details table { width: 100%; }
-        .items-table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-        .items-table th, .items-table td { border: 1px solid #ddd; padding: 8px; }
-        .items-table th { background-color: #f2f2f2; text-align: left; }
-        .totals-table { width: 40%; float: right; margin-top: 20px; }
-        .totals-table td { padding: 5px; }
+        @page {
+            size: A4 landscape;
+            margin: 10mm 8mm;
+        }
+        
+        body { 
+            font-family: 'Arial', sans-serif; 
+            font-size: 9pt; 
+            line-height: 1.1;
+            margin: 0;
+            padding: 0;
+        }
+        
+        .container { 
+            width: 100%; 
+            margin: 0;
+            padding: 0;
+        }
+        
+        .header { 
+            text-align: center; 
+            margin-bottom: 8px;
+        }
+        
+        .header h1 { 
+            margin: 0 0 2px 0; 
+            font-size: 16pt;
+            font-weight: bold;
+        }
+        
+        .header p { 
+            margin: 1px 0; 
+            font-size: 9pt;
+        }
+        
+        .invoice-details { 
+            margin-bottom: 8px; 
+        }
+        
+        .invoice-details table { 
+            width: 100%; 
+            border-collapse: collapse;
+        }
+        
+        .invoice-details td {
+            padding: 2px 4px;
+            vertical-align: top;
+            font-size: 8pt;
+            line-height: 1.2;
+        }
+        
+        .items-table { 
+            width: 100%; 
+            border-collapse: collapse; 
+            margin-top: 5px;
+            font-size: 8pt;
+        }
+        
+        .items-table th, .items-table td { 
+            border: 0.5pt solid #333; 
+            padding: 2px 3px;
+            vertical-align: top;
+            line-height: 1.1;
+        }
+        
+        .items-table th { 
+            background-color: #f0f0f0; 
+            text-align: center;
+            font-weight: bold;
+            font-size: 8pt;
+            padding: 3px 2px;
+        }
+        
+        .items-table td {
+            font-size: 8pt;
+        }
+        
+        .totals-table { 
+            width: 35%; 
+            float: right; 
+            margin-top: 8px;
+            border-collapse: collapse;
+            font-size: 8pt;
+        }
+        
+        .totals-table td { 
+            padding: 1px 4px;
+            border: 0.5pt solid #333;
+            line-height: 1.2;
+        }
+        
         .text-right { text-align: right; }
+        .text-center { text-align: center; }
         .clearfix::after { content: ""; clear: both; display: table; }
+        
+        .color-qty {
+            font-size: 7pt;
+            line-height: 1.1;
+        }
+        
+        .footer { 
+            margin-top: 15px;
+            text-align: center;
+            font-size: 8pt;
+        }
+        
+        /* Column widths for optimal space usage (Non-GST doesn't have HSN/GST columns) */
+        .col-sr { width: 4%; }
+        .col-category { width: 15%; }
+        .col-product { width: 25%; }
+        .col-price { width: 12%; }
+        .col-colors { width: 30%; }
+        .col-qty { width: 8%; }
+        .col-total { width: 12%; }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="header">
-            <h1>INVOICE</h1>
-            <p><strong>{{ config('app.name') }}</strong></p>
-            <p>Automobile Parts & Services</p>
+            <h1>Cash/Credit</h1>
+            <p><strong>{{ config('app.name') }}</strong> | Automobile Parts & Services</p>
         </div>
 
         <div class="invoice-details">
             <table>
                 <tr>
-                    <td style="width: 50%;">
-                        <strong>Billed To:</strong><br>
-                        {{ $invoice->customer->name }}<br>
-                        {{ $invoice->customer->address }}<br>
-                        {{ $invoice->customer->state }}<br>
-                        GSTIN: {{ $invoice->customer->gstin ?? 'N/A' }}
+                    <td style="width: 60%;">
+                        <strong>Bill To:</strong> {{ $invoice->customer->name }} | {{ $invoice->customer->address }} | {{ $invoice->customer->state }} | GSTIN: {{ $invoice->customer->gstin ?? 'N/A' }}
                     </td>
-                    <td style="width: 50%;" class="text-right">
-                        <strong>Invoice #:</strong> {{ $invoice->invoice_number }}<br>
-                        <strong>Date:</strong> {{ $invoice->invoice_date->format('d/m/Y') }}<br>
+                    <td style="width: 40%;" class="text-right">
+                        <strong>Bill no #:</strong> {{ $invoice->invoice_number }} | <strong>Date:</strong> {{ $invoice->invoice_date->format('d/m/Y') }}
+                        @if($invoice->due_date)
+                            | <strong>Due:</strong> {{ $invoice->due_date->format('d/m/Y') }}
+                        @endif
                     </td>
                 </tr>
             </table>
@@ -47,12 +145,13 @@
         <table class="items-table">
             <thead>
                 <tr>
-                    <th>#</th>
-                    <th>Category</th>
-                    <th>Product</th>
-                    <th>Price</th>
-                    <th>Colors & Quantities</th>
-                    <th>Total</th>
+                    <th class="col-sr">#</th>
+                    <th class="col-category">Category</th>
+                    <th class="col-product">Product</th>
+                    <th class="col-price">Price</th>
+                    <th class="col-colors">Colors & Quantities</th>
+                    <th class="col-qty">Total Qty</th>
+                    <th class="col-total">Total</th>
                 </tr>
             </thead>
             <tbody>
@@ -65,25 +164,23 @@
                 @php
                     $firstItem = $items->first();
                     $totalSubtotal = $items->sum('subtotal');
+                    $totalQuantity = $items->sum('quantity');
+                    
+                    // Create condensed color & quantity string
+                    $colorQuantities = [];
+                    foreach($items as $item) {
+                        $color = $item->colorVariant ? $item->colorVariant->color : ($item->product->color ?? 'Default');
+                        $colorQuantities[] = $color . ': ' . $item->quantity;
+                    }
+                    $colorQtyString = implode(', ', $colorQuantities);
                 @endphp
                 <tr>
-                    <td>{{ $rowNumber++ }}</td>
-                    <td>
-                        <strong>{{ $firstItem->product->category->name ?? 'N/A' }}</strong>
-                        @if($firstItem->product->subcategory)
-                            <br><small>{{ $firstItem->product->subcategory->name }}</small>
-                        @endif
-                    </td>
+                    <td class="text-center">{{ $rowNumber++ }}</td>
+                    <td>{{ $firstItem->product->category->name ?? 'N/A' }}</td>
                     <td><strong>{{ $productName }}</strong></td>
                     <td class="text-right">Rs.{{ number_format($firstItem->price, 2) }}</td>
-                    <td>
-                        @foreach($items as $item)
-                        <div style="margin-bottom: 3px;">
-                            <strong>{{ $item->colorVariant ? $item->colorVariant->color : ($item->product->color ?? 'No Color') }}:</strong> {{ $item->quantity }} 
-                            <span style="font-size: 10px; color: #666;">(Rs.{{ number_format($item->subtotal, 2) }})</span>
-                        </div>
-                        @endforeach
-                    </td>
+                    <td class="color-qty">{{ $colorQtyString }}</td>
+                    <td class="text-center"><strong>{{ $totalQuantity }}</strong></td>
                     <td class="text-right"><strong>Rs.{{ number_format($totalSubtotal, 2) }}</strong></td>
                 </tr>
                 @endforeach
@@ -93,18 +190,24 @@
         <div class="clearfix">
             <table class="totals-table">
                 <tr>
-                    <td>Subtotal</td>
-                    <td class="text-right">Rs.{{ number_format($invoice->total_amount, 2) }}</td>
+                    <td><strong>Subtotal</strong></td>
+                    <td class="text-right"><strong>Rs.{{ number_format($invoice->total_amount, 2) }}</strong></td>
                 </tr>
+                @if($invoice->discount_amount > 0)
                 <tr>
+                    <td>Discount ({{ $invoice->discount_display }})</td>
+                    <td class="text-right" style="color: #dc3545;">-Rs.{{ number_format($invoice->discount_amount, 2) }}</td>
+                </tr>
+                @endif
+                <tr style="background-color: #f0f0f0;">
                     <td><strong>Grand Total</strong></td>
                     <td class="text-right"><strong>Rs.{{ number_format($invoice->grand_total, 2) }}</strong></td>
                 </tr>
             </table>
         </div>
 
-        <div class="footer" style="margin-top: 50px;">
-            <p>Thank you for your business!</p>
+        <div class="footer">
+            <p><strong>Thank you for your business!</strong></p>
         </div>
     </div>
 </body>
