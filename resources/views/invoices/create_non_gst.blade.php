@@ -197,16 +197,30 @@
                         <h4 class="mb-0"><i class="fas fa-calculator"></i> Invoice Summary</h4>
                     </div>
                     <div class="card-body">
-                        <table class="table table-borderless">
-                            <tr>
-                                <th>Subtotal:</th>
-                                <td class="text-right" id="subtotal">₹0.00</td>
-                            </tr>
-                            <tr class="border-top">
-                                <th class="h5">Grand Total:</th>
-                                <td class="text-right h5 font-weight-bold text-primary" id="grand_total">₹0.00</td>
-                            </tr>
-                        </table>
+                    <table class="table table-borderless">
+                        <tr>
+                            <th>Subtotal:</th>
+                            <td class="text-right" id="subtotal">₹0.00</td>
+                        </tr>
+                        <tr>
+                            <th>Discount:</th>
+                            <td class="text-right">
+                                <div class="input-group input-group-sm">
+                                    <select name="discount_type" id="discount_type" class="form-control" style="max-width: 80px;">
+                                        <option value="0">₹</option>
+                                        <option value="1">%</option>
+                                    </select>
+                                    <input type="number" name="discount_value" id="discount_value" class="form-control" 
+                                           placeholder="0" min="0" step="0.01" value="0" style="max-width: 80px;">
+                                </div>
+                                <small class="text-muted" id="discount_amount_display">₹0.00</small>
+                            </td>
+                        </tr>
+                        <tr class="border-top">
+                            <th class="h5">Grand Total:</th>
+                            <td class="text-right h5 font-weight-bold text-primary" id="grand_total">₹0.00</td>
+                        </tr>
+                    </table>
                         
                         <button type="submit" class="btn btn-success btn-block btn-lg mt-3" id="submit-btn">
                             <i class="fas fa-save"></i> Create Invoice
@@ -449,10 +463,33 @@ $(document).ready(function() {
             
             grandSubtotal += rowTotal;
         });
+
+        // Calculate discount
+        var discountType = parseFloat($('#discount_type').val()) || 0;
+        var discountValue = parseFloat($('#discount_value').val()) || 0;
+        var discountAmount = 0;
+
+        if (discountValue > 0) {
+            if (discountType == 1) {
+                // Percentage discount
+                discountAmount = (grandSubtotal * discountValue) / 100;
+            } else {
+                // Fixed amount discount
+                discountAmount = Math.min(discountValue, grandSubtotal);
+            }
+        }
+
+        var grand_total = grandSubtotal - discountAmount;
         
         $('#subtotal').text('₹' + grandSubtotal.toFixed(2));
-        $('#grand_total').text('₹' + grandSubtotal.toFixed(2));
+        $('#discount_amount_display').text('₹' + discountAmount.toFixed(2));
+        $('#grand_total').text('₹' + grand_total.toFixed(2));
     };
+
+    // Add discount change handlers
+    $('#discount_type, #discount_value').on('change keyup', function() {
+        updateTotals();
+    });
     
     // Form validation
     $('#invoice-form').on('submit', function(e) {

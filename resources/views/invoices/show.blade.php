@@ -75,6 +75,7 @@
                     @php
                         $firstItem = $items->first();
                         $totalSubtotal = $items->sum('subtotal');
+                        $totalQuantity = $items->sum('quantity');
                     @endphp
                     <tr>
                         <td>{{ $rowNumber++ }}</td>
@@ -157,9 +158,19 @@
             <div class="table-responsive">
                 <table class="table">
                     <tr>
-                        <th style="width:50%">Subtotal:</th>
+                        <th>Subtotal:</th>
                         <td>₹{{ number_format($invoice->total_amount, 2) }}</td>
                     </tr>
+                    @if($invoice->discount_amount > 0)
+                    <tr>
+                        <th>Discount ({{ $invoice->discount_display }}):</th>
+                        <td class="text-danger">-₹{{ number_format($invoice->discount_amount, 2) }}</td>
+                    </tr>
+                    <tr>
+                        <th>After Discount:</th>
+                        <td>₹{{ number_format($invoice->subtotal_after_discount, 2) }}</td>
+                    </tr>
+                    @endif
                     <tr>
                         <th>CGST ({{ $invoice->items->first()->gst_rate / 2 }}%)</th>
                         <td>₹{{ number_format($invoice->cgst, 2) }}</td>
