@@ -20,18 +20,75 @@ class StockService
     public function inwardStock(Product $product, int $quantity, ?string $notes = null): void
     {
         DB::transaction(function () use ($product, $quantity, $notes) {
-            $previousQuantity = $product->quantity;
-            $product->increment('quantity', $quantity);
-            $newQuantity = $product->fresh()->quantity;
-
-            $product->stockLogs()->create([
-                'change_type' => 'inward',
-                'quantity' => $quantity,
-                'previous_quantity' => $previousQuantity,
-                'new_quantity' => $newQuantity,
-                'remarks' => $notes,
-            ]);
+            if ($product->is_composite) {
+                $this->handleCompositeInward($product, $quantity, $notes);
+            } else {
+                $this->handleSimpleInward($product, $quantity, $notes);
+            }
         });
+    }
+
+    /**
+     * Handle inward stock movement for simple product.
+     *
+     * @param Product $product
+     * @param int $quantity
+     * @param string|null $notes
+     * @return void
+     */
+    protected function handleSimpleInward(Product $product, int $quantity, ?string $notes = null): void
+    {
+        $previousQuantity = $product->quantity;
+        $product->increment('quantity', $quantity);
+        $newQuantity = $product->fresh()->quantity;
+
+        $product->stockLogs()->create([
+            'change_type' => 'inward',
+            'quantity' => $quantity,
+            'previous_quantity' => $previousQuantity,
+            'new_quantity' => $newQuantity,
+            'remarks' => $notes,
+        ]);
+    }
+
+    /**
+     * Handle inward stock movement for composite product.
+     * This will automatically consume components to assemble the composite product.
+     *
+     * @param Product $product
+     * @param int $quantity
+     * @param string|null $notes
+     * @return void
+     * @throws \Exception
+     */
+    protected function handleCompositeInward(Product $product, int $quantity, ?string $notes = null): void
+    {
+        // Check if we have enough components to assemble the composite products
+        foreach ($product->components as $component) {
+            $required = $component->quantity_needed * $quantity;
+            if ($component->componentProduct->quantity < $required) {
+                throw new \Exception("Cannot assemble {$quantity} units of {$product->name}. Not enough stock for component: {$component->componentProduct->name}. Available: {$component->componentProduct->quantity}, Required: {$required}");
+            }
+        }
+
+        // First, consume the components
+        foreach ($product->components as $component) {
+            $required = $component->quantity_needed * $quantity;
+            $this->handleSimpleOutward($component->componentProduct, $required, "Component consumed for assembling {$product->name}. {$notes}");
+        }
+
+        // Then, add the assembled composite products to stock
+        $previousQuantity = $product->quantity;
+        $product->increment('quantity', $quantity);
+        $newQuantity = $product->fresh()->quantity;
+
+        $product->stockLogs()->create([
+            'change_type' => 'inward',
+            'quantity' => $quantity,
+            'previous_quantity' => $previousQuantity,
+            'new_quantity' => $newQuantity,
+            'remarks' => "Assembled from components. {$notes}",
+        ]);
     }
 
     /**
@@ -136,19 +193,86 @@ class StockService
     public function inwardColorVariantStock(ProductColorVariant $colorVariant, int $quantity, ?string $notes = null): void
     {
         DB::transaction(function () use ($colorVariant, $quantity, $notes) {
-            $previousQuantity = $colorVariant->quantity;
-            $colorVariant->increment('quantity', $quantity);
-            $newQuantity = $colorVariant->fresh()->quantity;
-
-            $colorVariant->product->stockLogs()->create([
-                'change_type' => 'inward',
-                'quantity' => $quantity,
-                'previous_quantity' => $previousQuantity,
-                'new_quantity' => $newQuantity,
-                'color_variant_id' => $colorVariant->id,
-                'remarks' => $notes,
-            ]);
+            $product = $colorVariant->product;
+            
+            if ($product->is_composite) {
+                $this->handleCompositeColorVariantInward($colorVariant, $quantity, $notes);
+            } else {
+                $this->handleSimpleColorVariantInward($colorVariant, $quantity, $notes);
+            }
         });
+    }
+
+    /**
+     * Handle inward stock movement for simple color variant.
+     *
+     * @param ProductColorVariant $colorVariant
+     * @param int $quantity
+     * @param string|null $notes
+     * @return void
+     */
+    protected function handleSimpleColorVariantInward(ProductColorVariant $colorVariant, int $quantity, ?string $notes = null): void
+    {
+        $previousQuantity = $colorVariant->quantity;
+        $colorVariant->increment('quantity', $quantity);
+        $newQuantity = $colorVariant->fresh()->quantity;
+
+        $colorVariant->product->stockLogs()->create([
+            'change_type' => 'inward',
+            'quantity' => $quantity,
+            'previous_quantity' => $previousQuantity,
+            'new_quantity' => $newQuantity,
+            'color_variant_id' => $colorVariant->id,
+            'remarks' => $notes,
+        ]);
+    }
+
+    /**
+     * Handle inward stock movement for composite color variant.
+     * This will automatically consume components to assemble the composite product.
+     *
+     * @param ProductColorVariant $colorVariant
+     * @param int $quantity
+     * @param string|null $notes
+     * @return void
+     * @throws \Exception
+     */
+    protected function handleCompositeColorVariantInward(ProductColorVariant $colorVariant, int $quantity, ?string $notes = null): void
+    {
+        $product = $colorVariant->product;
+        
+        // Check if we have enough components to assemble the composite products
+        foreach ($product->components as $component) {
+            $required = $component->quantity_needed * $quantity;
+            $componentTotalStock = $component->componentProduct->colorVariants->sum('quantity');
+            if ($componentTotalStock < $required) {
+                throw new \Exception("Cannot assemble {$quantity} units of {$product->name} ({$colorVariant->color}). Not enough stock for component: {$component->componentProduct->name}. Available: {$componentTotalStock}, Required: {$required}");
+            }
+        }
+
+        // First, consume the components
+        foreach ($product->components as $component) {
+            $required = $component->quantity_needed * $quantity;
+            $this->deductFromComponentColorVariants(
+                $component->componentProduct, 
+                $required, 
+                "Component consumed for assembling {$product->name} ({$colorVariant->color}). {$notes}"
+            );
+        }
+
+        // Then, add the assembled composite products to stock
+        $previousQuantity = $colorVariant->quantity;
+        $colorVariant->increment('quantity', $quantity);
+        $newQuantity = $colorVariant->fresh()->quantity;
+
+        $colorVariant->product->stockLogs()->create([
+            'change_type' => 'inward',
+            'quantity' => $quantity,
+            'previous_quantity' => $previousQuantity,
+            'new_quantity' => $newQuantity,
+            'color_variant_id' => $colorVariant->id,
+            'remarks' => "Assembled from components. {$notes}",
+        ]);
     }
 
     /**
@@ -170,6 +294,25 @@ class StockService
             } else {
                 $this->handleSimpleColorVariantOutward($colorVariant, $quantity, $notes);
             }
+        });
+    }
+
+    /**
+     * Handle outward stock movement for color variant (sale only - no component deduction).
+     * This is used for invoice generation where components were already consumed during assembly.
+     *
+     * @param ProductColorVariant $colorVariant
+     * @param int $quantity
+     * @param string|null $notes
+     * @return void
+     * @throws \Exception
+     */
+    public function outwardColorVariantStockSaleOnly(ProductColorVariant $colorVariant, int $quantity, ?string $notes = null): void
+    {
+        DB::transaction(function () use ($colorVariant, $quantity, $notes) {
+            // For both simple and composite products, only reduce the product stock
+            // Components are not touched since they were already consumed during assembly
+            $this->handleSimpleColorVariantOutward($colorVariant, $quantity, $notes);
         });
     }
 

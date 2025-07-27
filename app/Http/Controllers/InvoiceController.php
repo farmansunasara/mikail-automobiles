@@ -159,7 +159,7 @@ class InvoiceController extends Controller
                         'subtotal' => $subtotal,
                     ]);
 
-                    $this->stockService->outwardColorVariantStock($colorVariant, $item['quantity'], "Sale via Invoice #{$invoice->invoice_number}");
+                    $this->stockService->outwardColorVariantStockSaleOnly($colorVariant, $item['quantity'], "Sale via Invoice #{$invoice->invoice_number}");
                 }
             });
 
@@ -299,7 +299,7 @@ class InvoiceController extends Controller
                         'subtotal' => $subtotal,
                     ]);
 
-                    $this->stockService->outwardColorVariantStock($colorVariant, $item['quantity'], "Sale via Non-GST Invoice #{$invoice->invoice_number}");
+                    $this->stockService->outwardColorVariantStockSaleOnly($colorVariant, $item['quantity'], "Sale via Non-GST Invoice #{$invoice->invoice_number}");
                 }
             });
 
