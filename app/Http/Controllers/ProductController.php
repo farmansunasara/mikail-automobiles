@@ -122,7 +122,7 @@ class ProductController extends Controller
             'components.*.component_product_id' => 'required_if:is_composite,1|exists:products,id',
             'components.*.quantity_needed' => 'required_if:is_composite,1|integer|min:1',
             'color_variants' => 'required|array|min:1',
-            'color_variants.*.color' => 'required|string|max:100',
+            'color_variants.*.color' => 'nullable|string|max:100',
             'color_variants.*.quantity' => 'required|integer|min:0',
         ]);
 
@@ -150,10 +150,13 @@ class ProductController extends Controller
             // Create color variants and handle stock for composite products
             if ($request->has('color_variants')) {
                 foreach ($request->color_variants as $variant) {
-                    if (!empty($variant['color']) && $variant['quantity'] >= 0) {
+                    if ($variant['quantity'] >= 0) {
+                        // Handle empty color - set to "No Color" if empty
+                        $color = !empty($variant['color']) ? $variant['color'] : 'No Color';
+                        
                         // Create color variant with zero quantity first
                         $colorVariant = $product->colorVariants()->create([
-                            'color' => $variant['color'],
+                            'color' => $color,
                             'quantity' => 0
                         ]);
                         
@@ -227,7 +230,7 @@ class ProductController extends Controller
             'components.*.component_product_id' => 'required_if:is_composite,1|exists:products,id',
             'components.*.quantity_needed' => 'required_if:is_composite,1|integer|min:1',
             'color_variants' => 'required|array|min:1',
-            'color_variants.*.color' => 'required|string|max:100',
+            'color_variants.*.color' => 'nullable|string|max:100',
             'color_variants.*.quantity' => 'required|integer|min:0',
         ]);
 
@@ -257,10 +260,13 @@ class ProductController extends Controller
             $product->colorVariants()->delete();
             if ($request->has('color_variants')) {
                 foreach ($request->color_variants as $variant) {
-                    if (!empty($variant['color']) && $variant['quantity'] >= 0) {
+                    if ($variant['quantity'] >= 0) {
+                        // Handle empty color - set to "No Color" if empty
+                        $color = !empty($variant['color']) ? $variant['color'] : 'No Color';
+                        
                         // Create color variant with zero quantity first
                         $colorVariant = $product->colorVariants()->create([
-                            'color' => $variant['color'],
+                            'color' => $color,
                             'quantity' => 0
                         ]);
                         

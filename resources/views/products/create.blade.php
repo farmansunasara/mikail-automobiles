@@ -99,6 +99,17 @@
 
             <div id="components-wrapper" class="{{ old('is_composite') ? '' : 'd-none' }}">
                 <h4>Components</h4>
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <label for="component_category_filter">Filter Components by Category</label>
+                        <select id="component_category_filter" class="form-control">
+                            <option value="">All Categories</option>
+                            @foreach($categories as $category)
+                                <option value="{{ $category->id }}">{{ $category->name }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                </div>
                 <div id="components-container">
                     <!-- Component rows will be added here -->
                 </div>
@@ -150,14 +161,49 @@
 
         var simpleProducts = {!! json_encode($products) !!};
 
+        // Component category filtering
+        $('#component_category_filter').change(function() {
+            var selectedCategory = $(this).val();
+            filterComponentOptions(selectedCategory);
+        });
+
+        function filterComponentOptions(categoryId) {
+            $('.component-product-select').each(function() {
+                var $select = $(this);
+                var selectedValue = $select.val();
+                
+                $select.find('option').each(function() {
+                    var $option = $(this);
+                    if ($option.val() === '') {
+                        $option.show(); // Always show "Select Component Product" option
+                        return;
+                    }
+                    
+                    var optionCategory = $option.data('category');
+                    if (categoryId === '' || optionCategory == categoryId) {
+                        $option.show();
+                    } else {
+                        $option.hide();
+                        if ($option.val() === selectedValue) {
+                            $select.val(''); // Clear selection if hidden
+                        }
+                    }
+                });
+            });
+        }
+
         $('#add-component-btn').click(function() {
             var componentIndex = $('#components-container .component-row').length;
-            var productOptions = simpleProducts.map(p => `<option value="${p.id}">${p.name}</option>`).join('');
+            var selectedCategory = $('#component_category_filter').val();
+            var productOptions = simpleProducts
+                .filter(p => selectedCategory === '' || p.category_id == selectedCategory)
+                .map(p => `<option value="${p.id}" data-category="${p.category_id}">${p.name} (${p.category.name})</option>`)
+                .join('');
 
             $('#components-container').append(`
                 <div class="row component-row mb-2">
                     <div class="col-md-6">
-                        <select name="components[${componentIndex}][component_product_id]" class="form-control" required>
+                        <select name="components[${componentIndex}][component_product_id]" class="form-control component-product-select" required>
                             <option value="">Select Component Product</option>
                             ${productOptions}
                         </select>

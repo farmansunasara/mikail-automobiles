@@ -84,7 +84,7 @@
                         @foreach(old('color_variants', $product->colorVariants) as $index => $variant)
                             <div class="row color-variant-row mb-2">
                                 <div class="col-md-5">
-                                    <input type="text" name="color_variants[{{ $index }}][color]" class="form-control" placeholder="Color (e.g., Red, Blue)" value="{{ is_array($variant) ? $variant['color'] : $variant->color }}" required>
+                                    <input type="text" name="color_variants[{{ $index }}][color]" class="form-control" placeholder="Color (e.g., Red, Blue, or leave empty for 'No Color')" value="{{ is_array($variant) ? $variant['color'] : $variant->color }}">
                                 </div>
                                 <div class="col-md-5">
                                     <input type="number" name="color_variants[{{ $index }}][quantity]" class="form-control" placeholder="Quantity" value="{{ is_array($variant) ? $variant['quantity'] : $variant->quantity }}" required min="0">
@@ -122,20 +122,31 @@
 
             <div id="components-wrapper" class="{{ old('is_composite', $product->is_composite) ? '' : 'd-none' }}">
                 <h4>Components</h4>
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <label for="component_category_filter">Filter Components by Category</label>
+                        <select id="component_category_filter" class="form-control">
+                            <option value="">All Categories</option>
+                            @foreach($categories as $category)
+                                <option value="{{ $category->id }}">{{ $category->name }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                </div>
                 <div id="components-container">
                     @if(old('components', $product->components))
                         @foreach(old('components', $product->components) as $index => $component)
                             <div class="row component-row mb-2">
                                 <div class="col-md-6">
-                                    <select name="components[{{ $index }}][component_product_id]" class="form-control" required>
+                                    <select name="components[{{ $index }}][component_product_id]" class="form-control component-product-select" required>
                                         <option value="">Select Component Product</option>
                                         @foreach($simpleProducts as $simpleProduct)
-                                            <option value="{{ $simpleProduct->id }}" {{ $component['component_product_id'] == $simpleProduct->id ? 'selected' : '' }}>{{ $simpleProduct->name }}</option>
+                                            <option value="{{ $simpleProduct->id }}" data-category="{{ $simpleProduct->category_id }}" {{ (is_array($component) ? $component['component_product_id'] : $component->component_product_id) == $simpleProduct->id ? 'selected' : '' }}>{{ $simpleProduct->name }} ({{ $simpleProduct->category->name }})</option>
                                         @endforeach
                                     </select>
                                 </div>
                                 <div class="col-md-4">
-                                    <input type="number" name="components[{{ $index }}][quantity_needed]" class="form-control" placeholder="Quantity Needed" value="{{ $component['quantity_needed'] }}" required min="1">
+                                    <input type="number" name="components[{{ $index }}][quantity_needed]" class="form-control" placeholder="Quantity Needed" value="{{ is_array($component) ? $component['quantity_needed'] : $component->quantity_needed }}" required min="1">
                                 </div>
                                 <div class="col-md-2">
                                     <button type="button" class="btn btn-danger remove-component-btn">Remove</button>
@@ -192,14 +203,49 @@
 
         var simpleProducts = {!! json_encode($simpleProducts->toArray()) !!};
 
+        // Component category filtering
+        $('#component_category_filter').change(function() {
+            var selectedCategory = $(this).val();
+            filterComponentOptions(selectedCategory);
+        });
+
+        function filterComponentOptions(categoryId) {
+            $('.component-product-select').each(function() {
+                var $select = $(this);
+                var selectedValue = $select.val();
+                
+                $select.find('option').each(function() {
+                    var $option = $(this);
+                    if ($option.val() === '') {
+                        $option.show(); // Always show "Select Component Product" option
+                        return;
+                    }
+                    
+                    var optionCategory = $option.data('category');
+                    if (categoryId === '' || optionCategory == categoryId) {
+                        $option.show();
+                    } else {
+                        $option.hide();
+                        if ($option.val() === selectedValue) {
+                            $select.val(''); // Clear selection if hidden
+                        }
+                    }
+                });
+            });
+        }
+
         $('#add-component-btn').click(function() {
             var componentIndex = $('#components-container .component-row').length;
-            var productOptions = simpleProducts.map(p => `<option value="${p.id}">${p.name}</option>`).join('');
+            var selectedCategory = $('#component_category_filter').val();
+            var productOptions = simpleProducts
+                .filter(p => selectedCategory === '' || p.category_id == selectedCategory)
+                .map(p => `<option value="${p.id}" data-category="${p.category_id}">${p.name} (${p.category.name})</option>`)
+                .join('');
 
             $('#components-container').append(`
                 <div class="row component-row mb-2">
                     <div class="col-md-6">
-                        <select name="components[${componentIndex}][component_product_id]" class="form-control" required>
+                        <select name="components[${componentIndex}][component_product_id]" class="form-control component-product-select" required>
                             <option value="">Select Component Product</option>
                             ${productOptions}
                         </select>
@@ -224,7 +270,7 @@
             $('#color-variants-container').append(`
                 <div class="row color-variant-row mb-2">
                     <div class="col-md-5">
-                        <input type="text" name="color_variants[${variantIndex}][color]" class="form-control" placeholder="Color (e.g., Red, Blue)" required>
+                        <input type="text" name="color_variants[${variantIndex}][color]" class="form-control" placeholder="Color (e.g., Red, Blue, or leave empty for 'No Color')">
                     </div>
                     <div class="col-md-5">
                         <input type="number" name="color_variants[${variantIndex}][quantity]" class="form-control" placeholder="Quantity" required min="0">
