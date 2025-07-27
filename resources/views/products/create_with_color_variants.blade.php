@@ -122,14 +122,31 @@
 
             <!-- Color Variants Section -->
             <div class="form-group">
-                <label><strong>Color Variants & Quantities *</strong></label>
-                <small class="form-text text-muted">Add different colors with their respective quantities (like Red: 50, Blue: 100)</small>
+                <label><strong>Product Quantity & Colors</strong></label>
+                <small class="form-text text-muted">
+                    <strong>Option 1:</strong> Enter quantity below for a product without specific colors<br>
+                    <strong>Option 2:</strong> Add specific colors with their quantities (like Red: 50, Blue: 100)
+                </small>
+                
+                <!-- Default Quantity (No Color) -->
+                <div class="card mb-3">
+                    <div class="card-body">
+                        <h6 class="card-title">Default Quantity (No Specific Color)</h6>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <input type="number" id="default-quantity" class="form-control" placeholder="Enter quantity for product without specific color" min="0" value="0">
+                                <small class="form-text text-muted">Leave as 0 if you want to add specific colors below</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
                 
                 <div id="color-variants-container">
                     <!-- Color variants will be added here -->
                 </div>
                 
                 <div class="add-color-section">
+                    <h6>Add Specific Colors (Optional)</h6>
                     <div class="row">
                         <div class="col-md-4">
                             <input type="text" id="new-color" class="form-control" placeholder="Enter color (e.g., Red, Blue)" maxlength="100">
@@ -296,7 +313,8 @@ $(document).ready(function() {
             'pink': 'background-color: #e83e8c; color: white;',
             'brown': 'background-color: #795548; color: white;',
             'gray': 'background-color: #6c757d; color: white;',
-            'grey': 'background-color: #6c757d; color: white;'
+            'grey': 'background-color: #6c757d; color: white;',
+            'no color': 'background-color: #e9ecef; color: black; border: 1px solid #dee2e6;'
         };
         return colors[colorName.toLowerCase()] || 'background-color: #6c757d; color: white;';
     }
@@ -374,13 +392,20 @@ $(document).ready(function() {
         $(this).closest('.component-row').remove();
     });
     
-    // Form validation
+    // Form validation - handle default quantity and color variants
     $('#product-form').on('submit', function(e) {
         const colorVariants = $('.color-variant-item').length;
-        if (colorVariants === 0) {
+        const defaultQuantity = parseInt($('#default-quantity').val()) || 0;
+        
+        if (colorVariants === 0 && defaultQuantity === 0) {
             e.preventDefault();
-            alert('Please add at least one color variant with quantity.');
+            alert('Please either enter a default quantity or add specific color variants.');
             return false;
+        }
+        
+        // If no color variants but default quantity is set, add "No Color" variant
+        if (colorVariants === 0 && defaultQuantity > 0) {
+            addColorVariant('No Color', defaultQuantity);
         }
     });
     
