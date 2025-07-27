@@ -22,21 +22,10 @@
                     <div class="form-group">
                         <label for="name">Product Name</label>
                         <input type="text" name="name" id="name" class="form-control @error('name') is-invalid @enderror" value="{{ old('name', $product->name) }}" required>
-                        <small class="form-text text-muted">You can use the same product name with different colors to create variants.</small>
+                        <small class="form-text text-muted">Base product name (colors will be managed separately below).</small>
                         @error('name') <span class="invalid-feedback">{{ $message }}</span> @enderror
                     </div>
                 </div>
-                <div class="col-md-6">
-                    <div class="form-group">
-                        <label for="color">Color</label>
-                        <input type="text" name="color" id="color" class="form-control @error('color') is-invalid @enderror" value="{{ old('color', $product->color) }}" placeholder="e.g., Red, Blue, Black">
-                        <small class="form-text text-muted">Optional. Leave empty if product has no specific color.</small>
-                        @error('color') <span class="invalid-feedback">{{ $message }}</span> @enderror
-                    </div>
-                </div>
-            </div>
-
-            <div class="row">
                 <div class="col-md-6">
                     <div class="form-group">
                         <label for="category_id">Category</label>
@@ -49,6 +38,9 @@
                         @error('category_id') <span class="invalid-feedback">{{ $message }}</span> @enderror
                     </div>
                 </div>
+            </div>
+
+            <div class="row">
                 <div class="col-md-6">
                     <div class="form-group">
                         <label for="subcategory_id">Subcategory</label>
@@ -58,36 +50,66 @@
                         @error('subcategory_id') <span class="invalid-feedback">{{ $message }}</span> @enderror
                     </div>
                 </div>
-            </div>
-
-            <div class="row">
-                <div class="col-md-4">
+                <div class="col-md-6">
                     <div class="form-group">
                         <label for="price">Price (₹)</label>
                         <input type="number" name="price" id="price" step="0.01" class="form-control @error('price') is-invalid @enderror" value="{{ old('price', $product->price) }}" required>
                         @error('price') <span class="invalid-feedback">{{ $message }}</span> @enderror
                     </div>
                 </div>
-                <div class="col-md-4">
-                    <div class="form-group">
-                        <label for="quantity">Quantity</label>
-                        <input type="number" name="quantity" id="quantity" class="form-control @error('quantity') is-invalid @enderror" value="{{ old('quantity', $product->quantity) }}" required>
-                        @error('quantity') <span class="invalid-feedback">{{ $message }}</span> @enderror
-                    </div>
-                </div>
-                <div class="col-md-4">
+            </div>
+
+            <div class="row">
+                <div class="col-md-6">
                     <div class="form-group">
                         <label for="gst_rate">GST Rate (%)</label>
                         <input type="number" name="gst_rate" id="gst_rate" step="0.01" class="form-control @error('gst_rate') is-invalid @enderror" value="{{ old('gst_rate', $product->gst_rate) }}" required>
                         @error('gst_rate') <span class="invalid-feedback">{{ $message }}</span> @enderror
                     </div>
                 </div>
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label for="hsn_code">HSN Code</label>
+                        <input type="text" name="hsn_code" id="hsn_code" class="form-control @error('hsn_code') is-invalid @enderror" value="{{ old('hsn_code', $product->hsn_code) }}">
+                        @error('hsn_code') <span class="invalid-feedback">{{ $message }}</span> @enderror
+                    </div>
+                </div>
             </div>
-            
+
+            <!-- Color Variants Section -->
             <div class="form-group">
-                <label for="hsn_code">HSN Code</label>
-                <input type="text" name="hsn_code" id="hsn_code" class="form-control @error('hsn_code') is-invalid @enderror" value="{{ old('hsn_code', $product->hsn_code) }}">
-                @error('hsn_code') <span class="invalid-feedback">{{ $message }}</span> @enderror
+                <label>Color Variants</label>
+                <div id="color-variants-container">
+                    @if(old('color_variants', $product->colorVariants))
+                        @foreach(old('color_variants', $product->colorVariants) as $index => $variant)
+                            <div class="row color-variant-row mb-2">
+                                <div class="col-md-5">
+                                    <input type="text" name="color_variants[{{ $index }}][color]" class="form-control" placeholder="Color (e.g., Red, Blue)" value="{{ is_array($variant) ? $variant['color'] : $variant->color }}" required>
+                                </div>
+                                <div class="col-md-5">
+                                    <input type="number" name="color_variants[{{ $index }}][quantity]" class="form-control" placeholder="Quantity" value="{{ is_array($variant) ? $variant['quantity'] : $variant->quantity }}" required min="0">
+                                </div>
+                                <div class="col-md-2">
+                                    <button type="button" class="btn btn-danger remove-variant-btn">Remove</button>
+                                </div>
+                            </div>
+                        @endforeach
+                    @else
+                        <div class="row color-variant-row mb-2">
+                            <div class="col-md-5">
+                                <input type="text" name="color_variants[0][color]" class="form-control" placeholder="Color (e.g., Red, Blue)" required>
+                            </div>
+                            <div class="col-md-5">
+                                <input type="number" name="color_variants[0][quantity]" class="form-control" placeholder="Quantity" required min="0">
+                            </div>
+                            <div class="col-md-2">
+                                <button type="button" class="btn btn-danger remove-variant-btn">Remove</button>
+                            </div>
+                        </div>
+                    @endif
+                </div>
+                <button type="button" id="add-variant-btn" class="btn btn-sm btn-success">Add Color Variant</button>
+                @error('color_variants') <span class="text-danger">{{ $message }}</span> @enderror
             </div>
 
             <div class="form-group">
@@ -194,6 +216,32 @@
 
         $(document).on('click', '.remove-component-btn', function() {
             $(this).closest('.component-row').remove();
+        });
+
+        // Color Variants functionality
+        $('#add-variant-btn').click(function() {
+            var variantIndex = $('#color-variants-container .color-variant-row').length;
+            $('#color-variants-container').append(`
+                <div class="row color-variant-row mb-2">
+                    <div class="col-md-5">
+                        <input type="text" name="color_variants[${variantIndex}][color]" class="form-control" placeholder="Color (e.g., Red, Blue)" required>
+                    </div>
+                    <div class="col-md-5">
+                        <input type="number" name="color_variants[${variantIndex}][quantity]" class="form-control" placeholder="Quantity" required min="0">
+                    </div>
+                    <div class="col-md-2">
+                        <button type="button" class="btn btn-danger remove-variant-btn">Remove</button>
+                    </div>
+                </div>
+            `);
+        });
+
+        $(document).on('click', '.remove-variant-btn', function() {
+            if ($('#color-variants-container .color-variant-row').length > 1) {
+                $(this).closest('.color-variant-row').remove();
+            } else {
+                alert('At least one color variant is required.');
+            }
         });
     });
 </script>

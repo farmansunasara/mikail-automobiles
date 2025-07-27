@@ -6,12 +6,20 @@ use App\Models\Product;
 use App\Models\Category;
 use App\Models\Subcategory;
 use App\Models\ProductComponent;
+use App\Services\StockService;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 use Illuminate\Support\Facades\DB;
 
 class ProductController extends Controller
 {
+    protected $stockService;
+
+    public function __construct(StockService $stockService)
+    {
+        $this->stockService = $stockService;
+    }
+
     /**
      * Display a listing of the resource.
      */
@@ -132,22 +140,38 @@ class ProductController extends Controller
             
             $product = Product::create($productData);
 
-            // Create color variants
-            if ($request->has('color_variants')) {
-                foreach ($request->color_variants as $variant) {
-                    if (!empty($variant['color']) && $variant['quantity'] >= 0) {
-                        $product->colorVariants()->create([
-                            'color' => $variant['color'],
-                            'quantity' => $variant['quantity']
-                        ]);
-                    }
-                }
-            }
-
-            // Handle composite product components
+            // Handle composite product components first
             if ($request->boolean('is_composite') && $request->has('components')) {
                 foreach ($request->components as $componentData) {
                     $product->components()->create($componentData);
+                }
+            }
+
+            // Create color variants and handle stock for composite products
+            if ($request->has('color_variants')) {
+                foreach ($request->color_variants as $variant) {
+                    if (!empty($variant['color']) && $variant['quantity'] >= 0) {
+                        // Create color variant with zero quantity first
+                        $colorVariant = $product->colorVariants()->create([
+                            'color' => $variant['color'],
+                            'quantity' => 0
+                        ]);
+                        
+                        // If quantity > 0, use StockService to add stock
+                        if ($variant['quantity'] > 0) {
+                            try {
+                                $this->stockService->inwardColorVariantStock(
+                                    $colorVariant, 
+                                    $variant['quantity'], 
+                                    'Initial stock during product creation'
+                                );
+                            } catch (\Exception $e) {
+                                // If assembly fails, delete the product and throw error
+                                $product->delete();
+                                throw new \Exception("Cannot create composite product: " . $e->getMessage());
+                            }
+                        }
+                    }
                 }
             }
         });
@@ -221,24 +245,38 @@ class ProductController extends Controller
             
             $product->update($productData);
 
-            // Update color variants
-            $product->colorVariants()->delete();
-            if ($request->has('color_variants')) {
-                foreach ($request->color_variants as $variant) {
-                    if (!empty($variant['color']) && $variant['quantity'] >= 0) {
-                        $product->colorVariants()->create([
-                            'color' => $variant['color'],
-                            'quantity' => $variant['quantity']
-                        ]);
-                    }
-                }
-            }
-
-            // Update components
+            // Update components first
             $product->components()->delete();
             if ($request->boolean('is_composite') && $request->has('components')) {
                 foreach ($request->components as $componentData) {
                     $product->components()->create($componentData);
+                }
+            }
+
+            // Update color variants - for composite products, use StockService
+            $product->colorVariants()->delete();
+            if ($request->has('color_variants')) {
+                foreach ($request->color_variants as $variant) {
+                    if (!empty($variant['color']) && $variant['quantity'] >= 0) {
+                        // Create color variant with zero quantity first
+                        $colorVariant = $product->colorVariants()->create([
+                            'color' => $variant['color'],
+                            'quantity' => 0
+                        ]);
+                        
+                        // If quantity > 0, use StockService to add stock
+                        if ($variant['quantity'] > 0) {
+                            try {
+                                $this->stockService->inwardColorVariantStock(
+                                    $colorVariant, 
+                                    $variant['quantity'], 
+                                    'Stock update during product edit'
+                                );
+                            } catch (\Exception $e) {
+                                throw new \Exception("Cannot update composite product: " . $e->getMessage());
+                            }
+                        }
+                    }
                 }
             }
         });
