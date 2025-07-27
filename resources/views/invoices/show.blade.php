@@ -58,10 +58,11 @@
                         <th>#</th>
                         <th>Category</th>
                         <th>Product</th>
-                        <th>HSN Code</th>
-                        <th>Price</th>
-                        <th>GST%</th>
+                        <!-- <th>GST%</th> -->
                         <th>Colors & Quantities</th>
+                        <th>Price</th>
+
+                        <th>Total Qty</th>
                         <th>Subtotal</th>
                     </tr>
                 </thead>
@@ -86,9 +87,7 @@
                             @endif
                         </td>
                         <td><strong>{{ $productName }}</strong></td>
-                        <td>{{ $firstItem->product->hsn_code }}</td>
-                        <td>₹{{ number_format($firstItem->price, 2) }}</td>
-                        <td>{{ $firstItem->gst_rate }}%</td>
+                        <!-- <td>{{ $firstItem->gst_rate }}%</td> -->
                         <td>
                             <div class="colors-display">
                                 @foreach($items as $item)
@@ -130,6 +129,9 @@
                                 @endforeach
                             </div>
                         </td>
+                        <td>₹{{ number_format($firstItem->price, 2) }}</td>
+
+                        <td><strong>{{ $totalQuantity }}</strong></td>
                         <td><strong>₹{{ number_format($totalSubtotal, 2) }}</strong></td>
                     </tr>
                     @endforeach
@@ -158,6 +160,10 @@
             <div class="table-responsive">
                 <table class="table">
                     <tr>
+                        <th>Total Quantity:</th>
+                        <td><strong>{{ $invoice->items->sum('quantity') }} pcs</strong></td>
+                    </tr>
+                    <tr>
                         <th>Subtotal:</th>
                         <td>₹{{ number_format($invoice->total_amount, 2) }}</td>
                     </tr>
@@ -172,11 +178,11 @@
                     </tr>
                     @endif
                     <tr>
-                        <th>CGST ({{ $invoice->items->first()->gst_rate / 2 }}%)</th>
+                        <th>CGST ({{ $invoice->gst_rate / 2 }}%)</th>
                         <td>₹{{ number_format($invoice->cgst, 2) }}</td>
                     </tr>
                     <tr>
-                        <th>SGST ({{ $invoice->items->first()->gst_rate / 2 }}%)</th>
+                        <th>SGST ({{ $invoice->gst_rate / 2 }}%)</th>
                         <td>₹{{ number_format($invoice->sgst, 2) }}</td>
                     </tr>
                     <tr>

@@ -76,7 +76,7 @@ class DatabaseSeeder extends Seeder
             Subcategory::create($subcategoryData);
         }
 
-        // Create sample products
+                // Create sample products
         $products = [
             [
                 'name' => 'Headlight Assembly',
@@ -85,7 +85,6 @@ class DatabaseSeeder extends Seeder
                 'color' => 'Clear',
                 'quantity' => 50,
                 'price' => 1200.00,
-                'hsn_code' => '85122000',
                 'gst_rate' => 18.00,
                 'is_composite' => false,
             ],
@@ -96,7 +95,6 @@ class DatabaseSeeder extends Seeder
                 'color' => 'Red',
                 'quantity' => 75,
                 'price' => 450.00,
-                'hsn_code' => '85122000',
                 'gst_rate' => 18.00,
                 'is_composite' => false,
             ],
@@ -107,7 +105,6 @@ class DatabaseSeeder extends Seeder
                 'color' => 'Black',
                 'quantity' => 30,
                 'price' => 250.00,
-                'hsn_code' => '40169300',
                 'gst_rate' => 18.00,
                 'is_composite' => false,
             ],
@@ -118,7 +115,6 @@ class DatabaseSeeder extends Seeder
                 'color' => 'White',
                 'quantity' => 25,
                 'price' => 800.00,
-                'hsn_code' => '87089900',
                 'gst_rate' => 28.00,
                 'is_composite' => false,
             ],
@@ -129,7 +125,6 @@ class DatabaseSeeder extends Seeder
                 'color' => 'White',
                 'quantity' => 25,
                 'price' => 800.00,
-                'hsn_code' => '87089900',
                 'gst_rate' => 28.00,
                 'is_composite' => false,
             ],
@@ -140,7 +135,6 @@ class DatabaseSeeder extends Seeder
                 'color' => 'White',
                 'quantity' => 100,
                 'price' => 180.00,
-                'hsn_code' => '84213100',
                 'gst_rate' => 18.00,
                 'is_composite' => false,
             ],
@@ -151,7 +145,6 @@ class DatabaseSeeder extends Seeder
                 'color' => 'Silver',
                 'quantity' => 200,
                 'price' => 120.00,
-                'hsn_code' => '85111000',
                 'gst_rate' => 18.00,
                 'is_composite' => false,
             ],
@@ -162,7 +155,6 @@ class DatabaseSeeder extends Seeder
                 'color' => 'Golden',
                 'quantity' => 80,
                 'price' => 350.00,
-                'hsn_code' => '27101981',
                 'gst_rate' => 28.00,
                 'is_composite' => false,
             ],
@@ -173,7 +165,6 @@ class DatabaseSeeder extends Seeder
                 'color' => 'Black',
                 'quantity' => 60,
                 'price' => 280.00,
-                'hsn_code' => '87089900',
                 'gst_rate' => 28.00,
                 'is_composite' => false,
             ],
@@ -184,7 +175,6 @@ class DatabaseSeeder extends Seeder
                 'color' => 'Silver',
                 'quantity' => 40,
                 'price' => 650.00,
-                'hsn_code' => '87149900',
                 'gst_rate' => 28.00,
                 'is_composite' => false,
             ],

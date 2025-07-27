@@ -112,7 +112,7 @@
         /* Column widths for optimal space usage (Non-GST doesn't have HSN/GST columns) */
         .col-sr { width: 4%; }
         .col-category { width: 15%; }
-        .col-product { width: 25%; }
+        .col-product { width: 18%; }
         .col-price { width: 12%; }
         .col-colors { width: 30%; }
         .col-qty { width: 8%; }
@@ -150,6 +150,7 @@
                     <th class="col-product">Product</th>
                     <th class="col-price">Price</th>
                     <th class="col-colors">Colors & Quantities</th>
+
                     <th class="col-qty">Total Qty</th>
                     <th class="col-total">Total</th>
                 </tr>
@@ -178,8 +179,9 @@
                     <td class="text-center">{{ $rowNumber++ }}</td>
                     <td>{{ $firstItem->product->category->name ?? 'N/A' }}</td>
                     <td><strong>{{ $productName }}</strong></td>
-                    <td class="text-right">Rs.{{ number_format($firstItem->price, 2) }}</td>
                     <td class="color-qty">{{ $colorQtyString }}</td>
+                    <td class="text-right">Rs.{{ number_format($firstItem->price, 2) }}</td>
+
                     <td class="text-center"><strong>{{ $totalQuantity }}</strong></td>
                     <td class="text-right"><strong>Rs.{{ number_format($totalSubtotal, 2) }}</strong></td>
                 </tr>

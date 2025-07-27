@@ -75,11 +75,11 @@ class InvoiceController extends Controller
             'invoice_date' => 'required|date',
             'due_date' => 'nullable|date|after_or_equal:invoice_date',
             'notes' => 'nullable|string',
+            'gst_rate' => 'required|numeric|min:0|max:100',
             'discount_type' => 'nullable|numeric|in:0,1',
             'discount_value' => 'nullable|numeric|min:0',
             'items' => 'required|array|min:1',
             'items.*.price' => 'required|numeric|min:0',
-            'items.*.gst_rate' => 'required|numeric|min:0',
             'items.*.variants' => 'required|array',
         ]);
 
@@ -87,7 +87,6 @@ class InvoiceController extends Controller
             $invoiceItems = [];
             foreach ($request->items as $itemData) {
                 $price = floatval($itemData['price']);
-                $gst_rate = floatval($itemData['gst_rate']);
                 if (isset($itemData['variants'])) {
                     foreach ($itemData['variants'] as $variantData) {
                         $quantity = intval($variantData['quantity'] ?? 0);
@@ -105,7 +104,6 @@ class InvoiceController extends Controller
                                 'product_id' => $colorVariant->product_id,
                                 'quantity' => $quantity,
                                 'price' => $price,
-                                'gst_rate' => $gst_rate,
                             ];
                         }
                     }
@@ -118,8 +116,6 @@ class InvoiceController extends Controller
 
             DB::transaction(function () use ($request, $invoiceItems) {
                 $total_amount = 0;
-                $total_cgst = 0;
-                $total_sgst = 0;
 
                 foreach ($invoiceItems as $item) {
                     $subtotal = $item['quantity'] * $item['price'];
@@ -143,16 +139,11 @@ class InvoiceController extends Controller
 
                 $after_discount = $total_amount - $discount_amount;
 
-                // Calculate GST on discounted amount
-                foreach ($invoiceItems as $item) {
-                    $subtotal = $item['quantity'] * $item['price'];
-                    // Apply proportional discount to this item
-                    $item_discount = $total_amount > 0 ? ($subtotal / $total_amount) * $discount_amount : 0;
-                    $item_after_discount = $subtotal - $item_discount;
-                    $gst_amount = ($item_after_discount * $item['gst_rate']) / 100;
-                    $total_cgst += $gst_amount / 2;
-                    $total_sgst += $gst_amount / 2;
-                }
+                // Calculate GST on discounted amount using single invoice-level GST rate
+                $invoice_gst_rate = floatval($request->gst_rate);
+                $total_gst_amount = ($after_discount * $invoice_gst_rate) / 100;
+                $total_cgst = $total_gst_amount / 2;
+                $total_sgst = $total_gst_amount / 2;
 
                 $grand_total = $after_discount + $total_cgst + $total_sgst;
 
@@ -167,6 +158,7 @@ class InvoiceController extends Controller
                     'discount_type' => $discount_type,
                     'discount_value' => $discount_value,
                     'discount_amount' => $discount_amount,
+                    'gst_rate' => $invoice_gst_rate,
                     'cgst' => $total_cgst,
                     'sgst' => $total_sgst,
                     'grand_total' => $grand_total,
@@ -176,16 +168,15 @@ class InvoiceController extends Controller
                 foreach ($invoiceItems as $item) {
                     $colorVariant = ProductColorVariant::find($item['color_variant_id']);
                     $subtotal = $item['quantity'] * $item['price'];
-                    $gst_amount = ($subtotal * $item['gst_rate']) / 100;
 
                     $invoice->items()->create([
                         'product_id' => $item['product_id'],
                         'color_variant_id' => $item['color_variant_id'],
                         'quantity' => $item['quantity'],
                         'price' => $item['price'],
-                        'gst_rate' => $item['gst_rate'],
-                        'cgst' => $gst_amount / 2,
-                        'sgst' => $gst_amount / 2,
+                        'gst_rate' => $invoice_gst_rate, // Store invoice-level GST rate for reference
+                        'cgst' => 0, // Individual item GST not calculated anymore
+                        'sgst' => 0, // Individual item GST not calculated anymore
                         'subtotal' => $subtotal,
                     ]);
 
