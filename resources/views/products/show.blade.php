@@ -66,10 +66,6 @@
                         <dl>
                             <dt>Price</dt>
                             <dd>₹{{ number_format($product->price, 2) }}</dd>
-                            <dt>HSN Code</dt>
-                            <dd>{{ $product->hsn_code ?? 'N/A' }}</dd>
-                            <dt>GST Rate</dt>
-                            <dd>{{ $product->gst_rate }}%</dd>
                             <dt>Product Type</dt>
                             <dd>
                                 @if($product->is_composite)
@@ -78,6 +74,8 @@
                                     <span class="badge badge-info">Simple</span>
                                 @endif
                             </dd>
+                            <dt>GST Information</dt>
+                            <dd><small class="text-muted">GST Rate is now managed at invoice level</small></dd>
                         </dl>
                     </div>
                 </div>

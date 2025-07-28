@@ -60,34 +60,22 @@
             </div>
 
             <div class="row">
-                <div class="col-md-4">
+                <div class="col-md-6">
                     <div class="form-group">
                         <label for="price">Price (₹)</label>
                         <input type="number" name="price" id="price" step="0.01" class="form-control @error('price') is-invalid @enderror" value="{{ old('price') }}" required>
                         @error('price') <span class="invalid-feedback">{{ $message }}</span> @enderror
                     </div>
                 </div>
-                <div class="col-md-4">
+                <div class="col-md-6">
                     <div class="form-group">
                         <label for="quantity">Initial Quantity</label>
                         <input type="number" name="quantity" id="quantity" class="form-control @error('quantity') is-invalid @enderror" value="{{ old('quantity', 0) }}" required>
                         @error('quantity') <span class="invalid-feedback">{{ $message }}</span> @enderror
                     </div>
                 </div>
-                <div class="col-md-4">
-                    <div class="form-group">
-                        <label for="gst_rate">GST Rate (%)</label>
-                        <input type="number" name="gst_rate" id="gst_rate" step="0.01" class="form-control @error('gst_rate') is-invalid @enderror" value="{{ old('gst_rate') }}" required>
-                        @error('gst_rate') <span class="invalid-feedback">{{ $message }}</span> @enderror
-                    </div>
-                </div>
             </div>
             
-            <div class="form-group">
-                <label for="hsn_code">HSN Code</label>
-                <input type="text" name="hsn_code" id="hsn_code" class="form-control @error('hsn_code') is-invalid @enderror" value="{{ old('hsn_code') }}">
-                @error('hsn_code') <span class="invalid-feedback">{{ $message }}</span> @enderror
-            </div>
 
             <div class="form-group">
                 <div class="custom-control custom-switch">

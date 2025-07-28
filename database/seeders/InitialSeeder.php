@@ -5,15 +5,11 @@ namespace Database\Seeders;
 use App\Models\User;
 use App\Models\Category;
 use App\Models\Subcategory;
-use App\Models\Customer;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
 
-class DatabaseSeeder extends Seeder
+class InitialSeeder extends Seeder
 {
-    /**
-     * Seed the application's database.
-     */
     public function run(): void
     {
         // Create admin user
@@ -73,56 +69,6 @@ class DatabaseSeeder extends Seeder
 
         foreach ($subcategories as $subcategoryData) {
             Subcategory::create($subcategoryData);
-        }
-
-        // Product seeding has been removed as requested
-
-        // Create sample customers
-        $customers = [
-            [
-                'name' => 'Rajesh Kumar',
-                'mobile' => '9876543210',
-                'address' => '123, MG Road, Bangalore',
-                'state' => 'Karnataka',
-                'gstin' => '29ABCDE1234F1Z5',
-                'email' => 'rajesh.kumar@email.com',
-            ],
-            [
-                'name' => 'Priya Sharma',
-                'mobile' => '9876543211',
-                'address' => '456, Park Street, Mumbai',
-                'state' => 'Maharashtra',
-                'gstin' => '27FGHIJ5678K2A6',
-                'email' => 'priya.sharma@email.com',
-            ],
-            [
-                'name' => 'Amit Patel',
-                'mobile' => '9876543212',
-                'address' => '789, Ring Road, Ahmedabad',
-                'state' => 'Gujarat',
-                'gstin' => '24LMNOP9012Q3B7',
-                'email' => 'amit.patel@email.com',
-            ],
-            [
-                'name' => 'Sunita Singh',
-                'mobile' => '9876543213',
-                'address' => '321, Civil Lines, Delhi',
-                'state' => 'Delhi',
-                'gstin' => '07RSTUV3456W4C8',
-                'email' => 'sunita.singh@email.com',
-            ],
-            [
-                'name' => 'Vikram Motors',
-                'mobile' => '9876543214',
-                'address' => '654, Industrial Area, Chennai',
-                'state' => 'Tamil Nadu',
-                'gstin' => '33XYZAB7890D5E9',
-                'email' => 'info@vikrammotors.com',
-            ],
-        ];
-
-        foreach ($customers as $customerData) {
-            Customer::create($customerData);
         }
     }
 }

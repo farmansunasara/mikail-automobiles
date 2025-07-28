@@ -115,8 +115,6 @@ class ProductController extends Controller
             'category_id' => 'required|exists:categories,id',
             'subcategory_id' => 'required|exists:subcategories,id',
             'price' => 'required|numeric|min:0',
-            'hsn_code' => 'nullable|string|max:50',
-            'gst_rate' => 'required|numeric|min:0',
             'is_composite' => 'boolean',
             'components' => 'nullable|array',
             'components.*.component_product_id' => 'required_if:is_composite,1|exists:products,id',
@@ -223,8 +221,6 @@ class ProductController extends Controller
             'category_id' => 'required|exists:categories,id',
             'subcategory_id' => 'required|exists:subcategories,id',
             'price' => 'required|numeric|min:0',
-            'hsn_code' => 'nullable|string|max:50',
-            'gst_rate' => 'required|numeric|min:0',
             'is_composite' => 'boolean',
             'components' => 'nullable|array',
             'components.*.component_product_id' => 'required_if:is_composite,1|exists:products,id',
@@ -316,7 +312,7 @@ class ProductController extends Controller
         if ($request->filled('term')) {
             $query->where('name', 'like', '%' . $request->term . '%');
         }
-        $products = $query->take(15)->get(['id', 'name', 'price', 'quantity', 'hsn_code', 'gst_rate']);
+        $products = $query->take(15)->get(['id', 'name', 'price', 'quantity', 'gst_rate']);
         return response()->json($products);
     }
     

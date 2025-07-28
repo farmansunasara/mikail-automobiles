@@ -16,7 +16,6 @@ class Product extends Model
         'color',
         'quantity',
         'price',
-        'hsn_code',
         'gst_rate',
         'is_composite',
         'image'

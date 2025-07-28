@@ -59,23 +59,6 @@
                 </div>
             </div>
 
-            <div class="row">
-                <div class="col-md-6">
-                    <div class="form-group">
-                        <label for="gst_rate">GST Rate (%)</label>
-                        <input type="number" name="gst_rate" id="gst_rate" step="0.01" class="form-control @error('gst_rate') is-invalid @enderror" value="{{ old('gst_rate', $product->gst_rate) }}" required>
-                        @error('gst_rate') <span class="invalid-feedback">{{ $message }}</span> @enderror
-                    </div>
-                </div>
-                <div class="col-md-6">
-                    <div class="form-group">
-                        <label for="hsn_code">HSN Code</label>
-                        <input type="text" name="hsn_code" id="hsn_code" class="form-control @error('hsn_code') is-invalid @enderror" value="{{ old('hsn_code', $product->hsn_code) }}">
-                        @error('hsn_code') <span class="invalid-feedback">{{ $message }}</span> @enderror
-                    </div>
-                </div>
-            </div>
-
             <!-- Color Variants Section -->
             <div class="form-group">
                 <label>Color Variants</label>

@@ -75,24 +75,9 @@ class DatabaseSeeder extends Seeder
             Subcategory::create($subcategoryData);
         }
 
-        // Product seeding has been removed as requested
+                // Product seeding has been removed as requested
 
-        // Create sample customers
-        $customers = [
-            [
-                'name' => 'Rajesh Kumar',
-                'mobile' => '9876543210',
-                'address' => '123, MG Road, Bangalore',
-                'state' => 'Karnataka',
-                'gstin' => '29ABCDE1234F1Z5',
-                'email' => 'rajesh.kumar@email.com',
-            ],
-            [
-                'name' => 'Priya Sharma',
-                'mobile' => '9876543211',
-                'address' => '456, Park Street, Mumbai',
-                'state' => 'Maharashtra',
-                'gstin' => '27FGHIJ5678K2A6',
+        // Customer seeding has been removed as requested
                 'email' => 'priya.sharma@email.com',
             ],
             [

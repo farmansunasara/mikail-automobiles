@@ -112,7 +112,7 @@
         /* Column widths for optimal space usage */
         .col-sr { width: 3%; }
         .col-category { width: 12%; }
-        .col-product { width: 20%; }
+        .col-product { width: 16%; }
         .col-hsn { width: 8%; }
         .col-price { width: 8%; }
         .col-gst { width: 6%; }
@@ -145,19 +145,18 @@
         </div>
 
         <table class="items-table">
-            <thead>
-                <tr>
-                    <th class="col-sr">#</th>
-                    <th class="col-category">Category</th>
-                    <th class="col-product">Product</th>
-                    <th class="col-hsn">HSN</th>
-                    <th class="col-price">Price</th>
-                    <th class="col-gst">GST%</th>
-                    <th class="col-colors">Colors & Quantities</th>
-                    <th class="col-qty">Total Qty</th>
-                    <th class="col-total">Total</th>
-                </tr>
-            </thead>
+                        <thead>
+                            <tr>
+                                <th class="col-sr">#</th>
+                                <th class="col-category">Category</th>
+                                <th class="col-product">Product</th>
+                                <th class="col-colors">Colors & Quantities</th>
+                                <th class="col-price">Price</th>
+
+                                <th class="col-qty">Total Qty</th>
+                                <th class="col-total">Total</th>
+                            </tr>
+                        </thead>
             <tbody>
                 @php
                     $groupedItems = collect($invoice->items)->groupBy('product.name');
@@ -182,10 +181,10 @@
                     <td class="text-center">{{ $rowNumber++ }}</td>
                     <td>{{ $firstItem->product->category->name ?? 'N/A' }}</td>
                     <td><strong>{{ $productName }}</strong></td>
-                    <td class="text-center">{{ $firstItem->product->hsn_code }}</td>
-                    <td class="text-right">Rs.{{ number_format($firstItem->price, 2) }}</td>
-                    <td class="text-center">{{ $firstItem->gst_rate }}%</td>
+                    <!-- <td class="text-center">{{ $firstItem->product->hsn_code }}</td> -->
                     <td class="color-qty">{{ $colorQtyString }}</td>
+                    <td class="text-right">Rs.{{ number_format($firstItem->price, 2) }}</td>
+
                     <td class="text-center"><strong>{{ $totalQuantity }}</strong></td>
                     <td class="text-right"><strong>Rs.{{ number_format($totalSubtotal, 2) }}</strong></td>
                 </tr>
@@ -210,11 +209,11 @@
                 </tr>
                 @endif
                 <tr>
-                    <td>CGST</td>
+                    <td>CGST ({{ $invoice->gst_rate/2 }}%)</td>
                     <td class="text-right">Rs.{{ number_format($invoice->cgst, 2) }}</td>
                 </tr>
                 <tr>
-                    <td>SGST</td>
+                    <td>SGST ({{ $invoice->gst_rate/2 }}%)</td>
                     <td class="text-right">Rs.{{ number_format($invoice->sgst, 2) }}</td>
                 </tr>
                 <tr style="background-color: #f0f0f0;">

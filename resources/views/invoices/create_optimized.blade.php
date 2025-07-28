@@ -142,9 +142,21 @@
                         </div>
                     </div>
                     <div class="col-md-6">
-                        <div class="form-group">
-                            <label for="notes">Notes</label>
-                            <textarea name="notes" class="form-control" rows="3" placeholder="Additional notes..."></textarea>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="gst_rate">GST Rate (%)</label>
+                                    <input type="number" name="gst_rate" id="gst_rate" class="form-control" 
+                                           value="18" min="0" max="100" step="0.01" required>
+                                    <small class="form-text text-muted">This GST rate will be applied to the entire invoice</small>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="notes">Notes</label>
+                                    <textarea name="notes" class="form-control" rows="3" placeholder="Additional notes..."></textarea>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -165,7 +177,6 @@
                                 <th width="200px">Product</th>
                                 <th>Colors & Quantities</th>
                                 <th width="100px">Price</th>
-                                <th width="80px">GST%</th>
                                 <th width="100px">Total</th>
                                 <th width="50px"></th>
                             </tr>
@@ -297,9 +308,6 @@ $(document).ready(function() {
                 </td>
                 <td>
                     <input type="number" name="items[${itemIndex}][price]" class="form-control price-input" step="0.01" readonly>
-                </td>
-                <td>
-                    <input type="number" name="items[${itemIndex}][gst_rate]" class="form-control gst-input" step="0.01" readonly>
                 </td>
                 <td class="text-right">
                     <strong class="row-total">₹0.00</strong>
@@ -435,7 +443,6 @@ $(document).ready(function() {
     function clearProductData($row) {
         $row.find('.colors-container').html('<div class="text-muted">Select a product first</div>');
         $row.find('.price-input').val('');
-        $row.find('.gst-input').val('');
         $row.find('.row-total').text('₹0.00');
         updateTotals();
     }
@@ -471,13 +478,10 @@ $(document).ready(function() {
     
     window.updateTotals = function() {
         let grandSubtotal = 0;
-        let grandCgst = 0;
-        let grandSgst = 0;
         
         $('.product-row').each(function() {
             const $row = $(this);
             const price = parseFloat($row.find('.price-input').val()) || 0;
-            const gstRate = parseFloat($row.find('.gst-input').val()) || 0;
             let rowTotal = 0;
             
             $row.find('.quantity-input').each(function() {
@@ -485,13 +489,8 @@ $(document).ready(function() {
                 rowTotal += qty * price;
             });
             
-            const gstAmount = (rowTotal * gstRate) / 100;
-            
             $row.find('.row-total').text('₹' + rowTotal.toFixed(2));
-            
             grandSubtotal += rowTotal;
-            grandCgst += gstAmount / 2;
-            grandSgst += gstAmount / 2;
         });
 
         // Calculate discount
@@ -511,38 +510,20 @@ $(document).ready(function() {
 
         var afterDiscount = grandSubtotal - discountAmount;
         
-        // Recalculate GST on discounted amount
-        var discountedCgst = 0;
-        var discountedSgst = 0;
-        
-        $('.product-row').each(function() {
-            const $row = $(this);
-            const price = parseFloat($row.find('.price-input').val()) || 0;
-            const gstRate = parseFloat($row.find('.gst-input').val()) || 0;
-            let rowTotal = 0;
+        // Calculate GST on discounted amount using single invoice-level GST rate
+        var invoiceGstRate = parseFloat($('#gst_rate').val()) || 0;
+        var totalGstAmount = (afterDiscount * invoiceGstRate) / 100;
+        var cgstAmount = totalGstAmount / 2;
+        var sgstAmount = totalGstAmount / 2;
 
-            $row.find('.quantity-input').each(function() {
-                const qty = parseInt($(this).val()) || 0;
-                rowTotal += qty * price;
-            });
-
-            // Apply proportional discount to this row
-            var rowDiscount = grandSubtotal > 0 ? (rowTotal / grandSubtotal) * discountAmount : 0;
-            var rowAfterDiscount = rowTotal - rowDiscount;
-            var gstAmount = (rowAfterDiscount * gstRate) / 100;
-            
-            discountedCgst += gstAmount / 2;
-            discountedSgst += gstAmount / 2;
-        });
-
-        var grand_total = afterDiscount + discountedCgst + discountedSgst;
+        var grand_total = afterDiscount + cgstAmount + sgstAmount;
 
         // Update display
         $('#subtotal').text('₹' + grandSubtotal.toFixed(2));
         $('#discount_amount_display').text('₹' + discountAmount.toFixed(2));
         $('#after_discount').text('₹' + afterDiscount.toFixed(2));
-        $('#cgst').text('₹' + discountedCgst.toFixed(2));
-        $('#sgst').text('₹' + discountedSgst.toFixed(2));
+        $('#cgst').text('₹' + cgstAmount.toFixed(2));
+        $('#sgst').text('₹' + sgstAmount.toFixed(2));
         $('#grand_total').text('₹' + grand_total.toFixed(2));
     };
     
@@ -569,8 +550,8 @@ $(document).ready(function() {
         $('#submit-btn').prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Creating...');
     });
     
-    // Add discount change handlers
-    $('#discount_type, #discount_value').on('change keyup', function() {
+    // Add discount and GST rate change handlers
+    $('#discount_type, #discount_value, #gst_rate').on('change keyup', function() {
         updateTotals();
     });
     
