@@ -84,13 +84,21 @@
             </div>
             <div class="card-body p-0">
                 <ul class="products-list product-list-in-card pl-2 pr-2">
-                    @forelse($lowStockProducts as $product)
+                    @forelse($lowStockProducts as $variant)
                     <li class="item">
                         <div class="product-info">
-                            <a href="{{ route('products.show', $product) }}" class="product-title">{{ $product->name }}
-                                <span class="badge badge-warning float-right">{{ $product->quantity }}</span></a>
+                            <a href="{{ route('products.show', $variant->product_id) }}" class="product-title">
+                                {{ $variant->product->name ?? 'Unknown Product' }}
+                                @if($variant->color)
+                                    <small>({{ $variant->color }})</small>
+                                @endif
+                                <span class="badge badge-warning float-right">{{ $variant->quantity }}</span>
+                            </a>
                             <span class="product-description">
-                                {{ $product->category->name }}
+                                {{ $variant->product->category->name ?? 'No Category' }}
+                                @if($variant->product->subcategory)
+                                    / {{ $variant->product->subcategory->name }}
+                                @endif
                             </span>
                         </div>
                     </li>

@@ -7,6 +7,7 @@ use App\Models\Product;
 use App\Models\Invoice;
 use App\Models\Customer;
 use App\Models\StockLog;
+use App\Models\ProductColorVariant;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 
@@ -18,17 +19,19 @@ class DashboardController extends Controller
         $totalProducts = Product::count();
         $totalCustomers = Customer::count();
         
-        // Calculate total stock value - FIXED: Using selectRaw with proper binding instead of DB::raw
-        $totalStockValue = Product::selectRaw('SUM(quantity * price) as total_value')
-                                 ->value('total_value') ?? 0;
+        // Calculate total stock value - Using ProductColorVariant
+        $totalStockValue = ProductColorVariant::with('product')
+            ->selectRaw('SUM(product_color_variants.quantity * products.price) as total_value')
+            ->join('products', 'product_color_variants.product_id', '=', 'products.id')
+            ->value('total_value') ?? 0;
         
         // Get invoices this month
         $invoicesThisMonth = Invoice::whereMonth('invoice_date', Carbon::now()->month)
                                   ->whereYear('invoice_date', Carbon::now()->year)
                                   ->count();
         
-        // Get low stock items (quantity < 10)
-        $lowStockItems = Product::where('quantity', '<', 10)->count();
+        // Get low stock items (quantity < 10) - Using ProductColorVariant
+        $lowStockItems = ProductColorVariant::where('quantity', '<', 10)->count();
         
         // Get recent invoices
         $recentInvoices = Invoice::with('customer')
@@ -49,8 +52,8 @@ class DashboardController extends Controller
             ];
         }
         
-        // Get low stock products
-        $lowStockProducts = Product::with(['category', 'subcategory'])
+        // Get low stock products - Using ProductColorVariant
+        $lowStockProducts = ProductColorVariant::with(['product.category', 'product.subcategory'])
                                   ->where('quantity', '<', 10)
                                   ->orderBy('quantity', 'asc')
                                   ->take(10)
