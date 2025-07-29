@@ -4,13 +4,13 @@
     <title>Non-GST Invoice #{{ $invoice->invoice_number }}</title>
     <style>
         @page {
-            size: A4 landscape;
+            size: A4;
             margin: 10mm 8mm;
         }
         
         body { 
             font-family: 'Arial', sans-serif; 
-            font-size: 9pt; 
+            font-size: 10pt; 
             line-height: 1.1;
             margin: 0;
             padding: 0;
@@ -29,13 +29,13 @@
         
         .header h1 { 
             margin: 0 0 2px 0; 
-            font-size: 16pt;
+            font-size: 17pt;
             font-weight: bold;
         }
         
         .header p { 
             margin: 1px 0; 
-            font-size: 9pt;
+            font-size: 10pt;
         }
         
         .invoice-details { 
@@ -50,7 +50,7 @@
         .invoice-details td {
             padding: 2px 4px;
             vertical-align: top;
-            font-size: 8pt;
+            font-size: 9pt;
             line-height: 1.2;
         }
         
@@ -58,7 +58,7 @@
             width: 100%; 
             border-collapse: collapse; 
             margin-top: 5px;
-            font-size: 8pt;
+            font-size: 9pt;
         }
         
         .items-table th, .items-table td { 
@@ -72,12 +72,12 @@
             background-color: #f0f0f0; 
             text-align: center;
             font-weight: bold;
-            font-size: 8pt;
+            font-size: 9pt;
             padding: 3px 2px;
         }
         
         .items-table td {
-            font-size: 8pt;
+            font-size: 9pt;
         }
         
         .totals-table { 
@@ -85,7 +85,7 @@
             float: right; 
             margin-top: 8px;
             border-collapse: collapse;
-            font-size: 8pt;
+            font-size: 9pt;
         }
         
         .totals-table td { 
@@ -99,31 +99,38 @@
         .clearfix::after { content: ""; clear: both; display: table; }
         
         .color-qty {
-            font-size: 7pt;
+            font-size: 8pt;
             line-height: 1.1;
+        }
+        
+        .notes { 
+            margin-top: 15px;
+            font-size: 9pt;
         }
         
         .footer { 
             margin-top: 15px;
             text-align: center;
-            font-size: 8pt;
+            font-size: 9pt;
         }
         
-        /* Column widths for optimal space usage (Non-GST doesn't have HSN/GST columns) */
-        .col-sr { width: 4%; }
-        .col-category { width: 15%; }
-        .col-product { width: 18%; }
-        .col-price { width: 12%; }
-        .col-colors { width: 30%; }
+        /* Column widths for optimal space usage */
+        .col-sr { width: 3%; }
+        .col-category { width: 12%; }
+        .col-product { width: 14%; }
+        .col-price { width: 8%; }
+        .col-colors { width: 31%; }
         .col-qty { width: 8%; }
-        .col-total { width: 12%; }
+        .col-total { width: 10%; }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="header">
             <h1>Cash/Credit</h1>
-            <p><strong>{{ config('app.name') }}</strong> | Automobile Parts & Services</p>
+            <p><strong>{{ config('app.name') }}</strong></p>
+            <p>Gala No.4-5, Rasid Compound, Bavkha Nityanand Petrol Pump, Pelhar, Vasai Pelghar, Vasai-Virar - 401208</p>
+            <p>Phone: +91-8692889232 | Email: almikailautomobiles@gmail.com</p>
         </div>
 
         <div class="invoice-details">
@@ -148,9 +155,8 @@
                     <th class="col-sr">#</th>
                     <th class="col-category">Category</th>
                     <th class="col-product">Product</th>
-                    <th class="col-price">Price</th>
                     <th class="col-colors">Colors & Quantities</th>
-
+                    <th class="col-price">Price</th>
                     <th class="col-qty">Total Qty</th>
                     <th class="col-total">Total</th>
                 </tr>
@@ -181,7 +187,6 @@
                     <td><strong>{{ $productName }}</strong></td>
                     <td class="color-qty">{{ $colorQtyString }}</td>
                     <td class="text-right">Rs.{{ number_format($firstItem->price, 2) }}</td>
-
                     <td class="text-center"><strong>{{ $totalQuantity }}</strong></td>
                     <td class="text-right"><strong>Rs.{{ number_format($totalSubtotal, 2) }}</strong></td>
                 </tr>
@@ -191,6 +196,10 @@
 
         <div class="clearfix">
             <table class="totals-table">
+                <tr>
+                    <td><strong>Total Quantity</strong></td>
+                    <td class="text-right"><strong>{{ $invoice->items->sum('quantity') }} pcs</strong></td>
+                </tr>
                 <tr>
                     <td><strong>Subtotal</strong></td>
                     <td class="text-right"><strong>Rs.{{ number_format($invoice->total_amount, 2) }}</strong></td>
@@ -208,9 +217,13 @@
             </table>
         </div>
 
-        <div class="footer">
-            <p><strong>Thank you for your business!</strong></p>
+        @if($invoice->notes)
+        <div class="notes">
+            <p><strong>Notes:</strong> {{ $invoice->notes }}</p>
         </div>
+        @endif
+
+       
     </div>
 </body>
 </html>

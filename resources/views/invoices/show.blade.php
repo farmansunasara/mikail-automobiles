@@ -25,10 +25,11 @@
             From
             <address>
                 <strong>{{ config('app.name') }}</strong><br>
-                Industrial Area<br>
-                Automobile Parts & Services<br>
-                Phone: +91-XXXXXXXXXX<br>
-                Email: info@almikailautomobile.com
+                Gala No.4-5, Rasid Compound, Bavkha Nityanand Petrol Pump. 
+Pelhar, Vasai Pelghar, Vasai-Virar - 401208
+<br>
+                Phone: +91-8692889232<br>
+                Email: almikailautomobiles@gmail.com
             </address>
         </div>
         <div class="col-sm-4 invoice-col">
@@ -58,7 +59,6 @@
                         <th>#</th>
                         <th>Category</th>
                         <th>Product</th>
-                        <!-- <th>GST%</th> -->
                         <th>Colors & Quantities</th>
                         <th>Price</th>
 
@@ -87,7 +87,6 @@
                             @endif
                         </td>
                         <td><strong>{{ $productName }}</strong></td>
-                        <!-- <td>{{ $firstItem->gst_rate }}%</td> -->
                         <td>
                             <div class="colors-display">
                                 @foreach($items as $item)
@@ -159,10 +158,10 @@
 
             <div class="table-responsive">
                 <table class="table">
-                    <tr>
+                    <!-- <tr>
                         <th>Total Quantity:</th>
                         <td><strong>{{ $invoice->items->sum('quantity') }} pcs</strong></td>
-                    </tr>
+                    </tr> -->
                     <tr>
                         <th>Subtotal:</th>
                         <td>₹{{ number_format($invoice->total_amount, 2) }}</td>
