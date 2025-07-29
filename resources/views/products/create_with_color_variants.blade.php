@@ -10,6 +10,33 @@
 
 @push('styles')
 <style>
+.loader-overlay {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    width: 100vw !important;
+    height: 100vh !important;
+    background: rgba(255, 255, 255, 0.9) !important;
+    z-index: 9999999 !important;
+    display: none;
+    justify-content: center !important;
+    align-items: center !important;
+    backdrop-filter: blur(5px) !important;
+    pointer-events: all !important;
+    cursor: wait !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    touch-action: none !important;
+    user-select: none !important;
+    -webkit-user-select: none !important;
+}
+#loader-text {
+    font-size: 14px;
+    color: #666;
+    margin-top: 8px;
+}
 .color-variant-item {
     display: flex;
     align-items: center;
@@ -52,12 +79,24 @@
 @endpush
 
 @section('content')
+<!-- Loader Overlay -->
+<div class="loader-overlay d-none" style="display: none !important;">
+    <div class="d-flex justify-content-center align-items-center h-100">
+        <div class="text-center">
+            <div class="spinner-border text-primary mb-2" role="status">
+                <span class="sr-only">Loading...</span>
+            </div>
+            <div id="loader-text">Processing...</div>
+        </div>
+    </div>
+</div>
+
 <div class="card">
     <div class="card-header">
         <h3 class="card-title">Create New Product</h3>
     </div>
     <div class="card-body">
-        <form action="{{ route('products.store') }}" method="POST" id="product-form">
+        <form action="{{ route('products.store') }}" method="POST" id="product-form" novalidate onsubmit="return false;">
             @csrf
             
             <!-- Basic Product Information -->
@@ -246,6 +285,25 @@ $(document).ready(function() {
     });
     
     function addColorVariant(color, quantity) {
+        if (!color) {
+            alert('Please enter a color name');
+            return false;
+        }
+
+        // Check for duplicate colors
+        let isDuplicate = false;
+        $('.color-variant-item').each(function() {
+            if ($(this).find('input[name*="[color]"]').val().toLowerCase() === color.toLowerCase()) {
+                isDuplicate = true;
+                return false;
+            }
+        });
+
+        if (isDuplicate) {
+            alert('This color already exists');
+            return false;
+        }
+
         const colorStyle = getColorStyle(color);
         const html = `
             <div class="color-variant-item">
@@ -348,6 +406,9 @@ $(document).ready(function() {
     });
 
     function loadComponentsForCategory(categoryId, componentIndex) {
+        if (!categoryId) return;
+
+        showLoader();
         $.ajax({
             url: `/api/products/by-category-components`,
             type: 'GET',
@@ -356,8 +417,13 @@ $(document).ready(function() {
                 var productOptions = '<option value="">Select Component Product</option>';
                 
                 if (data.length > 0) {
-                    productOptions += data.map(p => 
-                        `<option value="${p.id}">${p.name}</option>`
+                    // Filter out the current product if it exists
+                    const currentProductId = $('#product-form').data('product-id');
+                    const filteredData = currentProductId ? 
+                        data.filter(p => p.id !== currentProductId) : data;
+
+                    productOptions += filteredData.map(p => 
+                        `<option value="${p.id}">${p.name} (Available: ${p.quantity})</option>`
                     ).join('');
                 } else {
                     productOptions += '<option value="">No simple products available in this category</option>';
@@ -367,6 +433,9 @@ $(document).ready(function() {
             },
             error: function() {
                 $(`.component-select:eq(${componentIndex})`).html('<option value="">Error loading products</option>');
+            },
+            complete: function() {
+                hideLoader();
             }
         });
     }
@@ -375,20 +444,159 @@ $(document).ready(function() {
         $(this).closest('.component-row').remove();
     });
     
-    // Form validation - handle default quantity and color variants
-    $('#product-form').on('submit', function(e) {
+    // Show/Hide loader functions
+    function preventFormSubmission() {
+        $('form button[type="submit"]').attr('type', 'button');
+        $('form').on('submit', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            return false;
+        });
+    }
+
+    function showLoader() {
+        if (!isSubmitting) {
+            isSubmitting = true;
+            const $overlay = $('.loader-overlay');
+            $overlay.css('display', 'flex').removeClass('d-none');
+            $('body').css('cursor', 'wait').addClass('overflow-hidden');
+            preventFormSubmission();
+        }
+    }
+
+    function hideLoader() {
+        const $overlay = $('.loader-overlay');
+        $overlay.css('display', 'none').addClass('d-none');
+        $('body').css('cursor', 'default').removeClass('overflow-hidden');
+        isSubmitting = false;
+        resetFormState();
+    }
+
+    let isSubmitting = false;
+    
+    // Initialize form submission prevention
+    preventFormSubmission();
+
+    // Form validation and submission
+    $('#product-form button.btn-primary').on('click', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        
+        // Prevent double submission
+        if (isSubmitting) {
+            return false;
+        }
+
+        // Get form elements
+        const $form = $('#product-form');
+        const $submitBtn = $(this);
         const colorVariants = $('.color-variant-item').length;
         const defaultQuantity = parseInt($('#default-quantity').val()) || 0;
-        
+        const name = $('#name').val().trim();
+        const price = $('#price').val();
+        const categoryId = $('#category_id').val();
+        const subcategoryId = $('#subcategory_id').val();
+
+        // Validation checks first, before showing loader
         if (colorVariants === 0 && defaultQuantity === 0) {
-            e.preventDefault();
             alert('Please either enter a default quantity or add specific color variants.');
             return false;
         }
+
+        if (!name || !price || !categoryId || !subcategoryId) {
+            alert('Please fill in all required fields.');
+            return false;
+        }
+
+        // Show loader only after validation passes
+        showLoader();
         
-        // If no color variants but default quantity is set, add "No Color" variant
+        // If using default quantity, add "No Color" variant
         if (colorVariants === 0 && defaultQuantity > 0) {
             addColorVariant('No Color', defaultQuantity);
+        }
+
+        // All validations passed, prepare for submission
+        isSubmitting = true;
+        $submitBtn.prop('disabled', true).text('Creating Product...');
+
+        // Submit the form using AJAX
+        $.ajax({
+            url: $form.attr('action'),
+            method: 'POST',
+            data: new FormData($form[0]),
+            processData: false,
+            contentType: false,
+            headers: {
+                'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+            },
+            beforeSend: function() {
+                showLoader();
+            },
+            success: function(response) {
+                if (response.success || response.redirect) {
+                    window.location.href = '{{ route('products.index') }}';
+                } else {
+                    hideLoader();
+                    alert('Product created successfully but redirect failed. Please go back to the products list.');
+                }
+            },
+            error: function(xhr) {
+                hideLoader();
+                isSubmitting = false;
+                $submitBtn.prop('disabled', false).text('Create Product');
+                
+                if (xhr.status === 422) {
+                    // Validation errors
+                    const errors = xhr.responseJSON.errors;
+                    let errorMessage = 'Please correct the following errors:\n';
+                    Object.keys(errors).forEach(key => {
+                        errorMessage += `\n- ${errors[key][0]}`;
+                    });
+                    alert(errorMessage);
+                } else {
+                    // Other errors
+                    console.error('Server Error:', xhr);
+                    alert('An error occurred while saving the product. Please try again.');
+                }
+            }
+        });
+    });
+
+    // Reset form state when validation fails or page loads
+    function resetFormState() {
+        const $form = $('#product-form');
+        const $submitBtn = $form.find('button[type="submit"]');
+        
+        // Hide loader first
+        hideLoader();
+        
+        // Reset form states
+        $form.data('processing', false);
+        $submitBtn.prop('disabled', false);
+        
+        // Ensure the overlay is hidden
+        $('.loader-overlay').addClass('d-none');
+        
+        // Re-enable form interactions
+        $form.find('input, select, button').prop('disabled', false);
+    }
+
+    // Ensure loader is hidden on page load
+    $('.loader-overlay').addClass('d-none').hide();
+    
+    // Call reset on page load
+    resetFormState();
+    
+    // Call reset when validation errors exist
+    if (document.querySelector('.is-invalid')) {
+        resetFormState();
+    }
+    
+    // Handle any stray loader states
+    $(document).on('mousemove keydown', function() {
+        if ($('#product-form').find(':input:disabled').length && !$('#product-form').data('processing')) {
+            resetFormState();
         }
     });
     
@@ -400,6 +608,19 @@ $(document).ready(function() {
             @endif
         @endforeach
     @endif
+
+    // Global error handler
+    window.addEventListener('error', function() {
+        resetFormState();
+    });
+
+    // Handle page visibility change
+    document.addEventListener('visibilitychange', function() {
+        if (document.visibilityState === 'visible') {
+            resetFormState();
+        }
+    });
 });
 </script>
 @endpush
+
