@@ -25,10 +25,11 @@
             From
             <address>
                 <strong>{{ config('app.name') }}</strong><br>
-                Industrial Area<br>
-                Automobile Parts & Services<br>
-                Phone: +91-XXXXXXXXXX<br>
-                Email: info@almikailautomobile.com
+                Gala No.4-5, Rasid Compound, Bavkha Nityanand Petrol Pump. 
+Pelhar, Vasai Pelghar, Vasai-Virar - 401208
+<br>
+                Phone: +91-8692889232<br>
+                Email: almikailautomobiles@gmail.com
             </address>
         </div>
         <div class="col-sm-4 invoice-col">
@@ -126,6 +127,7 @@
                                 @endforeach
                             </div>
                         </td>
+                        <td>₹{{ number_format($firstItem->price, 2) }}</td>
                         <td><strong>{{ $totalQuantity }}</strong></td>
                         <td><strong>₹{{ number_format($totalSubtotal, 2) }}</strong></td>
                     </tr>
