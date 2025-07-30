@@ -42,12 +42,29 @@ class CustomerController extends Controller
             'name' => 'required|string|max:255',
             'email' => 'nullable|email|max:255|unique:customers,email',
             'mobile' => 'required|string|max:15|unique:customers,mobile',
-            'address' => 'nullable|string',
+            'address' => 'required|string',
             'state' => 'nullable|string|max:100',
             'gstin' => 'nullable|string|max:15|unique:customers,gstin',
         ]);
 
-        Customer::create($request->all());
+        $customer = Customer::create($request->all());
+
+        // Handle AJAX requests (for quick customer creation in invoice form)
+        if ($request->ajax()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Customer created successfully.',
+                'customer' => [
+                    'id' => $customer->id,
+                    'name' => $customer->name,
+                    'email' => $customer->email,
+                    'mobile' => $customer->mobile,
+                    'address' => $customer->address,
+                    'state' => $customer->state,
+                    'gstin' => $customer->gstin,
+                ]
+            ]);
+        }
 
         return redirect()->route('customers.index')->with('success', 'Customer created successfully.');
     }

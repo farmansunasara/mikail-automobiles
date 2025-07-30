@@ -196,10 +196,10 @@
 
         <div class="clearfix">
             <table class="totals-table">
-                <tr>
+                <!-- <tr>
                     <td><strong>Total Quantity</strong></td>
                     <td class="text-right"><strong>{{ $invoice->items->sum('quantity') }} pcs</strong></td>
-                </tr>
+                </tr> -->
                 <tr>
                     <td><strong>Subtotal</strong></td>
                     <td class="text-right"><strong>Rs.{{ number_format($invoice->total_amount, 2) }}</strong></td>
