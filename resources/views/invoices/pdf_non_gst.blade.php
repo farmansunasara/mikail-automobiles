@@ -116,10 +116,10 @@
         
         /* Column widths for optimal space usage */
         .col-sr { width: 3%; }
-        .col-category { width: 12%; }
-        .col-product { width: 14%; }
+        /* .col-category { width: 12%; } */
+        .col-product { width: 16%; }
         .col-price { width: 8%; }
-        .col-colors { width: 31%; }
+        .col-colors { width: 41%; }
         .col-qty { width: 8%; }
         .col-total { width: 10%; }
     </style>
@@ -153,7 +153,7 @@
             <thead>
                 <tr>
                     <th class="col-sr">#</th>
-                    <th class="col-category">Category</th>
+                    <!-- <th class="col-category">Category</th> -->
                     <th class="col-product">Product</th>
                     <th class="col-colors">Colors & Quantities</th>
                     <th class="col-price">Price</th>
@@ -183,7 +183,7 @@
                 @endphp
                 <tr>
                     <td class="text-center">{{ $rowNumber++ }}</td>
-                    <td>{{ $firstItem->product->category->name ?? 'N/A' }}</td>
+                    <!-- <td>{{ $firstItem->product->category->name ?? 'N/A' }}</td> -->
                     <td><strong>{{ $productName }}</strong></td>
                     <td class="color-qty">{{ $colorQtyString }}</td>
                     <td class="text-right">Rs.{{ number_format($firstItem->price, 2) }}</td>

@@ -179,17 +179,147 @@
             }
         }
 
-        // Composite product fields
-        $('#is_composite').change(function() {
-            $('#components-wrapper').toggleClass('d-none', !this.checked);
+        // Initialize simpleProducts first
+        var simpleProducts = {!! json_encode($simpleProducts->toArray()) !!};
+        console.log('Simple Products:', simpleProducts); // Debug log
+
+        // Function to check component stock availability
+        function validateComponentStock() {
+            let isValid = true;
+            let errorMessages = [];
+            
+            // Only validate if it's a composite product
+            if (!$('#is_composite').prop('checked')) {
+                return true;
+            }
+
+            $('.component-row').each(function() {
+                const $row = $(this);
+                const $select = $row.find('select[name*="component_product_id"]');
+                const $quantity = $row.find('input[name*="quantity_needed"]');
+                
+                const componentId = $select.val();
+                const quantityNeeded = parseInt($quantity.val()) || 0;
+                
+                if (componentId && quantityNeeded > 0) {
+                    const component = simpleProducts.find(p => p.id == componentId);
+                    if (component) {
+                        // Calculate total available stock from all color variants
+                        const totalStock = component.color_variants.reduce((sum, variant) => sum + (parseInt(variant.quantity) || 0), 0);
+                        
+                        if (totalStock < quantityNeeded) {
+                            isValid = false;
+                            errorMessages.push(`Not enough stock for component: ${component.name}. Available: ${totalStock}, Required: ${quantityNeeded}`);
+                            $quantity.addClass('is-invalid');
+                        } else {
+                            $quantity.removeClass('is-invalid');
+                        }
+                    }
+                }
+            });
+
+            if (!isValid) {
+                alert('Stock Validation Failed:\n' + errorMessages.join('\n'));
+            }
+            
+            return isValid;
+        }
+
+        // Add form submit handler for validation
+        $('form').on('submit', function(e) {
+            if (!validateComponentStock()) {
+                e.preventDefault();
+                return false;
+            }
         });
 
-        var simpleProducts = {!! json_encode($simpleProducts->toArray()) !!};
+        // Composite product fields
+        function addNewComponentRow() {
+            try {
+                console.log('Adding new component row...'); // Debug log
+                var componentIndex = $('#components-container .component-row').length;
+                console.log('Component index:', componentIndex); // Debug log
+                
+                var selectedCategory = $('#component_category_filter').val();
+                console.log('Selected category:', selectedCategory); // Debug log
+                
+                // Ensure simpleProducts is defined and has data
+                if (!simpleProducts || !Array.isArray(simpleProducts)) {
+                    console.error('Simple products data is not properly initialized:', simpleProducts);
+                    return;
+                }
+
+                var filteredProducts = simpleProducts.filter(p => selectedCategory === '' || p.category_id == selectedCategory);
+                console.log('Filtered products:', filteredProducts); // Debug log
+
+                var productOptions = filteredProducts
+                    .map(p => {
+                        // Safely access category name
+                        const categoryName = p.category ? p.category.name : '';
+                        // Calculate total available stock
+                        const totalStock = p.color_variants ? p.color_variants.reduce((sum, variant) => sum + (parseInt(variant.quantity) || 0), 0) : 0;
+                        return `<option value="${p.id}" data-category="${p.category_id}" data-stock="${totalStock}">${p.name} ${categoryName ? `(${categoryName})` : ''} - Stock: ${totalStock}</option>`;
+                    })
+                    .join('');
+
+                var newRow = `
+                    <div class="row component-row mb-2">
+                        <div class="col-md-6">
+                            <select name="components[${componentIndex}][component_product_id]" class="form-control component-product-select" required>
+                                <option value="">Select Component Product</option>
+                                ${productOptions}
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <input type="number" name="components[${componentIndex}][quantity_needed]" class="form-control" placeholder="Quantity Needed" required min="1">
+                        </div>
+                        <div class="col-md-2">
+                            <button type="button" class="btn btn-danger remove-component-btn">Remove</button>
+                        </div>
+                    </div>
+                `;
+
+                $('#components-container').append(newRow);
+                console.log('New row added successfully'); // Debug log
+            } catch (error) {
+                console.error('Error adding component row:', error);
+            }
+        }
+
+        $('#is_composite').change(function() {
+            $('#components-wrapper').toggleClass('d-none', !this.checked);
+            
+            // Add initial component row if switching to composite and no components exist
+            if (this.checked && $('#components-container .component-row').length === 0) {
+                addNewComponentRow();
+            }
+        });
 
         // Component category filtering
         $('#component_category_filter').change(function() {
             var selectedCategory = $(this).val();
             filterComponentOptions(selectedCategory);
+        });
+
+        // Add quantity change handler to validate stock
+        $(document).on('change', 'input[name*="quantity_needed"]', function() {
+            const $input = $(this);
+            const $select = $input.closest('.component-row').find('select[name*="component_product_id"]');
+            const componentId = $select.val();
+            const quantityNeeded = parseInt($input.val()) || 0;
+
+            if (componentId && quantityNeeded > 0) {
+                const component = simpleProducts.find(p => p.id == componentId);
+                if (component) {
+                    const totalStock = component.color_variants.reduce((sum, variant) => sum + (parseInt(variant.quantity) || 0), 0);
+                    if (totalStock < quantityNeeded) {
+                        $input.addClass('is-invalid');
+                        alert(`Warning: Not enough stock for ${component.name}. Available: ${totalStock}, Required: ${quantityNeeded}`);
+                    } else {
+                        $input.removeClass('is-invalid');
+                    }
+                }
+            }
         });
 
         function filterComponentOptions(categoryId) {
@@ -217,30 +347,11 @@
             });
         }
 
-        $('#add-component-btn').click(function() {
-            var componentIndex = $('#components-container .component-row').length;
-            var selectedCategory = $('#component_category_filter').val();
-            var productOptions = simpleProducts
-                .filter(p => selectedCategory === '' || p.category_id == selectedCategory)
-                .map(p => `<option value="${p.id}" data-category="${p.category_id}">${p.name} (${p.category.name})</option>`)
-                .join('');
-
-            $('#components-container').append(`
-                <div class="row component-row mb-2">
-                    <div class="col-md-6">
-                        <select name="components[${componentIndex}][component_product_id]" class="form-control component-product-select" required>
-                            <option value="">Select Component Product</option>
-                            ${productOptions}
-                        </select>
-                    </div>
-                    <div class="col-md-4">
-                        <input type="number" name="components[${componentIndex}][quantity_needed]" class="form-control" placeholder="Quantity Needed" required min="1">
-                    </div>
-                    <div class="col-md-2">
-                        <button type="button" class="btn btn-danger remove-component-btn">Remove</button>
-                    </div>
-                </div>
-            `);
+        // Add component button handler
+        $(document).on('click', '#add-component-btn', function(e) {
+            e.preventDefault();
+            console.log('Add component button clicked'); // Debug log
+            addNewComponentRow();
         });
 
         $(document).on('click', '.remove-component-btn', function() {

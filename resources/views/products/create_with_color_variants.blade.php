@@ -414,24 +414,52 @@ $(document).ready(function() {
             type: 'GET',
             data: { category_id: categoryId },
             success: function(data) {
+                console.log('Component data received:', data); // Debug log
                 var productOptions = '<option value="">Select Component Product</option>';
                 
-                if (data.length > 0) {
+                if (data && data.length > 0) {
                     // Filter out the current product if it exists
                     const currentProductId = $('#product-form').data('product-id');
                     const filteredData = currentProductId ? 
                         data.filter(p => p.id !== currentProductId) : data;
 
-                    productOptions += filteredData.map(p => 
-                        `<option value="${p.id}">${p.name} (Available: ${p.quantity})</option>`
-                    ).join('');
+                    productOptions += filteredData.map(p => {
+                        // Debug log for each product
+                        console.log('Processing product:', p);
+                        
+                        // Calculate total available quantity
+                        let availableQty = 0;
+                        if (p.color_variants && p.color_variants.length > 0) {
+                            console.log('Color variants found:', p.color_variants);
+                            // Sum up quantities from color variants
+                            availableQty = p.color_variants.reduce((sum, variant) => {
+                                const qty = parseInt(variant.quantity) || 0;
+                                console.log(`Color: ${variant.color}, Qty: ${qty}`);
+                                return sum + qty;
+                            }, 0);
+                        } else if (p.stock_logs && p.stock_logs.length > 0) {
+                            // Try to get quantity from stock logs
+                            console.log('Stock logs found:', p.stock_logs);
+                            availableQty = p.stock_logs.reduce((sum, log) => {
+                                return sum + (parseInt(log.quantity) || 0);
+                            }, 0);
+                        } else if (p.quantity !== undefined && p.quantity !== null) {
+                            // Use direct quantity if available
+                            availableQty = parseInt(p.quantity) || 0;
+                            console.log('Direct quantity found:', availableQty);
+                        }
+                        
+                        console.log(`Final available quantity for ${p.name}:`, availableQty);
+                        return `<option value="${p.id}">${p.name} (Available: ${availableQty})</option>`;
+                    }).join('');
                 } else {
                     productOptions += '<option value="">No simple products available in this category</option>';
                 }
                 
                 $(`.component-select:eq(${componentIndex})`).html(productOptions);
             },
-            error: function() {
+            error: function(xhr) {
+                console.error('Error loading components:', xhr);
                 $(`.component-select:eq(${componentIndex})`).html('<option value="">Error loading products</option>');
             },
             complete: function() {
@@ -469,7 +497,6 @@ $(document).ready(function() {
         $overlay.css('display', 'none').addClass('d-none');
         $('body').css('cursor', 'default').removeClass('overflow-hidden');
         isSubmitting = false;
-        resetFormState();
     }
 
     let isSubmitting = false;
@@ -568,18 +595,21 @@ $(document).ready(function() {
         const $form = $('#product-form');
         const $submitBtn = $form.find('button[type="submit"]');
         
-        // Hide loader first
-        hideLoader();
-        
-        // Reset form states
+        // Reset form states without calling hideLoader
         $form.data('processing', false);
         $submitBtn.prop('disabled', false);
         
         // Ensure the overlay is hidden
-        $('.loader-overlay').addClass('d-none');
+        $('.loader-overlay').css('display', 'none').addClass('d-none');
         
         // Re-enable form interactions
         $form.find('input, select, button').prop('disabled', false);
+        
+        // Reset body state
+        $('body').css('cursor', 'default').removeClass('overflow-hidden');
+        
+        // Reset submission state
+        isSubmitting = false;
     }
 
     // Ensure loader is hidden on page load
