@@ -129,21 +129,22 @@
         <div class="header">
             <h1>Cash/Credit</h1>
             <p><strong>{{ config('app.name') }}</strong></p>
-            <p>Gala No.4-5, Rasid Compound, Bavkha Nityanand Petrol Pump, Pelhar, Vasai Pelghar, Vasai-Virar - 401208</p>
-            <p>Phone: +91-8692889232 | Email: almikailautomobiles@gmail.com</p>
+            <!-- <p>Gala No.4-5, Rasid Compound, Bavkha Nityanand Petrol Pump, Pelhar, Vasai Pelghar, Vasai-Virar - 401208</p> -->
+            <!-- <p>Phone: +91-8692889232 | Email: almikailautomobiles@gmail.com</p> -->
         </div>
 
         <div class="invoice-details">
             <table>
                 <tr>
                     <td style="width: 60%;">
-                        <strong>Bill To:</strong> {{ $invoice->customer->name }} | {{ $invoice->customer->address }} | {{ $invoice->customer->state }} | GSTIN: {{ $invoice->customer->gstin ?? 'N/A' }}
+                        <strong>Bill To:</strong> {{ $invoice->customer->name }} | {{ $invoice->customer->address }} | {{ $invoice->customer->state }} 
+                        <!-- | GSTIN: {{ $invoice->customer->gstin ?? 'N/A' }} -->
                     </td>
                     <td style="width: 40%;" class="text-right">
                         <strong>Bill no #:</strong> {{ $invoice->invoice_number }} | <strong>Date:</strong> {{ $invoice->invoice_date->format('d/m/Y') }}
-                        @if($invoice->due_date)
+                        <!-- @if($invoice->due_date)
                             | <strong>Due:</strong> {{ $invoice->due_date->format('d/m/Y') }}
-                        @endif
+                        @endif -->
                     </td>
                 </tr>
             </table>

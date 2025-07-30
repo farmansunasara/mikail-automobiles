@@ -6,6 +6,64 @@
 <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
 <link href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css" rel="stylesheet" />
 <style>
+/* Select2 Custom Styling */
+.select2-container--default .select2-selection--single {
+    border: 2px solid #e9ecef;
+    border-radius: 8px;
+    height: 38px;
+    padding: 4px;
+    transition: border-color 0.3s ease;
+}
+
+.select2-container--default .select2-selection--single:focus,
+.select2-container--default.select2-container--open .select2-selection--single {
+    border-color: #007bff;
+    box-shadow: 0 0 0 0.2rem rgba(0,123,255,.25);
+}
+
+.select2-container--default .select2-selection--single .select2-selection__rendered {
+    line-height: 28px;
+    padding-left: 8px;
+}
+
+.select2-container--default .select2-selection--single .select2-selection__arrow {
+    height: 36px;
+}
+
+.select2-dropdown {
+    border: 2px solid #007bff;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+.select2-search__field {
+    border: 2px solid #e9ecef !important;
+    border-radius: 6px !important;
+    padding: 6px 12px !important;
+}
+
+.select2-search__field:focus {
+    border-color: #007bff !important;
+    box-shadow: 0 0 0 0.2rem rgba(0,123,255,.25);
+}
+
+.select2-results__option {
+    padding: 8px 12px;
+}
+
+.select2-results__option--highlighted {
+    background-color: #007bff !important;
+}
+
+.select2-result {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.select2-result__title {
+    flex: 1;
+}
 .invoice-form {
     max-width: 1200px;
     margin: 0 auto;
@@ -935,6 +993,10 @@ $(document).ready(function() {
         
         $('#items-tbody').append(rowHtml);
         $('#no-items-message').hide();
+        
+        // Initialize Select2 for the new category select
+        initializeCategorySelect($(`#items-tbody tr:last .category-select`));
+        
         updateItemsCount();
         updateProgress();
         saveDraftData();
@@ -975,7 +1037,36 @@ $(document).ready(function() {
         }, 500);
     };
     
-    // Category change handler
+    // Initialize Select2 for category dropdown with fuzzy search
+    function initializeCategorySelect($select) {
+        $select.select2({
+            placeholder: 'Search category...',
+            allowClear: true,
+            width: '100%',
+            matcher: function(params, data) {
+                // If there are no search terms, return all of the data
+                if ($.trim(params.term) === '') {
+                    return data;
+                }
+
+                // Do not display the item if there is no 'text' property
+                if (typeof data.text === 'undefined') {
+                    return null;
+                }
+
+                // `params.term` should be the term that is used for searching
+                // `data.text` is the text that is displayed for the data object
+                if (data.text.toLowerCase().indexOf(params.term.toLowerCase()) > -1) {
+                    return data;
+                }
+
+                // Return `null` if the term should not be displayed
+                return null;
+            }
+        });
+    }
+
+    // Category change handler with enhanced Select2
     $(document).on('change', '.category-select', function() {
         const $row = $(this).closest('tr');
         const categoryId = $(this).val();
@@ -997,6 +1088,60 @@ $(document).ready(function() {
                     options += `<option value="${product.id}" data-is-composite="${product.is_composite}">${product.name}${compositeBadge}</option>`;
                 });
                 $productSelect.html(options).prop('disabled', false);
+                
+                // Initialize Select2 for product dropdown with fuzzy search
+                $productSelect.select2({
+                    placeholder: 'Search product...',
+                    allowClear: true,
+                    width: '100%',
+                    matcher: function(params, data) {
+                        // If there are no search terms, return all of the data
+                        if ($.trim(params.term) === '') {
+                            return data;
+                        }
+
+                        // Do not display the item if there is no 'text' property
+                        if (typeof data.text === 'undefined') {
+                            return null;
+                        }
+
+                        // Fuzzy search implementation
+                        const searchStr = params.term.toLowerCase();
+                        const text = data.text.toLowerCase();
+                        
+                        // Check if the search string appears anywhere in the product name
+                        if (text.indexOf(searchStr) > -1) {
+                            return data;
+                        }
+                        
+                        // Split search string into characters and check if they appear in sequence
+                        const chars = searchStr.split('');
+                        let currentIndex = 0;
+                        
+                        for (let char of chars) {
+                            const index = text.indexOf(char, currentIndex);
+                            if (index === -1) {
+                                return null;
+                            }
+                            currentIndex = index + 1;
+                        }
+                        
+                        return data;
+                    },
+                    templateResult: function(data) {
+                        if (!data.id) return data.text;
+                        
+                        const $result = $(`
+                            <div class="select2-result">
+                                <div class="select2-result__title">${data.text}</div>
+                                ${data.element && $(data.element).attr('data-is-composite') === 'true' ? 
+                                    '<span class="composite-badge">Composite</span>' : ''}
+                            </div>
+                        `);
+                        
+                        return $result;
+                    }
+                });
             })
             .fail(function() {
                 $productSelect.html('<option value="">Error loading products</option>');
