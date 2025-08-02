@@ -137,7 +137,8 @@
             <table>
                 <tr>
                     <td style="width: 60%;">
-                        <strong>Bill To:</strong> {{ $invoice->customer->name }} | {{ $invoice->customer->address }} | {{ $invoice->customer->state }} 
+                        <strong>Bill To:</strong> {{ $invoice->customer->name }}
+                         <!-- | {{ $invoice->customer->address }} | {{ $invoice->customer->state }}  -->
                         <!-- | GSTIN: {{ $invoice->customer->gstin ?? 'N/A' }} -->
                     </td>
                     <td style="width: 40%;" class="text-right">
