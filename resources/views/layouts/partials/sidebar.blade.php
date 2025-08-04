@@ -34,7 +34,7 @@
                         <p>Dashboard</p>
                     </a>
                 </li>
-                <li class="nav-item {{ request()->routeIs('categories.*') || request()->routeIs('products.*') ? 'menu-open' : '' }}">
+                <li class="nav-item {{ request()->routeIs('categories.*') || request()->routeIs('products.*') || request()->routeIs('colors.*') ? 'menu-open' : '' }}">
                     <a href="#" class="nav-link">
                         <i class="nav-icon fas fa-boxes"></i>
                         <p>
@@ -53,6 +53,12 @@
                             <a href="{{ route('products.index') }}" class="nav-link {{ request()->routeIs('products.*') ? 'active' : '' }}">
                                 <i class="far fa-circle nav-icon"></i>
                                 <p>Products</p>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="{{ route('colors.index') }}" class="nav-link {{ request()->routeIs('colors.*') ? 'active' : '' }}">
+                                <i class="far fa-circle nav-icon"></i>
+                                <p>Colors</p>
                             </a>
                         </li>
                     </ul>

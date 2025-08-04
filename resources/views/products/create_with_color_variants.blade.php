@@ -170,13 +170,22 @@
                 <div class="add-color-section">
                     <h6>Add Specific Colors (Optional)</h6>
                     <div class="row">
-                        <div class="col-md-4">
-                            <input type="text" id="new-color" class="form-control" placeholder="Enter color (e.g., Red, Blue)" maxlength="100">
+                        <div class="col-md-3">
+                            <select id="color-select" class="form-control">
+                                <option value="">Select Color</option>
+                            </select>
+                            <small class="form-text text-muted">Or type custom color name</small>
+                            <input type="text" id="new-color" class="form-control mt-1" placeholder="Custom color name" maxlength="100">
                         </div>
-                        <div class="col-md-4">
+                        <div class="col-md-3">
                             <input type="number" id="new-quantity" class="form-control" placeholder="Enter quantity" min="0">
+                            <small class="form-text text-muted">Product quantity</small>
                         </div>
-                        <div class="col-md-4">
+                        <div class="col-md-3">
+                            <input type="number" id="color-usage-grams" class="form-control" placeholder="Color usage (grams)" min="0" step="0.01">
+                            <small class="form-text text-muted">Grams per unit</small>
+                        </div>
+                        <div class="col-md-3">
                             <button type="button" class="btn btn-success" id="add-color-btn">
                                 <i class="fas fa-plus"></i> Add Color
                             </button>
@@ -247,12 +256,61 @@ $(document).ready(function() {
         }
     }
 
+    // Load colors for dropdown
+    loadColors();
+    
+    function loadColors() {
+        $.ajax({
+            url: '/api/colors/search',
+            type: 'GET',
+            success: function(data) {
+                const colorSelect = $('#color-select');
+                colorSelect.html('<option value="">Select Color</option>');
+                
+                data.forEach(function(color) {
+                    const stockInfo = color.has_stock ? `(${color.stock_grams}g available)` : '(No stock)';
+                    colorSelect.append(`<option value="${color.id}" data-name="${color.name}" data-stock="${color.stock_grams}">${color.name} ${stockInfo}</option>`);
+                });
+            },
+            error: function() {
+                console.log('Failed to load colors');
+            }
+        });
+    }
+
     // Color variant management
     $('#add-color-btn').click(function() {
-        const color = $('#new-color').val().trim();
+        const colorSelect = $('#color-select');
+        const customColor = $('#new-color').val().trim();
         const quantity = parseInt($('#new-quantity').val()) || 0;
+        const colorUsageGrams = parseFloat($('#color-usage-grams').val()) || 0;
         
-        if (!color) {
+        let colorId = null;
+        let colorName = '';
+        
+        if (colorSelect.val()) {
+            // Selected from dropdown
+            colorId = colorSelect.val();
+            colorName = colorSelect.find('option:selected').data('name');
+            const availableStock = parseFloat(colorSelect.find('option:selected').data('stock')) || 0;
+            
+            // Check if there's enough color stock
+            if (colorUsageGrams > 0 && quantity > 0) {
+                const requiredStock = colorUsageGrams * quantity;
+                if (requiredStock > availableStock) {
+                    alert(`Insufficient color stock. Required: ${requiredStock}g, Available: ${availableStock}g`);
+                    return;
+                }
+            }
+        } else if (customColor) {
+            // Custom color name
+            colorName = customColor;
+        } else {
+            alert('Please select a color or enter a custom color name');
+            return;
+        }
+        
+        if (!colorName) {
             alert('Please enter a color name');
             return;
         }
@@ -261,7 +319,7 @@ $(document).ready(function() {
         let isDuplicate = false;
         $('.color-variant-item').each(function() {
             const existingColor = $(this).find('input[name*="[color]"]').val().toLowerCase();
-            if (existingColor === color.toLowerCase()) {
+            if (existingColor === colorName.toLowerCase()) {
                 isDuplicate = true;
                 return false;
             }
@@ -272,9 +330,11 @@ $(document).ready(function() {
             return;
         }
         
-        addColorVariant(color, quantity);
+        addColorVariant(colorName, quantity, colorId, colorUsageGrams);
+        $('#color-select').val('');
         $('#new-color').val('');
         $('#new-quantity').val('');
+        $('#color-usage-grams').val('');
     });
     
     // Allow Enter key to add color
@@ -284,7 +344,7 @@ $(document).ready(function() {
         }
     });
     
-    function addColorVariant(color, quantity) {
+    function addColorVariant(color, quantity, colorId = null, colorUsageGrams = 0) {
         if (!color) {
             alert('Please enter a color name');
             return false;
@@ -305,19 +365,31 @@ $(document).ready(function() {
         }
 
         const colorStyle = getColorStyle(color);
+        const colorIdInput = colorId ? `<input type="hidden" name="color_variants[${colorVariantIndex}][color_id]" value="${colorId}">` : '';
+        const usageDisplay = colorUsageGrams > 0 ? `<small class="text-muted">${colorUsageGrams}g per unit</small>` : '';
+        
         const html = `
             <div class="color-variant-item">
                 <div class="color-badge" style="${colorStyle}">${color}</div>
                 <div class="flex-grow-1">
                     <div class="row">
-                        <div class="col-md-6">
-                            <input type="hidden" name="color_variants[${colorVariantIndex}][color]" value="${color}">
-                            <strong>Color:</strong> ${color}
-                        </div>
                         <div class="col-md-4">
+                            <input type="hidden" name="color_variants[${colorVariantIndex}][color]" value="${color}">
+                            ${colorIdInput}
+                            <input type="hidden" name="color_variants[${colorVariantIndex}][color_usage_grams]" value="${colorUsageGrams}">
+                            <strong>Color:</strong> ${color}<br>
+                            ${usageDisplay}
+                        </div>
+                        <div class="col-md-3">
                             <label>Quantity:</label>
                             <input type="number" name="color_variants[${colorVariantIndex}][quantity]" 
                                    class="form-control quantity-input" value="${quantity}" min="0" required>
+                        </div>
+                        <div class="col-md-3">
+                            <label>Color Usage:</label>
+                            <input type="number" name="color_variants[${colorVariantIndex}][color_usage_grams]" 
+                                   class="form-control" value="${colorUsageGrams}" min="0" step="0.01" readonly>
+                            <small class="text-muted">grams per unit</small>
                         </div>
                         <div class="col-md-2">
                             <button type="button" class="remove-color-btn" onclick="removeColorVariant(this)" title="Remove Color">

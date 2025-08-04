@@ -126,6 +126,8 @@ class ProductController extends Controller
             ],
             'color_variants.*.color' => 'nullable|string|max:100',
             'color_variants.*.quantity' => 'required|integer|min:1',
+            'color_variants.*.color_id' => 'nullable|exists:colors,id',
+            'color_variants.*.color_usage_grams' => 'nullable|numeric|min:0',
         ]);
 
         if ($validator->fails()) {
@@ -167,7 +169,9 @@ class ProductController extends Controller
                     
                     $colorVariant = $product->colorVariants()->create([
                         'color' => $color,
-                        'quantity' => 0
+                        'quantity' => 0,
+                        'color_id' => $variant['color_id'] ?? null,
+                        'color_usage_grams' => $variant['color_usage_grams'] ?? 0
                     ]);
                     
                     try {
@@ -245,6 +249,8 @@ class ProductController extends Controller
             ],
             'color_variants.*.color' => 'nullable|string|max:100',
             'color_variants.*.quantity' => 'required|integer|min:1',
+            'color_variants.*.color_id' => 'nullable|exists:colors,id',
+            'color_variants.*.color_usage_grams' => 'nullable|numeric|min:0',
         ]);
 
         if ($validator->fails()) {
@@ -281,7 +287,9 @@ class ProductController extends Controller
                             $color = !empty($variant['color']) ? $variant['color'] : 'No Color';
                             $colorVariant = $product->colorVariants()->create([
                                 'color' => $color,
-                                'quantity' => 0
+                                'quantity' => 0,
+                                'color_id' => $variant['color_id'] ?? null,
+                                'color_usage_grams' => $variant['color_usage_grams'] ?? 0
                             ]);
                             $this->stockService->inwardColorVariantStock(
                                 $colorVariant,
