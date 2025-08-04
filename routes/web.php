@@ -9,6 +9,7 @@ use App\Http\Controllers\StockController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\CategoryController;
+use App\Http\Controllers\ColorController;
 
 Route::get('/', function () {
     return redirect('/login');
@@ -31,6 +32,12 @@ Route::middleware('auth')->group(function () {
     // Categories Management
     Route::resource('categories', CategoryController::class);
     Route::get('/api/subcategories/{category}', [CategoryController::class, 'getSubcategories'])->name('api.subcategories');
+    
+    // Colors Management
+    Route::get('/colors/low-stock', [ColorController::class, 'lowStock'])->name('colors.low-stock');
+    Route::resource('colors', ColorController::class);
+    Route::get('/api/colors/search', [ColorController::class, 'search'])->name('api.colors.search');
+    Route::post('/colors/{color}/update-stock', [ColorController::class, 'updateStock'])->name('colors.update-stock');
     
     // Products Management
     Route::resource('products', ProductController::class);
