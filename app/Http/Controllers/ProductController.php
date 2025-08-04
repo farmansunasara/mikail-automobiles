@@ -71,8 +71,15 @@ class ProductController extends Controller
 
         $products = Product::where('category_id', $request->category_id)
             ->where('is_composite', false)
+            ->with('colorVariants')
             ->orderBy('name')
             ->get(['id', 'name', 'is_composite']);
+
+        // Add total stock from color variants
+        $products = $products->map(function ($product) {
+            $product->total_stock = $product->colorVariants->sum('quantity');
+            return $product;
+        });
 
         return response()->json($products);
     }
@@ -272,30 +279,76 @@ class ProductController extends Controller
             
             $originalData = $product->toArray();
             $product->update($productData);
-            $product->components()->delete();
-            $product->colorVariants()->delete();
 
             try {
+                // Update components (only structure, not stock)
+                $product->components()->delete();
                 if ($request->boolean('is_composite') && $request->has('components')) {
                     foreach ($request->components as $componentData) {
                         $product->components()->create($componentData);
                     }
                 }
+
+                // Update color variants without re-deducting stock
                 if ($request->has('color_variants')) {
+                    // Store existing variants for comparison
+                    $existingVariants = $product->colorVariants()->get()->keyBy('color');
+                    $newVariants = collect($request->color_variants);
+                    
+                    // Delete variants that are no longer needed
+                    foreach ($existingVariants as $existingVariant) {
+                        $found = $newVariants->firstWhere('color', $existingVariant->color);
+                        if (!$found) {
+                            $existingVariant->delete();
+                        }
+                    }
+                    
+                    // Update or create variants
                     foreach ($request->color_variants as $variant) {
                         if ($variant['quantity'] > 0) {
                             $color = !empty($variant['color']) ? $variant['color'] : 'No Color';
-                            $colorVariant = $product->colorVariants()->create([
-                                'color' => $color,
-                                'quantity' => 0,
-                                'color_id' => $variant['color_id'] ?? null,
-                                'color_usage_grams' => $variant['color_usage_grams'] ?? 0
-                            ]);
-                            $this->stockService->inwardColorVariantStock(
-                                $colorVariant,
-                                $variant['quantity'],
-                                'Stock update during product edit'
-                            );
+                            $existingVariant = $existingVariants->get($color);
+                            
+                            if ($existingVariant) {
+                                // Update existing variant (only metadata, not stock)
+                                $existingVariant->update([
+                                    'color_id' => $variant['color_id'] ?? null,
+                                    'color_usage_grams' => $variant['color_usage_grams'] ?? 0
+                                ]);
+                                
+                                // Only adjust stock if quantity changed
+                                $quantityDiff = $variant['quantity'] - $existingVariant->quantity;
+                                if ($quantityDiff != 0) {
+                                    if ($quantityDiff > 0) {
+                                        // Increase stock - this will deduct components/colors
+                                        $this->stockService->inwardColorVariantStock(
+                                            $existingVariant,
+                                            $quantityDiff,
+                                            'Stock increase during product edit'
+                                        );
+                                    } else {
+                                        // Decrease stock - this will return components/colors
+                                        $this->stockService->outwardColorVariantStockSaleOnly(
+                                            $existingVariant,
+                                            abs($quantityDiff),
+                                            'Stock decrease during product edit'
+                                        );
+                                    }
+                                }
+                            } else {
+                                // Create new variant - this will deduct components/colors
+                                $colorVariant = $product->colorVariants()->create([
+                                    'color' => $color,
+                                    'quantity' => 0,
+                                    'color_id' => $variant['color_id'] ?? null,
+                                    'color_usage_grams' => $variant['color_usage_grams'] ?? 0
+                                ]);
+                                $this->stockService->inwardColorVariantStock(
+                                    $colorVariant,
+                                    $variant['quantity'],
+                                    'New variant added during product edit'
+                                );
+                            }
                         }
                     }
                 }

@@ -499,29 +499,10 @@ $(document).ready(function() {
                         // Debug log for each product
                         console.log('Processing product:', p);
                         
-                        // Calculate total available quantity
-                        let availableQty = 0;
-                        if (p.color_variants && p.color_variants.length > 0) {
-                            console.log('Color variants found:', p.color_variants);
-                            // Sum up quantities from color variants
-                            availableQty = p.color_variants.reduce((sum, variant) => {
-                                const qty = parseInt(variant.quantity) || 0;
-                                console.log(`Color: ${variant.color}, Qty: ${qty}`);
-                                return sum + qty;
-                            }, 0);
-                        } else if (p.stock_logs && p.stock_logs.length > 0) {
-                            // Try to get quantity from stock logs
-                            console.log('Stock logs found:', p.stock_logs);
-                            availableQty = p.stock_logs.reduce((sum, log) => {
-                                return sum + (parseInt(log.quantity) || 0);
-                            }, 0);
-                        } else if (p.quantity !== undefined && p.quantity !== null) {
-                            // Use direct quantity if available
-                            availableQty = parseInt(p.quantity) || 0;
-                            console.log('Direct quantity found:', availableQty);
-                        }
+                        // Use the total_stock property that's calculated in the backend
+                        const availableQty = parseInt(p.total_stock) || 0;
                         
-                        console.log(`Final available quantity for ${p.name}:`, availableQty);
+                        console.log(`Available quantity for ${p.name}:`, availableQty);
                         return `<option value="${p.id}">${p.name} (Available: ${availableQty})</option>`;
                     }).join('');
                 } else {

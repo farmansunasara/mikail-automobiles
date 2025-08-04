@@ -1,4 +1,4 @@
-<aside class="main-sidebar sidebar-dark-primary elevation-4">
+x<aside class="main-sidebar sidebar-dark-primary elevation-4">
     <!-- Brand Logo -->
     <a href="{{ route('dashboard') }}" class="brand-link">
         <img src="{{ asset('vendor/adminlte/dist/img/AdminLTELogo.png') }}" alt="AdminLTE Logo" class="brand-image img-circle elevation-3" style="opacity: .8">
@@ -63,7 +63,7 @@
                         </li>
                     </ul>
                 </li>
-                <li class="nav-item {{ request()->routeIs('stock.*') ? 'menu-open' : '' }}">
+                <li class="nav-item {{ request()->routeIs('stock.*') || request()->routeIs('colors.low-stock') ? 'menu-open' : '' }}">
                     <a href="#" class="nav-link">
                         <i class="nav-icon fas fa-dolly-flatbed"></i>
                         <p>
@@ -82,6 +82,12 @@
                             <a href="{{ route('stock.logs') }}" class="nav-link {{ request()->routeIs('stock.logs') ? 'active' : '' }}">
                                 <i class="far fa-circle nav-icon"></i>
                                 <p>Stock Logs</p>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="{{ route('colors.low-stock') }}" class="nav-link {{ request()->routeIs('colors.low-stock') ? 'active' : '' }}">
+                                <i class="far fa-circle nav-icon"></i>
+                                <p>Low Stock Colors</p>
                             </a>
                         </li>
                     </ul>
