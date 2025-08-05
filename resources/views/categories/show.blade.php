@@ -71,7 +71,7 @@
                                 <td>{{ $product->id }}</td>
                                 <td>{{ $product->name }}</td>
                                 <td>{{ $product->subcategory->name ?? 'N/A' }}</td>
-                                <td>{{ $product->quantity }}</td>
+                                <td>{{ $product->colorVariants->sum('quantity') }}</td>
                                 <td>₹{{ number_format($product->price, 2) }}</td>
                                 <td>
                                     <a href="{{ route('products.show', $product) }}" class="btn btn-sm btn-info">View</a>

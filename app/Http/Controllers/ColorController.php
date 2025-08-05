@@ -117,7 +117,9 @@ class ColorController extends Controller
             $query->search($request->term);
         }
 
-        $colors = $query->take(20)->get(['id', 'name', 'stock_grams', 'hex_code']);
+        // Allow configurable limit, default to 50, max 100
+        $limit = min($request->get('limit', 50), 100);
+        $colors = $query->take($limit)->get(['id', 'name', 'stock_grams', 'hex_code']);
 
         return response()->json($colors->map(function ($color) {
             return [
