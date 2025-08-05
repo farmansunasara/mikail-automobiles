@@ -62,7 +62,7 @@ class CategoryController extends Controller
      */
     public function show(Category $category)
     {
-        $category->load('subcategories', 'products.subcategory');
+        $category->load('subcategories', 'products.subcategory', 'products.colorVariants');
         return view('categories.show', compact('category'));
     }
 

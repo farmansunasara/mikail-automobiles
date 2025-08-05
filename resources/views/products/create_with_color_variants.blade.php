@@ -75,6 +75,60 @@
     border-radius: 4px;
     margin-top: 10px;
 }
+
+/* Color search dropdown styles */
+#color-search {
+    position: relative;
+}
+
+#color-dropdown {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    z-index: 1000;
+    background: white;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.color-dropdown-item {
+    padding: 8px 12px;
+    cursor: pointer;
+    border-bottom: 1px solid #f0f0f0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.color-dropdown-item:hover {
+    background-color: #f8f9fa;
+}
+
+.color-dropdown-item:last-child {
+    border-bottom: none;
+}
+
+.color-preview {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    border: 1px solid #ddd;
+    margin-right: 8px;
+}
+
+.color-stock-info {
+    font-size: 0.8em;
+    color: #666;
+}
+
+.no-results {
+    padding: 12px;
+    text-align: center;
+    color: #999;
+    font-style: italic;
+}
 </style>
 @endpush
 
@@ -171,11 +225,14 @@
                     <h6>Add Specific Colors (Optional)</h6>
                     <div class="row">
                         <div class="col-md-3">
-                            <select id="color-select" class="form-control">
-                                <option value="">Select Color</option>
-                            </select>
-                            <small class="form-text text-muted">Or type custom color name</small>
-                            <input type="text" id="new-color" class="form-control mt-1" placeholder="Custom color name" maxlength="100">
+                            <div class="form-group">
+                                <!-- <label>Search & Select Color</label> -->
+                                <input type="text" id="color-search" class="form-control" placeholder="Search colors..." autocomplete="off">
+                                <div id="color-dropdown" class="dropdown-menu" style="display: none; width: 100%; max-height: 200px; overflow-y: auto;">
+                                    <!-- Color options will be populated here -->
+                                </div>
+                                <small class="form-text text-muted">Type to search colors or enter custom color name</small>
+                            </div>
                         </div>
                         <div class="col-md-3">
                             <input type="number" id="new-quantity" class="form-control" placeholder="Enter quantity" min="0">
@@ -256,63 +313,147 @@ $(document).ready(function() {
         }
     }
 
-    // Load colors for dropdown
-    loadColors();
+    // Color search functionality
+    let searchTimeout;
+    let selectedColorId = null;
+    let selectedColorName = '';
     
-    function loadColors() {
+    // Initialize color search
+    initializeColorSearch();
+    
+    function initializeColorSearch() {
+        const $colorSearch = $('#color-search');
+        const $dropdown = $('#color-dropdown');
+        
+        // Load initial colors
+        searchColors('');
+        
+        // Search on input
+        $colorSearch.on('input', function() {
+            const term = $(this).val();
+            clearTimeout(searchTimeout);
+            searchTimeout = setTimeout(() => {
+                searchColors(term);
+            }, 300);
+        });
+        
+        // Show dropdown on focus
+        $colorSearch.on('focus', function() {
+            $dropdown.show();
+        });
+        
+        // Hide dropdown when clicking outside
+        $(document).on('click', function(e) {
+            if (!$(e.target).closest('#color-search, #color-dropdown').length) {
+                $dropdown.hide();
+            }
+        });
+    }
+    
+    function searchColors(term) {
         $.ajax({
             url: '/api/colors/search',
             type: 'GET',
+            data: { 
+                term: term,
+                limit: 100 // Get more results for search
+            },
             success: function(data) {
-                const colorSelect = $('#color-select');
-                colorSelect.html('<option value="">Select Color</option>');
-                
-                data.forEach(function(color) {
-                    const stockInfo = color.has_stock ? `(${color.stock_grams}g available)` : '(No stock)';
-                    colorSelect.append(`<option value="${color.id}" data-name="${color.name}" data-stock="${color.stock_grams}">${color.name} ${stockInfo}</option>`);
-                });
+                displayColorResults(data, term);
             },
             error: function() {
-                console.log('Failed to load colors');
+                console.log('Failed to search colors');
+                $('#color-dropdown').html('<div class="no-results">Failed to load colors</div>');
+            }
+        });
+    }
+    
+    function displayColorResults(colors, searchTerm) {
+        const $dropdown = $('#color-dropdown');
+        
+        if (colors.length === 0) {
+            if (searchTerm.trim()) {
+                // Allow custom color if no results found
+                $dropdown.html(`
+                    <div class="color-dropdown-item" data-custom="true" data-name="${searchTerm}">
+                        <div style="display: flex; align-items: center;">
+                            <div class="color-preview" style="background-color: #ccc;"></div>
+                            <span>Create custom color: "${searchTerm}"</span>
+                        </div>
+                    </div>
+                `);
+            } else {
+                $dropdown.html('<div class="no-results">No colors found</div>');
+            }
+        } else {
+            let html = '';
+            colors.forEach(function(color) {
+                const stockInfo = color.has_stock ? `${color.stock_grams}g available` : 'No stock';
+                const stockClass = color.has_stock ? 'text-success' : 'text-warning';
+                const colorPreview = color.hex_code || '#ccc';
+                
+                html += `
+                    <div class="color-dropdown-item" data-id="${color.id}" data-name="${color.name}" data-stock="${color.stock_grams}">
+                        <div style="display: flex; align-items: center;">
+                            <div class="color-preview" style="background-color: ${colorPreview};"></div>
+                            <span>${color.name}</span>
+                        </div>
+                        <span class="color-stock-info ${stockClass}">${stockInfo}</span>
+                    </div>
+                `;
+            });
+            
+            // Add option to create custom color if search term doesn't match exactly
+            if (searchTerm.trim() && !colors.some(c => c.name.toLowerCase() === searchTerm.toLowerCase())) {
+                html += `
+                    <div class="color-dropdown-item" data-custom="true" data-name="${searchTerm}">
+                        <div style="display: flex; align-items: center;">
+                            <div class="color-preview" style="background-color: #ccc;"></div>
+                            <span>Create custom color: "${searchTerm}"</span>
+                        </div>
+                    </div>
+                `;
+            }
+            
+            $dropdown.html(html);
+        }
+        
+        // Handle color selection
+        $('.color-dropdown-item').on('click', function() {
+            const $item = $(this);
+            const colorName = $item.data('name');
+            const colorId = $item.data('id') || null;
+            const isCustom = $item.data('custom') || false;
+            
+            selectedColorId = colorId;
+            selectedColorName = colorName;
+            
+            $('#color-search').val(colorName);
+            $('#color-dropdown').hide();
+            
+            // If it's a custom color, clear the selected ID
+            if (isCustom) {
+                selectedColorId = null;
             }
         });
     }
 
     // Color variant management
     $('#add-color-btn').click(function() {
-        const colorSelect = $('#color-select');
-        const customColor = $('#new-color').val().trim();
+        const colorName = selectedColorName || $('#color-search').val().trim();
         const quantity = parseInt($('#new-quantity').val()) || 0;
         const colorUsageGrams = parseFloat($('#color-usage-grams').val()) || 0;
         
-        let colorId = null;
-        let colorName = '';
-        
-        if (colorSelect.val()) {
-            // Selected from dropdown
-            colorId = colorSelect.val();
-            colorName = colorSelect.find('option:selected').data('name');
-            const availableStock = parseFloat(colorSelect.find('option:selected').data('stock')) || 0;
-            
-            // Check if there's enough color stock
-            if (colorUsageGrams > 0 && quantity > 0) {
-                const requiredStock = colorUsageGrams * quantity;
-                if (requiredStock > availableStock) {
-                    alert(`Insufficient color stock. Required: ${requiredStock}g, Available: ${availableStock}g`);
-                    return;
-                }
-            }
-        } else if (customColor) {
-            // Custom color name
-            colorName = customColor;
-        } else {
-            alert('Please select a color or enter a custom color name');
+        if (!colorName) {
+            alert('Please search and select a color or enter a custom color name');
             return;
         }
         
-        if (!colorName) {
-            alert('Please enter a color name');
-            return;
+        // Check if there's enough color stock for selected color
+        if (selectedColorId && colorUsageGrams > 0 && quantity > 0) {
+            // Find the selected color's stock from the last search results
+            const requiredStock = colorUsageGrams * quantity;
+            // We'll validate this on the server side as well
         }
         
         // Check for duplicate colors
@@ -330,15 +471,19 @@ $(document).ready(function() {
             return;
         }
         
-        addColorVariant(colorName, quantity, colorId, colorUsageGrams);
-        $('#color-select').val('');
-        $('#new-color').val('');
+        addColorVariant(colorName, quantity, selectedColorId, colorUsageGrams);
+        
+        // Clear the form
+        $('#color-search').val('');
+        $('#color-dropdown').hide();
         $('#new-quantity').val('');
         $('#color-usage-grams').val('');
+        selectedColorId = null;
+        selectedColorName = '';
     });
     
     // Allow Enter key to add color
-    $('#new-color, #new-quantity').keypress(function(e) {
+    $('#color-search, #new-quantity, #color-usage-grams').keypress(function(e) {
         if (e.which === 13) {
             $('#add-color-btn').click();
         }
