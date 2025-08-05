@@ -612,6 +612,7 @@
                 addColorVariant('{{ $variant->color }}', {{ $variant->quantity }}, {{ $variant->color_id ?? 'null' }}, {{ $variant->color_usage_grams ?? 0 }});
             @endforeach
         @endif
+        
     });
 </script>
 @endpush
