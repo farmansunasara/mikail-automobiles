@@ -61,38 +61,49 @@
 
             <!-- Color Variants Section -->
             <div class="form-group">
-                <label>Color Variants</label>
+                <label><strong>Product Quantity & Colors</strong></label>
+                <small class="form-text text-muted">
+                    Manage color variants with their quantities and color usage per unit
+                </small>
+                
                 <div id="color-variants-container">
-                    @if(old('color_variants', $product->colorVariants))
-                        @foreach(old('color_variants', $product->colorVariants) as $index => $variant)
-                            <div class="row color-variant-row mb-2">
-                                <div class="col-md-5">
-                                    <input type="text" name="color_variants[{{ $index }}][color]" class="form-control" placeholder="Color (e.g., Red, Blue, or leave empty for 'No Color')" value="{{ is_array($variant) ? $variant['color'] : $variant->color }}">
+                    <!-- Existing color variants will be loaded here -->
+                </div>
+                
+                <div class="add-color-section mt-3 p-3" style="border: 2px dashed #dee2e6; border-radius: 4px;">
+                    <h6>Add New Color Variant</h6>
+                    <div class="row">
+                        <div class="col-md-3">
+                            <div class="form-group">
+                                <label>Search & Select Color</label>
+                                <input type="text" id="color-search" class="form-control" placeholder="Search colors..." autocomplete="off">
+                                <div id="color-dropdown" class="dropdown-menu" style="display: none; width: 100%; max-height: 200px; overflow-y: auto; position: absolute; z-index: 1000; background: white; border: 1px solid #ccc; border-radius: 4px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+                                    <!-- Color options will be populated here -->
                                 </div>
-                                <div class="col-md-5">
-                                    <input type="number" name="color_variants[{{ $index }}][quantity]" class="form-control" placeholder="Quantity" value="{{ is_array($variant) ? $variant['quantity'] : $variant->quantity }}" required min="0">
-                                </div>
-                                <div class="col-md-2">
-                                    <button type="button" class="btn btn-danger remove-variant-btn">Remove</button>
-                                </div>
-                            </div>
-                        @endforeach
-                    @else
-                        <div class="row color-variant-row mb-2">
-                            <div class="col-md-5">
-                                <input type="text" name="color_variants[0][color]" class="form-control" placeholder="Color (e.g., Red, Blue)" required>
-                            </div>
-                            <div class="col-md-5">
-                                <input type="number" name="color_variants[0][quantity]" class="form-control" placeholder="Quantity" required min="0">
-                            </div>
-                            <div class="col-md-2">
-                                <button type="button" class="btn btn-danger remove-variant-btn">Remove</button>
+                                <small class="form-text text-muted">Type to search colors or enter custom color name</small>
                             </div>
                         </div>
-                    @endif
+                        <div class="col-md-3">
+                            <label>Quantity</label>
+                            <input type="number" id="new-quantity" class="form-control" placeholder="Enter quantity" min="0">
+                            <small class="form-text text-muted">Product quantity</small>
+                        </div>
+                        <div class="col-md-3">
+                            <label>Color Usage (grams)</label>
+                            <input type="number" id="color-usage-grams" class="form-control" placeholder="Color usage (grams)" min="0" step="0.01">
+                            <small class="form-text text-muted">Grams per unit</small>
+                        </div>
+                        <div class="col-md-3">
+                            <label>&nbsp;</label>
+                            <button type="button" class="btn btn-success form-control" id="add-color-btn">
+                                <i class="fas fa-plus"></i> Add Color
+                            </button>
+                        </div>
+                    </div>
                 </div>
-                <button type="button" id="add-variant-btn" class="btn btn-sm btn-success">Add Color Variant</button>
+                
                 @error('color_variants') <span class="text-danger">{{ $message }}</span> @enderror
+                @error('color_variants.*') <span class="text-danger">{{ $message }}</span> @enderror
             </div>
 
             <div class="form-group">
@@ -358,31 +369,249 @@
             $(this).closest('.component-row').remove();
         });
 
-        // Color Variants functionality
-        $('#add-variant-btn').click(function() {
-            var variantIndex = $('#color-variants-container .color-variant-row').length;
-            $('#color-variants-container').append(`
-                <div class="row color-variant-row mb-2">
-                    <div class="col-md-5">
-                        <input type="text" name="color_variants[${variantIndex}][color]" class="form-control" placeholder="Color (e.g., Red, Blue, or leave empty for 'No Color')">
-                    </div>
-                    <div class="col-md-5">
-                        <input type="number" name="color_variants[${variantIndex}][quantity]" class="form-control" placeholder="Quantity" required min="0">
-                    </div>
-                    <div class="col-md-2">
-                        <button type="button" class="btn btn-danger remove-variant-btn">Remove</button>
-                    </div>
-                </div>
-            `);
+        // Color search functionality
+        let searchTimeout;
+        let selectedColorId = null;
+        let selectedColorName = '';
+        let colorVariantIndex = 0;
+        
+        // Initialize color search
+        initializeColorSearch();
+        
+        function initializeColorSearch() {
+            const $colorSearch = $('#color-search');
+            const $dropdown = $('#color-dropdown');
+            
+            // Load initial colors
+            searchColors('');
+            
+            // Search on input
+            $colorSearch.on('input', function() {
+                const term = $(this).val();
+                clearTimeout(searchTimeout);
+                searchTimeout = setTimeout(() => {
+                    searchColors(term);
+                }, 300);
+            });
+            
+            // Show dropdown on focus
+            $colorSearch.on('focus', function() {
+                $dropdown.show();
+            });
+            
+            // Hide dropdown when clicking outside
+            $(document).on('click', function(e) {
+                if (!$(e.target).closest('#color-search, #color-dropdown').length) {
+                    $dropdown.hide();
+                }
+            });
+        }
+        
+        function searchColors(term) {
+            $.ajax({
+                url: '/api/colors/search',
+                type: 'GET',
+                data: { 
+                    term: term,
+                    limit: 100
+                },
+                success: function(data) {
+                    displayColorResults(data, term);
+                },
+                error: function() {
+                    console.log('Failed to search colors');
+                    $('#color-dropdown').html('<div class="no-results">Failed to load colors</div>');
+                }
+            });
+        }
+        
+        function displayColorResults(colors, searchTerm) {
+            const $dropdown = $('#color-dropdown');
+            
+            if (colors.length === 0) {
+                if (searchTerm.trim()) {
+                    $dropdown.html(`
+                        <div class="color-dropdown-item" data-custom="true" data-name="${searchTerm}">
+                            <div style="display: flex; align-items: center;">
+                                <div class="color-preview" style="background-color: #ccc; width: 20px; height: 20px; border-radius: 50%; border: 1px solid #ddd; margin-right: 8px;"></div>
+                                <span>Create custom color: "${searchTerm}"</span>
+                            </div>
+                        </div>
+                    `);
+                } else {
+                    $dropdown.html('<div class="no-results">No colors found</div>');
+                }
+            } else {
+                let html = '';
+                colors.forEach(function(color) {
+                    const stockInfo = color.has_stock ? `${color.stock_grams}g available` : 'No stock';
+                    const stockClass = color.has_stock ? 'text-success' : 'text-warning';
+                    const colorPreview = color.hex_code || '#ccc';
+                    
+                    html += `
+                        <div class="color-dropdown-item" data-id="${color.id}" data-name="${color.name}" data-stock="${color.stock_grams}" style="padding: 8px 12px; cursor: pointer; border-bottom: 1px solid #f0f0f0; display: flex; align-items: center; justify-content: space-between;">
+                            <div style="display: flex; align-items: center;">
+                                <div class="color-preview" style="background-color: ${colorPreview}; width: 20px; height: 20px; border-radius: 50%; border: 1px solid #ddd; margin-right: 8px;"></div>
+                                <span>${color.name}</span>
+                            </div>
+                            <span class="color-stock-info ${stockClass}" style="font-size: 0.8em; color: #666;">${stockInfo}</span>
+                        </div>
+                    `;
+                });
+                
+                if (searchTerm.trim() && !colors.some(c => c.name.toLowerCase() === searchTerm.toLowerCase())) {
+                    html += `
+                        <div class="color-dropdown-item" data-custom="true" data-name="${searchTerm}" style="padding: 8px 12px; cursor: pointer; border-bottom: 1px solid #f0f0f0; display: flex; align-items: center;">
+                            <div class="color-preview" style="background-color: #ccc; width: 20px; height: 20px; border-radius: 50%; border: 1px solid #ddd; margin-right: 8px;"></div>
+                            <span>Create custom color: "${searchTerm}"</span>
+                        </div>
+                    `;
+                }
+                
+                $dropdown.html(html);
+            }
+            
+            // Handle color selection
+            $('.color-dropdown-item').on('click', function() {
+                const $item = $(this);
+                const colorName = $item.data('name');
+                const colorId = $item.data('id') || null;
+                const isCustom = $item.data('custom') || false;
+                
+                selectedColorId = colorId;
+                selectedColorName = colorName;
+                
+                $('#color-search').val(colorName);
+                $('#color-dropdown').hide();
+                
+                if (isCustom) {
+                    selectedColorId = null;
+                }
+            });
+        }
+
+        // Color variant management
+        $('#add-color-btn').click(function() {
+            const colorName = selectedColorName || $('#color-search').val().trim();
+            const quantity = parseInt($('#new-quantity').val()) || 0;
+            const colorUsageGrams = parseFloat($('#color-usage-grams').val()) || 0;
+            
+            if (!colorName) {
+                alert('Please search and select a color or enter a custom color name');
+                return;
+            }
+            
+            // Check for duplicate colors
+            let isDuplicate = false;
+            $('.color-variant-item').each(function() {
+                const existingColor = $(this).find('input[name*="[color]"]').val().toLowerCase();
+                if (existingColor === colorName.toLowerCase()) {
+                    isDuplicate = true;
+                    return false;
+                }
+            });
+            
+            if (isDuplicate) {
+                alert('This color already exists. Please choose a different color.');
+                return;
+            }
+            
+            addColorVariant(colorName, quantity, selectedColorId, colorUsageGrams);
+            
+            // Clear the form
+            $('#color-search').val('');
+            $('#color-dropdown').hide();
+            $('#new-quantity').val('');
+            $('#color-usage-grams').val('');
+            selectedColorId = null;
+            selectedColorName = '';
         });
 
-        $(document).on('click', '.remove-variant-btn', function() {
-            if ($('#color-variants-container .color-variant-row').length > 1) {
-                $(this).closest('.color-variant-row').remove();
-            } else {
-                alert('At least one color variant is required.');
+        // Allow Enter key to add color
+        $('#color-search, #new-quantity, #color-usage-grams').keypress(function(e) {
+            if (e.which === 13) {
+                $('#add-color-btn').click();
             }
         });
+        
+        function addColorVariant(color, quantity, colorId = null, colorUsageGrams = 0) {
+            if (!color) {
+                alert('Please enter a color name');
+                return false;
+            }
+
+            const colorStyle = getColorStyle(color);
+            const colorIdInput = colorId ? `<input type="hidden" name="color_variants[${colorVariantIndex}][color_id]" value="${colorId}">` : '';
+            const usageDisplay = colorUsageGrams > 0 ? `<small class="text-muted">${colorUsageGrams}g per unit</small>` : '';
+            
+            const html = `
+                <div class="color-variant-item mb-3 p-3" style="border: 1px solid #e9ecef; border-radius: 4px; background-color: #f8f9fa;">
+                    <div class="row align-items-center">
+                        <div class="col-md-3">
+                            <div class="color-badge" style="${colorStyle} display: inline-block; padding: 4px 8px; border-radius: 4px; color: white; font-size: 0.8em; margin-right: 10px;">${color}</div>
+                            <input type="hidden" name="color_variants[${colorVariantIndex}][color]" value="${color}">
+                            ${colorIdInput}
+                            <input type="hidden" name="color_variants[${colorVariantIndex}][color_usage_grams]" value="${colorUsageGrams}">
+                            <div><strong>Color:</strong> ${color}</div>
+                            ${usageDisplay}
+                        </div>
+                        <div class="col-md-3">
+                            <label>Quantity:</label>
+                            <input type="number" name="color_variants[${colorVariantIndex}][quantity]" 
+                                   class="form-control quantity-input" value="${quantity}" min="0" required>
+                        </div>
+                        <div class="col-md-3">
+                            <label>Color Usage:</label>
+                            <input type="number" name="color_variants[${colorVariantIndex}][color_usage_grams]" 
+                                   class="form-control" value="${colorUsageGrams}" min="0" step="0.01">
+                            <small class="text-muted">grams per unit</small>
+                        </div>
+                        <div class="col-md-3">
+                            <button type="button" class="remove-color-btn btn btn-danger btn-sm" onclick="removeColorVariant(this)" title="Remove Color">
+                                <i class="fas fa-times"></i> Remove
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            $('#color-variants-container').append(html);
+            colorVariantIndex++;
+        }
+        
+        window.removeColorVariant = function(button) {
+            $(button).closest('.color-variant-item').remove();
+        };
+        
+        function getColorStyle(colorName) {
+            const colors = {
+                'black': 'background-color: #343a40; color: white;',
+                'white': 'background-color: #f8f9fa; color: black; border: 1px solid #dee2e6;',
+                'red': 'background-color: #dc3545; color: white;',
+                'blue': 'background-color: #007bff; color: white;',
+                'green': 'background-color: #28a745; color: white;',
+                'yellow': 'background-color: #ffc107; color: black;',
+                'silver': 'background-color: #6c757d; color: white;',
+                'golden': 'background-color: #ffd700; color: black;',
+                'gold': 'background-color: #ffd700; color: black;',
+                'clear': 'background-color: #e9ecef; color: black;',
+                'orange': 'background-color: #fd7e14; color: white;',
+                'purple': 'background-color: #6f42c1; color: white;',
+                'pink': 'background-color: #e83e8c; color: white;',
+                'brown': 'background-color: #795548; color: white;',
+                'gray': 'background-color: #6c757d; color: white;',
+                'grey': 'background-color: #6c757d; color: white;',
+                'no color': 'background-color: #e9ecef; color: black; border: 1px solid #dee2e6;'
+            };
+            return colors[colorName.toLowerCase()] || 'background-color: #6c757d; color: white;';
+        }
+
+        // Load existing color variants
+        @if($product->colorVariants->count() > 0)
+            @foreach($product->colorVariants as $variant)
+                addColorVariant('{{ $variant->color }}', {{ $variant->quantity }}, {{ $variant->color_id ?? 'null' }}, {{ $variant->color_usage_grams ?? 0 }});
+            @endforeach
+        @endif
     });
 </script>
 @endpush
