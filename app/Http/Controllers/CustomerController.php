@@ -16,9 +16,11 @@ class CustomerController extends Controller
         $query = Customer::withCount('invoices');
 
         if ($request->filled('search')) {
-            $query->where('name', 'like', '%' . $request->search . '%')
+            $query->where(function($q) use ($request) {
+                $q->where('name', 'like', '%' . $request->search . '%')
                   ->orWhere('mobile', 'like', '%' . $request->search . '%')
                   ->orWhere('gstin', 'like', '%' . $request->search . '%');
+            });
         }
 
         $customers = $query->latest()->paginate(10);
@@ -41,13 +43,13 @@ class CustomerController extends Controller
         $request->validate([
             'name' => 'required|string|max:255',
             'email' => 'nullable|email|max:255|unique:customers,email',
-            'mobile' => 'required|string|max:15|unique:customers,mobile',
-            'address' => 'required|string',
+            'mobile' => 'nullable|string|max:15|unique:customers,mobile',
+            'address' => 'nullable|string',
             'state' => 'nullable|string|max:100',
             'gstin' => 'nullable|string|max:15|unique:customers,gstin',
         ]);
 
-        $customer = Customer::create($request->all());
+        $customer = Customer::create($request->only(['name','email','mobile','address','state','gstin']));
 
         // Handle AJAX requests (for quick customer creation in invoice form)
         if ($request->ajax()) {
@@ -93,14 +95,14 @@ class CustomerController extends Controller
     {
         $request->validate([
             'name' => 'required|string|max:255',
-            'email' => ['nullable','email','max:255',Rule::unique('customers')->ignore($customer->id)],
-            'mobile' => ['required','string','max:15',Rule::unique('customers')->ignore($customer->id)],
+            'email' => ['nullable','email','max:255', Rule::unique('customers')->ignore($customer->id)],
+            'mobile' => ['nullable','string','max:15', Rule::unique('customers')->ignore($customer->id)],
             'address' => 'nullable|string',
             'state' => 'nullable|string|max:100',
-            'gstin' => ['nullable','string','max:15',Rule::unique('customers')->ignore($customer->id)],
+            'gstin' => ['nullable','string','max:15', Rule::unique('customers')->ignore($customer->id)],
         ]);
 
-        $customer->update($request->all());
+        $customer->update($request->only(['name','email','mobile','address','state','gstin']));
 
         return redirect()->route('customers.index')->with('success', 'Customer updated successfully.');
     }
@@ -125,8 +127,10 @@ class CustomerController extends Controller
     {
         $query = Customer::query();
         if ($request->filled('term')) {
-            $query->where('name', 'like', '%' . $request->term . '%')
+            $query->where(function($q) use ($request) {
+                $q->where('name', 'like', '%' . $request->term . '%')
                   ->orWhere('mobile', 'like', '%' . $request->term . '%');
+            });
         }
         $customers = $query->take(10)->get(['id', 'name', 'mobile', 'address', 'state', 'gstin']);
         return response()->json($customers);

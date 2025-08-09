@@ -40,7 +40,7 @@ class ColorController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'name' => 'required|string|max:100|unique:colors',
+            'name' => 'required|string|max:100', // removed unique constraint
             'hex_code' => 'nullable|string|regex:/^#[0-9A-Fa-f]{6}$/',
             'stock_grams' => 'required|numeric|min:0',
             'minimum_stock' => 'required|numeric|min:0',
@@ -84,7 +84,7 @@ class ColorController extends Controller
     public function update(Request $request, Color $color)
     {
         $request->validate([
-            'name' => 'required|string|max:100|unique:colors,name,' . $color->id,
+            'name' => 'required|string|max:100', // removed unique rule to allow duplicates
             'hex_code' => 'nullable|string|regex:/^#[0-9A-Fa-f]{6}$/',
             'minimum_stock' => 'required|numeric|min:0',
             'description' => 'nullable|string|max:1000',
@@ -114,17 +114,22 @@ class ColorController extends Controller
         $query = Color::active();
 
         if ($request->filled('term')) {
-            $query->search($request->term);
+            $term = $request->term;
+            $query->where(function($q) use ($term){
+                $q->where('name','like',"%{$term}%")
+                  ->orWhere('description','like',"%{$term}%");
+            });
         }
 
         // Allow configurable limit, default to 50, max 100
-        $limit = min($request->get('limit', 50), 100);
-        $colors = $query->take($limit)->get(['id', 'name', 'stock_grams', 'hex_code']);
+        $limit = min($request->get('limit', 50), 200);
+        $colors = $query->take($limit)->get(['id','name','stock_grams','hex_code','description']);
 
-        return response()->json($colors->map(function ($color) {
+        return response()->json($colors->map(function($color){
             return [
                 'id' => $color->id,
                 'name' => $color->name,
+                'description' => $color->description,
                 'display_name' => $color->display_name,
                 'stock_grams' => $color->stock_grams,
                 'hex_code' => $color->hex_code,
@@ -150,7 +155,9 @@ class ColorController extends Controller
                 $newStock = $previousStock + $quantity;
             } else {
                 if ($previousStock < $quantity) {
-                    throw new \Exception("Insufficient stock. Available: {$previousStock}g, Required: {$quantity}g");
+                    $prev = (string)$previousStock;
+                    $qty = (string)$quantity;
+                    throw new \Exception("Insufficient stock. Available: {$prev}g, Required: {$qty}g");
                 }
                 $newStock = $previousStock - $quantity;
             }

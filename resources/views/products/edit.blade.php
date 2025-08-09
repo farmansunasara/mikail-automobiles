@@ -427,69 +427,65 @@
         
         function displayColorResults(colors, searchTerm) {
             const $dropdown = $('#color-dropdown');
-            
             if (colors.length === 0) {
                 if (searchTerm.trim()) {
                     $dropdown.html(`
                         <div class="color-dropdown-item" data-custom="true" data-name="${searchTerm}">
-                            <div style="display: flex; align-items: center;">
-                                <div class="color-preview" style="background-color: #ccc; width: 20px; height: 20px; border-radius: 50%; border: 1px solid #ddd; margin-right: 8px;"></div>
+                            <div style="display:flex;align-items:center;">
+                                <div class="color-preview" style="background-color:#ccc;width:20px;height:20px;border-radius:50%;border:1px solid #ddd;margin-right:8px;"></div>
                                 <span>Create custom color: "${searchTerm}"</span>
                             </div>
-                        </div>
-                    `);
+                        </div>`);
                 } else {
                     $dropdown.html('<div class="no-results">No colors found</div>');
                 }
-            } else {
-                let html = '';
-                colors.forEach(function(color) {
-                    const stockInfo = color.has_stock ? `${color.stock_grams}g available` : 'No stock';
-                    const stockClass = color.has_stock ? 'text-success' : 'text-warning';
-                    const colorPreview = color.hex_code || '#ccc';
-                    
-                    html += `
-                        <div class="color-dropdown-item" data-id="${color.id}" data-name="${color.name}" data-stock="${color.stock_grams}" style="padding: 8px 12px; cursor: pointer; border-bottom: 1px solid #f0f0f0; display: flex; align-items: center; justify-content: space-between;">
-                            <div style="display: flex; align-items: center;">
-                                <div class="color-preview" style="background-color: ${colorPreview}; width: 20px; height: 20px; border-radius: 50%; border: 1px solid #ddd; margin-right: 8px;"></div>
-                                <span>${color.name}</span>
-                            </div>
-                            <span class="color-stock-info ${stockClass}" style="font-size: 0.8em; color: #666;">${stockInfo}</span>
-                        </div>
-                    `;
-                });
-                
-                if (searchTerm.trim() && !colors.some(c => c.name.toLowerCase() === searchTerm.toLowerCase())) {
-                    html += `
-                        <div class="color-dropdown-item" data-custom="true" data-name="${searchTerm}" style="padding: 8px 12px; cursor: pointer; border-bottom: 1px solid #f0f0f0; display: flex; align-items: center;">
-                            <div class="color-preview" style="background-color: #ccc; width: 20px; height: 20px; border-radius: 50%; border: 1px solid #ddd; margin-right: 8px;"></div>
-                            <span>Create custom color: "${searchTerm}"</span>
-                        </div>
-                    `;
-                }
-                
-                $dropdown.html(html);
+                return;
             }
-            
-            // Handle color selection
-            $('.color-dropdown-item').on('click', function() {
+            let html = '';
+            colors.forEach(function(color){
+                const stockInfo = color.has_stock ? `${color.stock_grams}g available` : 'No stock';
+                const stockClass = color.has_stock ? 'text-success' : 'text-warning';
+                const colorPreview = color.hex_code || '#ccc';
+                const descLine = color.description ? `<div style=\"font-size:11px;color:#6c757d;\">${escapeHtml(color.description)}</div>` : '';
+                html += `
+                    <div class="color-dropdown-item" data-id="${color.id}" data-name="${escapeHtml(color.name)}" data-description="${escapeHtml(color.description || '')}" data-stock="${color.stock_grams}" style="padding:8px 12px;cursor:pointer;border-bottom:1px solid #f0f0f0;display:flex;align-items:center;justify-content:space-between;">
+                        <div style="display:flex;align-items:flex-start;">
+                            <div class="color-preview" style="background-color:${colorPreview};width:20px;height:20px;border-radius:50%;border:1px solid #ddd;margin-right:8px;"></div>
+                            <div style="display:flex;flex-direction:column;">
+                                <span>${escapeHtml(color.name)}</span>
+                                ${descLine}
+                            </div>
+                        </div>
+                        <span class="color-stock-info ${stockClass}" style="font-size:0.8em;color:#666;">${stockInfo}</span>
+                    </div>`;
+            });
+            if (searchTerm.trim() && !colors.some(c => c.name.toLowerCase() === searchTerm.toLowerCase())) {
+                html += `
+                    <div class="color-dropdown-item" data-custom="true" data-name="${searchTerm}" style="padding:8px 12px;cursor:pointer;border-bottom:1px solid #f0f0f0;display:flex;align-items:center;">
+                        <div class="color-preview" style="background-color:#ccc;width:20px;height:20px;border-radius:50%;border:1px solid #ddd;margin-right:8px;"></div>
+                        <span>Create custom color: "${searchTerm}"</span>
+                    </div>`;
+            }
+            $dropdown.html(html);
+            $('.color-dropdown-item').on('click', function(){
                 const $item = $(this);
                 const colorName = $item.data('name');
                 const colorId = $item.data('id') || null;
                 const isCustom = $item.data('custom') || false;
-                
+                const desc = $item.data('description');
                 selectedColorId = colorId;
                 selectedColorName = colorName;
-                
-                $('#color-search').val(colorName);
+                $('#color-search').val(desc ? `${colorName} (${desc})` : colorName);
                 $('#color-dropdown').hide();
-                
-                if (isCustom) {
-                    selectedColorId = null;
-                }
+                if (isCustom) { selectedColorId = null; }
             });
         }
-
+        function escapeHtml(str){
+            if(!str) return '';
+            return str.replace(/[&<>"']/g, function(m){
+                return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','\'':'&#39;'}[m]);
+            });
+        }
         // Color variant management
         $('#add-color-btn').click(function() {
             const colorName = selectedColorName || $('#color-search').val().trim();

@@ -27,7 +27,7 @@
                 <div class="col-md-6">
                     <div class="form-group">
                         <label for="mobile">Mobile Number</label>
-                        <input type="text" name="mobile" id="mobile" class="form-control @error('mobile') is-invalid @enderror" value="{{ old('mobile') }}" required>
+                        <input type="text" name="mobile" id="mobile" class="form-control @error('mobile') is-invalid @enderror" value="{{ old('mobile') }}">
                         @error('mobile') <span class="invalid-feedback">{{ $message }}</span> @enderror
                     </div>
                 </div>

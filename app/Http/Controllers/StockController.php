@@ -68,7 +68,7 @@ class StockController extends Controller
             }
         }
 
-        $products = $query->latest()->paginate(15)->appends($request->query());
+        $products = $query->latest()->paginate(10)->appends($request->query());
         
         // Get unique colors for filter dropdown from color variants
         $colors = ProductColorVariant::distinct()
@@ -88,7 +88,8 @@ class StockController extends Controller
             'color_variant_id' => 'required|exists:product_color_variants,id',
             'change_type' => 'required|in:inward,outward',
             'quantity' => 'required|integer|min:1',
-            'notes' => 'nullable|string'
+            'notes' => 'nullable|string',
+            'redirect' => 'nullable|url'
         ]);
 
         try {
@@ -106,7 +107,13 @@ class StockController extends Controller
                 $this->stockService->outwardColorVariantStock($colorVariant, $request->quantity, $request->notes);
             }
 
-            return redirect()->route('stock.index')->with('success', 'Stock updated successfully.');
+            $target = $request->input('redirect');
+            if (!$target) {
+                $target = url()->previous();
+            }
+            // Append anchor to focus updated product row
+            $targetWithAnchor = rtrim($target, '#') . '#product-' . $product->id;
+            return redirect($targetWithAnchor)->with('success', 'Stock updated successfully.');
         } catch (\Exception $e) {
             return redirect()->back()->with('error', $e->getMessage());
         }

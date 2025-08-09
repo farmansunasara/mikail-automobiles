@@ -721,7 +721,7 @@
                         <div class="col-md-6">
                             <div class="form-group">
                                 <label for="customer_mobile">Mobile *</label>
-                                <input type="text" class="form-control" id="customer_mobile" name="mobile" required>
+                                <input type="text" class="form-control" id="customer_mobile" name="mobile">
                                 <div class="invalid-feedback"></div>
                             </div>
                         </div>
@@ -744,7 +744,7 @@
                     </div>
                     <div class="form-group">
                         <label for="customer_address">Address *</label>
-                        <textarea class="form-control" id="customer_address" name="address" rows="3" required></textarea>
+                        <textarea class="form-control" id="customer_address" name="address" rows="3"></textarea>
                         <div class="invalid-feedback"></div>
                     </div>
                     <div class="form-group">
