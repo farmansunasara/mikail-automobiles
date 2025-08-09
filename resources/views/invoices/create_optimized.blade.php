@@ -1449,8 +1449,12 @@ $(document).ready(function() {
         };
         
         // Basic validation
-        if (!formData.name || !formData.mobile || !formData.address) {
-            showError('Please fill in all required fields (Name, Mobile, Address)');
+        // if (!formData.name || !formData.mobile || !formData.address) {
+        //     showError('Please fill in all required fields (Name, Mobile, Address)');
+        //     return;
+        // }
+         if (!formData.name ) {
+            showError('Please fill name required fields ');
             return;
         }
         
