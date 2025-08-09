@@ -73,7 +73,7 @@
                 </thead>
                 <tbody>
                     @forelse($products as $product)
-                    <tr>
+                    <tr id="product-{{ $product->id }}">
                         <td>{{ $product->id }}</td>
                         <td>
                             <a href="{{ route('products.show', $product) }}" class="font-weight-bold">{{ $product->name }}</a>
@@ -188,11 +188,11 @@
             </div>
             <form action="{{ route('stock.update') }}" method="POST">
                 @csrf
+                <input type="hidden" name="product_id" id="modalProductId">
+                <input type="hidden" name="color_variant_id" id="modalColorVariantId">
+                <input type="hidden" name="change_type" id="modalChangeType">
+                <input type="hidden" name="redirect" value="{{ request()->fullUrl() }}">
                 <div class="modal-body">
-                    <input type="hidden" name="product_id" id="modalProductId">
-                    <input type="hidden" name="color_variant_id" id="modalColorVariantId">
-                    <input type="hidden" name="change_type" id="modalChangeType">
-                    
                     <div class="form-group">
                         <label for="quantity">Quantity</label>
                         <input type="number" name="quantity" id="quantity" class="form-control" required min="1">
