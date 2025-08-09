@@ -6,213 +6,338 @@
 <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
 <link href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css" rel="stylesheet" />
 <style>
-/* Select2 Custom Styling */
-.select2-container--default .select2-selection--single {
-    border: 2px solid #e9ecef;
-    border-radius: 8px;
-    height: 38px;
-    padding: 4px;
-    transition: border-color 0.3s ease;
+/* General Styling */
+.invoice-form {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
 }
 
-.select2-container--default .select2-selection--single:focus,
-.select2-container--default.select2-container--open .select2-selection--single {
+/* Card Styling */
+.card {
+    border-radius: 10px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 6px 25px rgba(0, 0, 0, 0.1);
+}
+
+.card-header {
+    border-radius: 10px 10px 0 0;
+    padding: 1.5rem;
+    background: linear-gradient(135deg, #007bff, #0056b3);
+    color: white;
+    font-weight: 500;
+}
+
+.card-header h4 {
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+/* Progress Bar */
+.progress-bar-custom {
+    height: 6px;
+    background: linear-gradient(90deg, #28a745, #17a2b8);
+    border-radius: 3px;
+    margin-bottom: 25px;
+    transition: width 0.4s ease;
+}
+
+/* Form Controls */
+.form-control, .select2-container--default .select2-selection--single {
+    border-radius: 6px;
+    border: 1px solid #ced4da;
+    transition: border-color 0.3s ease, box-shadow 0.3s ease;
+    font-size: 0.95rem;
+    pointer-events: auto; /* Ensure interactivity */
+}
+
+.form-control:focus, .select2-container--default.select2-container--focus .select2-selection--single {
     border-color: #007bff;
-    box-shadow: 0 0 0 0.2rem rgba(0,123,255,.25);
+    box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.15);
+}
+
+.select2-container--default .select2-selection--single {
+    height: 38px;
+    padding: 6px 12px;
 }
 
 .select2-container--default .select2-selection--single .select2-selection__rendered {
-    line-height: 28px;
-    padding-left: 8px;
+    line-height: 26px;
 }
 
 .select2-container--default .select2-selection--single .select2-selection__arrow {
-    height: 36px;
+    height: 38px;
 }
 
 .select2-dropdown {
-    border: 2px solid #007bff;
-    border-radius: 8px;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-}
-
-.select2-search__field {
-    border: 2px solid #e9ecef !important;
-    border-radius: 6px !important;
-    padding: 6px 12px !important;
-}
-
-.select2-search__field:focus {
-    border-color: #007bff !important;
-    box-shadow: 0 0 0 0.2rem rgba(0,123,255,.25);
+    border: 1px solid #007bff;
+    border-radius: 6px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
 }
 
 .select2-results__option {
     padding: 8px 12px;
+    font-size: 0.95rem;
 }
 
 .select2-results__option--highlighted {
     background-color: #007bff !important;
+    color: white !important;
 }
 
-.select2-result {
+/* Buttons */
+.btn {
+    border-radius: 6px;
+    font-weight: 500;
+    padding: 0.5rem 1rem;
+    transition: background 0.3s ease, transform 0.2s ease;
+    pointer-events: auto; /* Ensure buttons are clickable */
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, #007bff, #0056b3);
+    border: none;
+}
+
+.btn-success {
+    background: linear-gradient(135deg, #28a745, #1e7e34);
+    border: none;
+}
+
+.btn-info {
+    background: linear-gradient(135deg, #17a2b8, #117a8b);
+    border: none;
+}
+
+.btn:hover {
+    transform: translateY(-1px);
+}
+
+.btn-outline-secondary {
+    border-color: #6c757d;
+    color: #6c757d;
+}
+
+.btn-outline-secondary:hover {
+    background: #6c757d;
+    color: white;
+}
+
+/* Table Styling */
+.table {
+    background: white;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.table th {
+    background: #f8f9fa;
+    font-weight: 500;
+    color: #343a40;
+}
+
+.table td {
+    vertical-align: middle;
+    padding: 0.75rem;
+}
+
+.product-row {
+    transition: background 0.3s ease;
+}
+
+.product-row:hover {
+    background: #f1f3f5;
+}
+
+/* Color Items */
+.color-item {
     display: flex;
     align-items: center;
-    justify-content: space-between;
+    gap: 10px;
+    padding: 10px;
+    background: #f8f9fa;
+    border-radius: 6px;
+    margin-bottom: 10px;
+    transition: transform 0.3s ease;
 }
 
-.select2-result__title {
-    flex: 1;
-}
-.invoice-form {
-    max-width: 1200px;
-    margin: 0 auto;
+.color-item:hover {
+    transform: translateY(-2px);
 }
 
-/* Enhanced Form Styling */
-.form-step {
-    transition: all 0.3s ease;
-}
-
-.form-step.completed {
-    opacity: 0.8;
-}
-
-.progress-bar-custom {
-    height: 4px;
-    background: linear-gradient(90deg, #28a745 0%, #20c997 50%, #17a2b8 100%);
-    border-radius: 2px;
-    margin-bottom: 20px;
-    transition: width 0.3s ease;
-}
-
-/* Enhanced Color Badges */
 .color-badge {
-    display: inline-block;
-    padding: 6px 12px;
-    border-radius: 20px;
+    padding: 5px 10px;
+    border-radius: 12px;
+    font-size: 0.85rem;
     color: white;
-    font-size: 0.8em;
-    margin-right: 8px;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    transition: transform 0.2s ease;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
-.color-badge:hover {
-    transform: scale(1.05);
-}
-
-/* Enhanced Input Styling */
 .quantity-input {
     width: 80px;
     text-align: center;
-    border-radius: 8px;
-    border: 2px solid #e9ecef;
-    transition: border-color 0.3s ease;
+    border-radius: 6px;
+    border: 1px solid #ced4da;
 }
 
 .quantity-input:focus {
     border-color: #007bff;
-    box-shadow: 0 0 0 0.2rem rgba(0,123,255,.25);
+    box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.15);
 }
 
 .price-input {
-    border-radius: 8px;
-    border: 2px solid #e9ecef;
-    transition: border-color 0.3s ease;
-    background-color: #fff;
+    border-radius: 6px;
+    border: 1px solid #ced4da;
 }
 
 .price-input:focus {
     border-color: #28a745;
-    box-shadow: 0 0 0 0.2rem rgba(40,167,69,.25);
+    box-shadow: 0 0 0 0.2rem rgba(40, 167, 69, 0.15);
 }
 
 .price-input.editable {
-    background-color: #fff3cd;
-    border-color: #ffc107;
+    background: #fff3cd;
 }
 
 /* Stock Information */
 .stock-info {
-    font-size: 0.75em;
+    font-size: 0.85rem;
     color: #6c757d;
-    font-weight: 500;
 }
-.stock-warning { 
-    color: #dc3545; 
+
+.stock-warning {
+    color: #dc3545;
     animation: pulse 2s infinite;
 }
-.stock-low { 
-    color: #ffc107; 
-    font-weight: bold;
+
+.stock-low {
+    color: #ffc107;
 }
-.stock-good { 
-    color: #28a745; 
+
+.stock-good {
+    color: #28a745;
 }
 
 @keyframes pulse {
     0% { opacity: 1; }
-    50% { opacity: 0.5; }
+    50% { opacity: 0.6; }
     100% { opacity: 1; }
 }
 
-/* Enhanced Product Row */
-.product-row {
-    border-bottom: 1px solid #dee2e6;
-    transition: background-color 0.3s ease;
-    position: relative;
+/* Quick Actions */
+.quick-actions {
+    position: fixed;
+    right: 20px;
+    top: 50%;
+    transform: translateY(-50%);
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    z-index: 1000;
 }
 
-.product-row:hover {
-    background-color: #f8f9fa;
-}
-
-.product-row.animate__animated {
-    animation-duration: 0.5s;
-}
-
-/* Enhanced Remove Button */
-.remove-btn {
-    border: none;
-    background: none;
-    color: #dc3545;
-    font-size: 1.2em;
-    cursor: pointer;
-    padding: 8px;
+.quick-action-btn {
+    width: 45px;
+    height: 45px;
     border-radius: 50%;
-    transition: all 0.3s ease;
-}
-
-.remove-btn:hover {
-    background-color: #dc3545;
-    color: white;
-    transform: scale(1.1);
-}
-
-/* Enhanced Color Items */
-.color-item {
+    border: none;
     display: flex;
     align-items: center;
-    margin-bottom: 8px;
-    padding: 8px;
-    border: 1px solid #e9ecef;
-    border-radius: 8px;
-    transition: all 0.3s ease;
-    background: linear-gradient(135deg, #fff 0%, #f8f9fa 100%);
+    justify-content: center;
+    font-size: 1.1rem;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
 }
 
-.color-item:hover {
-    border-color: #007bff;
-    box-shadow: 0 2px 8px rgba(0,123,255,0.15);
-    transform: translateY(-1px);
+.quick-action-btn:hover {
+    transform: scale(1.1);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
 
-/* Loading States */
+/* Auto-save Indicator */
+.auto-save-indicator {
+    position: fixed;
+    top: 15px;
+    right: 15px;
+    background: #28a745;
+    color: white;
+    padding: 8px 16px;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    z-index: 1000;
+}
+
+.auto-save-indicator.show {
+    opacity: 1;
+}
+
+/* Modal Styling */
+.modal-content {
+    border-radius: 10px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+}
+
+.modal-header {
+    background: linear-gradient(135deg, #28a745, #1e7e34);
+    color: white;
+    border-radius: 10px 10px 0 0;
+}
+
+/* Form Validation */
+.is-invalid {
+    border-color: #dc3545 !important;
+}
+
+.invalid-feedback {
+    font-size: 0.85rem;
+    color: #dc3545;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .invoice-form {
+        padding: 15px;
+    }
+
+    .quick-actions {
+        right: 10px;
+        gap: 8px;
+    }
+
+    .quick-action-btn {
+        width: 40px;
+        height: 40px;
+        font-size: 1rem;
+    }
+
+    .table-responsive {
+        margin-bottom: 20px;
+    }
+
+    .color-item {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+    }
+
+    .quantity-input {
+        width: 100%;
+        max-width: 100px;
+    }
+}
+
+/* Loading State */
 .loading {
     opacity: 0.6;
     pointer-events: none;
-    position: relative;
 }
 
 .loading::after {
@@ -233,230 +358,6 @@
     0% { transform: rotate(0deg); }
     100% { transform: rotate(360deg); }
 }
-
-/* Composite Product Styling */
-.composite-badge {
-    background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
-    color: white;
-    padding: 3px 8px;
-    border-radius: 12px;
-    font-size: 0.7em;
-    margin-left: 8px;
-    box-shadow: 0 2px 4px rgba(40,167,69,0.3);
-}
-
-.component-info {
-    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
-    border: 1px solid #dee2e6;
-    border-radius: 8px;
-    padding: 12px;
-    margin-top: 8px;
-    font-size: 0.85em;
-}
-
-.component-item {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 4px 0;
-    border-bottom: 1px solid #e9ecef;
-}
-
-.component-item:last-child {
-    border-bottom: none;
-}
-
-.component-stock-warning {
-    color: #dc3545;
-    font-weight: bold;
-    animation: pulse 2s infinite;
-}
-
-/* Enhanced Cards */
-.card {
-    border-radius: 12px;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.07);
-    transition: all 0.3s ease;
-    border: none;
-}
-
-.card:hover {
-    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
-    transform: translateY(-2px);
-}
-
-.card-header {
-    border-radius: 12px 12px 0 0 !important;
-    border-bottom: none;
-    padding: 1.25rem 1.5rem;
-}
-
-/* Enhanced Buttons */
-.btn {
-    border-radius: 8px;
-    font-weight: 500;
-    transition: all 0.3s ease;
-    position: relative;
-    overflow: hidden;
-}
-
-.btn::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: -100%;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
-    transition: left 0.5s;
-}
-
-.btn:hover::before {
-    left: 100%;
-}
-
-.btn-primary {
-    background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
-    border: none;
-}
-
-.btn-success {
-    background: linear-gradient(135deg, #28a745 0%, #1e7e34 100%);
-    border: none;
-}
-
-.btn-info {
-    background: linear-gradient(135deg, #17a2b8 0%, #117a8b 100%);
-    border: none;
-}
-
-/* Quick Actions */
-.quick-actions {
-    position: fixed;
-    right: 20px;
-    top: 50%;
-    transform: translateY(-50%);
-    z-index: 1000;
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-}
-
-.quick-action-btn {
-    width: 50px;
-    height: 50px;
-    border-radius: 50%;
-    border: none;
-    color: white;
-    font-size: 1.2em;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-}
-
-.quick-action-btn:hover {
-    transform: scale(1.1);
-}
-
-/* Customer Quick Add Modal */
-.modal-content {
-    border-radius: 12px;
-    border: none;
-    box-shadow: 0 10px 40px rgba(0,0,0,0.2);
-}
-
-.modal-header {
-    border-bottom: 1px solid #e9ecef;
-    border-radius: 12px 12px 0 0;
-}
-
-/* Price History Tooltip */
-.price-history {
-    position: relative;
-    cursor: help;
-}
-
-.price-history-tooltip {
-    position: absolute;
-    bottom: 100%;
-    left: 50%;
-    transform: translateX(-50%);
-    background: #333;
-    color: white;
-    padding: 8px 12px;
-    border-radius: 6px;
-    font-size: 0.8em;
-    white-space: nowrap;
-    opacity: 0;
-    visibility: hidden;
-    transition: all 0.3s ease;
-    z-index: 1000;
-}
-
-.price-history:hover .price-history-tooltip {
-    opacity: 1;
-    visibility: visible;
-}
-
-/* Auto-save Indicator */
-.auto-save-indicator {
-    position: fixed;
-    top: 20px;
-    right: 20px;
-    background: #28a745;
-    color: white;
-    padding: 8px 16px;
-    border-radius: 20px;
-    font-size: 0.8em;
-    opacity: 0;
-    transition: opacity 0.3s ease;
-    z-index: 1000;
-}
-
-.auto-save-indicator.show {
-    opacity: 1;
-}
-
-/* Responsive Design */
-@media (max-width: 768px) {
-    .invoice-form {
-        margin: 0 10px;
-    }
-    
-    .color-item {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 8px;
-    }
-    
-    .quantity-input {
-        width: 100%;
-        max-width: 120px;
-    }
-    
-    .quick-actions {
-        display: none;
-    }
-}
-
-/* Form Validation */
-.is-invalid {
-    border-color: #dc3545 !important;
-    animation: shake 0.5s ease-in-out;
-}
-
-@keyframes shake {
-    0%, 100% { transform: translateX(0); }
-    25% { transform: translateX(-5px); }
-    75% { transform: translateX(5px); }
-}
-
-.invalid-feedback {
-    display: block;
-    color: #dc3545;
-    font-size: 0.8em;
-    margin-top: 4px;
-}
 </style>
 @endpush
 
@@ -467,9 +368,12 @@
 @endsection
 
 @section('content')
+<!-- CSRF Token -->
+<meta name="csrf-token" content="{{ csrf_token() }}">
+
 <!-- Auto-save Indicator -->
 <div class="auto-save-indicator" id="auto-save-indicator">
-    <i class="fas fa-save"></i> Draft saved
+    <i class="fas fa-save"></i> Draft Saved
 </div>
 
 <!-- Progress Bar -->
@@ -494,33 +398,33 @@
         
         <!-- Invoice Header -->
         <div class="card mb-4 form-step" id="step-1">
-            <div class="card-header bg-primary text-white">
-                <h4 class="mb-0">
+            <div class="card-header">
+                <h4>
                     <i class="fas fa-file-invoice"></i> Invoice Details
                     <span class="badge badge-light ml-2" id="step-indicator-1">Step 1 of 3</span>
                 </h4>
             </div>
             <div class="card-body">
                 <div class="row">
-                    <div class="col-md-3">
+                    <div class="col-md-3 col-sm-6">
                         <div class="form-group">
                             <label for="invoice_number">Invoice Number</label>
                             <input type="text" name="invoice_number" class="form-control" value="{{ $invoice_number }}" readonly>
                         </div>
                     </div>
-                    <div class="col-md-3">
+                    <div class="col-md-3 col-sm-6">
                         <div class="form-group">
                             <label for="invoice_date">Invoice Date</label>
                             <input type="date" name="invoice_date" class="form-control" value="{{ date('Y-m-d') }}" required>
                         </div>
                     </div>
-                    <div class="col-md-3">
+                    <div class="col-md-3 col-sm-6">
                         <div class="form-group">
                             <label for="due_date">Due Date</label>
                             <input type="date" name="due_date" class="form-control" value="{{ date('Y-m-d', strtotime('+30 days')) }}">
                         </div>
                     </div>
-                    <div class="col-md-3">
+                    <div class="col-md-3 col-sm-6">
                         <div class="form-group">
                             <label for="customer_id">Customer *</label>
                             <div class="input-group">
@@ -580,8 +484,8 @@
 
         <!-- Invoice Items -->
         <div class="card mb-4 form-step" id="step-2">
-            <div class="card-header bg-success text-white">
-                <h4 class="mb-0">
+            <div class="card-header bg-success">
+                <h4>
                     <i class="fas fa-shopping-cart"></i> Invoice Items
                     <span class="badge badge-light ml-2" id="step-indicator-2">Step 2 of 3</span>
                     <span class="float-right">
@@ -597,14 +501,9 @@
                                 <th width="180px">Category</th>
                                 <th width="180px">Product</th>
                                 <th>Colors & Quantities</th>
-                                <th width="120px">
-                                    Price 
-                                    <i class="fas fa-info-circle text-info" title="Click to edit price"></i>
-                                </th>
+                                <th width="120px">Price</th>
                                 <th width="100px">Total</th>
-                                <th width="50px">
-                                    <i class="fas fa-cog"></i>
-                                </th>
+                                <th width="50px">Actions</th>
                             </tr>
                         </thead>
                         <tbody id="items-tbody">
@@ -632,8 +531,8 @@
         <div class="row">
             <div class="col-md-6 offset-md-6">
                 <div class="card form-step" id="step-3">
-                    <div class="card-header bg-info text-white">
-                        <h4 class="mb-0">
+                    <div class="card-header bg-info">
+                        <h4>
                             <i class="fas fa-calculator"></i> Invoice Summary
                             <span class="badge badge-light ml-2" id="step-indicator-3">Step 3 of 3</span>
                         </h4>
@@ -699,7 +598,7 @@
 <div class="modal fade" id="customerModal" tabindex="-1" role="dialog" aria-labelledby="customerModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-lg" role="document">
         <div class="modal-content">
-            <div class="modal-header bg-success text-white">
+            <div class="modal-header">
                 <h5 class="modal-title" id="customerModalLabel">
                     <i class="fas fa-user-plus"></i> Add New Customer
                 </h5>
@@ -766,33 +665,40 @@
 @endsection
 
 @push('scripts')
+<!-- Ensure jQuery is loaded -->
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<!-- Bootstrap and AdminLTE dependencies -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/admin-lte@3.2.0/dist/js/adminlte.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 <script>
 $(document).ready(function() {
     let itemIndex = 0;
     let draftTimer;
-    let formData = {};
+
+    // Initialize Select2 with error handling
+    try {
+        $('#customer_id').select2({
+            placeholder: 'Select Customer',
+            allowClear: true,
+            templateResult: formatCustomer,
+            templateSelection: formatCustomerSelection
+        });
+    } catch (e) {
+        console.error('Select2 initialization failed:', e);
+    }
     
-    // Initialize Select2
-    $('#customer_id').select2({
-        placeholder: 'Select Customer',
-        allowClear: true,
-        templateResult: formatCustomer,
-        templateSelection: formatCustomerSelection
-    });
-    
-    // Enhanced customer display in dropdown
+    // Customer dropdown formatting
     function formatCustomer(customer) {
         if (!customer.id) return customer.text;
         
-        const $customer = $(
+        return $(
             '<div class="customer-option">' +
                 '<div class="customer-name">' + customer.text + '</div>' +
                 '<div class="customer-details"><small class="text-muted">' + 
                 ($(customer.element).data('mobile') || 'No mobile') + '</small></div>' +
             '</div>'
         );
-        return $customer;
     }
     
     function formatCustomerSelection(customer) {
@@ -803,8 +709,8 @@ $(document).ready(function() {
     $('#customer_id').on('change', function() {
         const selected = $(this).find('option:selected');
         if (selected.val()) {
-            $('#cust-address').text(selected.data('address'));
-            $('#cust-gstin').text(selected.data('gstin'));
+            $('#cust-address').text(selected.data('address') || '');
+            $('#cust-gstin').text(selected.data('gstin') || '');
             $('#customer-details').show();
             updateProgress();
             saveDraftData();
@@ -815,12 +721,10 @@ $(document).ready(function() {
     
     // Progress tracking
     function updateProgress() {
-        let progress = 25; // Base progress for form load
-        
+        let progress = 25;
         if ($('#customer_id').val()) progress += 25;
         if ($('#items-tbody tr').length > 0) progress += 25;
         
-        // Calculate grand total without calling updateTotals to avoid circular reference
         let grandTotal = 0;
         $('.product-row').each(function() {
             const $row = $(this);
@@ -835,7 +739,6 @@ $(document).ready(function() {
         
         $('#progress-bar').css('width', progress + '%');
         
-        // Update step indicators
         if (progress >= 50) $('#step-1').addClass('completed');
         if (progress >= 75) $('#step-2').addClass('completed');
         if (progress >= 100) $('#step-3').addClass('completed');
@@ -898,7 +801,6 @@ $(document).ready(function() {
             try {
                 const data = JSON.parse(draft);
                 if (confirm('Found a saved draft. Would you like to restore it?')) {
-                    // Restore basic form data
                     if (data.customer_id) $('#customer_id').val(data.customer_id).trigger('change');
                     if (data.invoice_date) $('input[name="invoice_date"]').val(data.invoice_date);
                     if (data.due_date) $('input[name="due_date"]').val(data.due_date);
@@ -906,9 +808,6 @@ $(document).ready(function() {
                     if (data.discount_type) $('#discount_type').val(data.discount_type);
                     if (data.discount_value) $('#discount_value').val(data.discount_value);
                     if (data.notes) $('textarea[name="notes"]').val(data.notes);
-                    
-                    // Note: Item restoration would require more complex logic
-                    // For now, we'll just restore the basic form fields
                 }
             } catch (e) {
                 console.error('Error loading draft:', e);
@@ -971,7 +870,6 @@ $(document).ready(function() {
                                step="0.01" readonly data-original-price="0">
                         <small class="price-history text-muted" style="display: none;">
                             Original: ₹<span class="original-price">0.00</span>
-                            <div class="price-history-tooltip">Click to edit price</div>
                         </small>
                     </div>
                 </td>
@@ -983,7 +881,7 @@ $(document).ready(function() {
                         <button type="button" class="btn btn-sm btn-outline-info mb-1" onclick="duplicateItem(${itemIndex})" title="Duplicate Item">
                             <i class="fas fa-copy"></i>
                         </button>
-                        <button type="button" class="remove-btn" onclick="removeItem(${itemIndex})" title="Remove Item">
+                        <button type="button" class="btn btn-sm btn-outline-danger remove-btn" onclick="removeItem(${itemIndex})" title="Remove Item">
                             <i class="fas fa-times"></i>
                         </button>
                     </div>
@@ -994,8 +892,11 @@ $(document).ready(function() {
         $('#items-tbody').append(rowHtml);
         $('#no-items-message').hide();
         
-        // Initialize Select2 for the new category select
-        initializeCategorySelect($(`#items-tbody tr:last .category-select`));
+        try {
+            initializeCategorySelect($(`#items-tbody tr:last .category-select`));
+        } catch (e) {
+            console.error('Category select initialization failed:', e);
+        }
         
         updateItemsCount();
         updateProgress();
@@ -1003,13 +904,11 @@ $(document).ready(function() {
         itemIndex++;
     }
     
-    // Update items count
     function updateItemsCount() {
         const count = $('#items-tbody tr').length;
         $('#items-count').text(count + (count === 1 ? ' item' : ' items'));
     }
     
-    // Duplicate item functionality
     window.duplicateItem = function(index) {
         const $originalRow = $(`.product-row[data-index="${index}"]`);
         const categoryId = $originalRow.find('.category-select').val();
@@ -1023,7 +922,6 @@ $(document).ready(function() {
         
         addNewItem();
         
-        // Set the values for the new item
         const $newRow = $('#items-tbody tr:last');
         $newRow.find('.category-select').val(categoryId).trigger('change');
         
@@ -1037,36 +935,18 @@ $(document).ready(function() {
         }, 500);
     };
     
-    // Initialize Select2 for category dropdown with fuzzy search
     function initializeCategorySelect($select) {
-        $select.select2({
-            placeholder: 'Search category...',
-            allowClear: true,
-            width: '100%',
-            matcher: function(params, data) {
-                // If there are no search terms, return all of the data
-                if ($.trim(params.term) === '') {
-                    return data;
-                }
-
-                // Do not display the item if there is no 'text' property
-                if (typeof data.text === 'undefined') {
-                    return null;
-                }
-
-                // `params.term` should be the term that is used for searching
-                // `data.text` is the text that is displayed for the data object
-                if (data.text.toLowerCase().indexOf(params.term.toLowerCase()) > -1) {
-                    return data;
-                }
-
-                // Return `null` if the term should not be displayed
-                return null;
-            }
-        });
+        try {
+            $select.select2({
+                placeholder: 'Search category...',
+                allowClear: true,
+                width: '100%'
+            });
+        } catch (e) {
+            console.error('Select2 initialization for category failed:', e);
+        }
     }
 
-    // Category change handler with enhanced Select2
     $(document).on('change', '.category-select', function() {
         const $row = $(this).closest('tr');
         const categoryId = $(this).val();
@@ -1089,59 +969,15 @@ $(document).ready(function() {
                 });
                 $productSelect.html(options).prop('disabled', false);
                 
-                // Initialize Select2 for product dropdown with fuzzy search
-                $productSelect.select2({
-                    placeholder: 'Search product...',
-                    allowClear: true,
-                    width: '100%',
-                    matcher: function(params, data) {
-                        // If there are no search terms, return all of the data
-                        if ($.trim(params.term) === '') {
-                            return data;
-                        }
-
-                        // Do not display the item if there is no 'text' property
-                        if (typeof data.text === 'undefined') {
-                            return null;
-                        }
-
-                        // Fuzzy search implementation
-                        const searchStr = params.term.toLowerCase();
-                        const text = data.text.toLowerCase();
-                        
-                        // Check if the search string appears anywhere in the product name
-                        if (text.indexOf(searchStr) > -1) {
-                            return data;
-                        }
-                        
-                        // Split search string into characters and check if they appear in sequence
-                        const chars = searchStr.split('');
-                        let currentIndex = 0;
-                        
-                        for (let char of chars) {
-                            const index = text.indexOf(char, currentIndex);
-                            if (index === -1) {
-                                return null;
-                            }
-                            currentIndex = index + 1;
-                        }
-                        
-                        return data;
-                    },
-                    templateResult: function(data) {
-                        if (!data.id) return data.text;
-                        
-                        const $result = $(`
-                            <div class="select2-result">
-                                <div class="select2-result__title">${data.text}</div>
-                                ${data.element && $(data.element).attr('data-is-composite') === 'true' ? 
-                                    '<span class="composite-badge">Composite</span>' : ''}
-                            </div>
-                        `);
-                        
-                        return $result;
-                    }
-                });
+                try {
+                    $productSelect.select2({
+                        placeholder: 'Search product...',
+                        allowClear: true,
+                        width: '100%'
+                    });
+                } catch (e) {
+                    console.error('Select2 initialization for product failed:', e);
+                }
             })
             .fail(function() {
                 $productSelect.html('<option value="">Error loading products</option>');
@@ -1149,7 +985,6 @@ $(document).ready(function() {
             });
     });
     
-    // Product change handler
     $(document).on('change', '.product-select', function() {
         const $row = $(this).closest('tr');
         const productId = $(this).val();
@@ -1166,18 +1001,15 @@ $(document).ready(function() {
                 if (data.variants && data.variants.length > 0) {
                     createColorInputs($row, data.variants);
                     
-                    // Set price and GST from first variant
                     const firstVariant = data.variants[0];
                     const $priceInput = $row.find('.price-input');
                     
                     $priceInput.val(firstVariant.price);
                     $priceInput.attr('data-original-price', firstVariant.price);
                     
-                    // Show price history
                     $row.find('.original-price').text(parseFloat(firstVariant.price).toFixed(2));
                     $row.find('.price-history').show();
                     
-                    // Make price editable
                     makePriceEditable($priceInput);
                     
                     updateProgress();
@@ -1192,7 +1024,6 @@ $(document).ready(function() {
             });
     });
     
-    // Make price input editable
     function makePriceEditable($priceInput) {
         $priceInput.removeClass('readonly').prop('readonly', false).addClass('editable');
         
@@ -1215,14 +1046,9 @@ $(document).ready(function() {
             updateTotals();
             saveDraftData();
         });
-        
-        // Add tooltip
-        $priceInput.attr('title', 'Click to edit price. Original price: ₹' + $priceInput.attr('data-original-price'));
     }
     
-    // Enhanced error display
     function showError(message) {
-        // Create a toast-like notification
         const errorHtml = `
             <div class="alert alert-danger alert-dismissible fade show position-fixed" 
                  style="top: 20px; right: 20px; z-index: 9999; min-width: 300px;">
@@ -1235,7 +1061,6 @@ $(document).ready(function() {
         
         $('body').append(errorHtml);
         
-        // Auto-dismiss after 5 seconds
         setTimeout(function() {
             $('.alert').alert('close');
         }, 5000);
@@ -1269,7 +1094,6 @@ $(document).ready(function() {
                 </div>
             `;
             
-            // Add component information for composite products
             if (isComposite && variant.components && variant.components.length > 0) {
                 html += `
                     <div class="component-info">
@@ -1357,36 +1181,29 @@ $(document).ready(function() {
             grandSubtotal += rowTotal;
         });
 
-        // Calculate discount
-        var discountType = parseFloat($('#discount_type').val()) || 0;
-        var discountValue = parseFloat($('#discount_value').val()) || 0;
-        var discountAmount = 0;
+        const discountType = parseFloat($('#discount_type').val()) || 0;
+        const discountValue = parseFloat($('#discount_value').val()) || 0;
+        let discountAmount = 0;
 
         if (discountValue > 0) {
-            if (discountType == 1) {
-                // Percentage discount
+            if (discountType === 1) {
                 discountAmount = (grandSubtotal * discountValue) / 100;
             } else {
-                // Fixed amount discount
                 discountAmount = Math.min(discountValue, grandSubtotal);
             }
         }
 
-        var afterDiscount = grandSubtotal - discountAmount;
-        
-        // Calculate GST on discounted amount using single invoice-level GST rate
-        var invoiceGstRate = parseFloat($('#gst_rate').val()) || 0;
-        var totalGstAmount = (afterDiscount * invoiceGstRate) / 100;
-        var cgstAmount = totalGstAmount / 2;
-        var sgstAmount = totalGstAmount / 2;
+        const afterDiscount = grandSubtotal - discountAmount;
+        const invoiceGstRate = parseFloat($('#gst_rate').val()) || 0;
+        const totalGstAmount = (afterDiscount * invoiceGstRate) / 100;
+        const cgstAmount = totalGstAmount / 2;
+        const sgstAmount = totalGstAmount / 2;
 
-        var grand_total = afterDiscount + cgstAmount + sgstAmount;
+        const grand_total = afterDiscount + cgstAmount + sgstAmount;
 
-        // Update GST rate display
         $('#cgst-rate').text((invoiceGstRate / 2).toFixed(1));
         $('#sgst-rate').text((invoiceGstRate / 2).toFixed(1));
 
-        // Update display with animations
         $('#subtotal').text('₹' + grandSubtotal.toFixed(2));
         $('#discount_amount_display').text('₹' + discountAmount.toFixed(2));
         $('#after_discount').text('₹' + afterDiscount.toFixed(2));
@@ -1394,7 +1211,6 @@ $(document).ready(function() {
         $('#sgst').text('₹' + sgstAmount.toFixed(2));
         $('#grand_total').text('₹' + grand_total.toFixed(2));
         
-        // Update progress without circular reference
         setTimeout(function() {
             updateProgress();
         }, 10);
@@ -1402,7 +1218,6 @@ $(document).ready(function() {
         return grand_total;
     };
     
-    // Form validation
     $('#invoice-form').on('submit', function(e) {
         let hasItems = false;
         let hasQuantity = false;
@@ -1421,17 +1236,14 @@ $(document).ready(function() {
             return false;
         }
         
-        // Disable submit button to prevent double submission
         $('#submit-btn').prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Creating...');
     });
     
-    // Add discount and GST rate change handlers
     $('#discount_type, #discount_value, #gst_rate').on('change keyup', function() {
         updateTotals();
         saveDraftData();
     });
     
-    // Customer Modal Functions
     window.showCustomerModal = function() {
         $('#customerModal').modal('show');
         $('#customer_name').focus();
@@ -1445,23 +1257,20 @@ $(document).ready(function() {
             gstin: $('#customer_gstin').val(),
             address: $('#customer_address').val(),
             state: $('#customer_state').val(),
-            _token: $('meta[name="csrf-token"]').attr('content')
+            _token: $('meta[name="csrf-token"]').attr('content') || ''
         };
         
-        // Basic validation
-        // if (!formData.name || !formData.mobile || !formData.address) {
-        //     showError('Please fill in all required fields (Name, Mobile, Address)');
-        //     return;
-        // }
-         if (!formData.name ) {
-            showError('Please fill name required fields ');
+        if (!formData.name) {
+            showError('Please fill name required fields');
             return;
         }
         
-        $.post('/customers', formData)
-            .done(function(response) {
+        $.ajax({
+            url: '/customers',
+            type: 'POST',
+            data: formData,
+            success: function(response) {
                 if (response.success) {
-                    // Add new customer to dropdown
                     const newOption = new Option(
                         response.customer.name, 
                         response.customer.id, 
@@ -1483,18 +1292,18 @@ $(document).ready(function() {
                 } else {
                     showError('Error adding customer: ' + (response.message || 'Unknown error'));
                 }
-            })
-            .fail(function(xhr) {
+            },
+            error: function(xhr) {
                 let errorMessage = 'Error adding customer';
                 if (xhr.responseJSON && xhr.responseJSON.errors) {
                     const errors = Object.values(xhr.responseJSON.errors).flat();
                     errorMessage = errors.join(', ');
                 }
                 showError(errorMessage);
-            });
+            }
+        });
     };
     
-    // Success notification
     function showSuccess(message) {
         const successHtml = `
             <div class="alert alert-success alert-dismissible fade show position-fixed" 
@@ -1513,29 +1322,24 @@ $(document).ready(function() {
         }, 3000);
     }
     
-    // Save Draft Function
     window.saveDraft = function() {
         saveDraftData();
         showAutoSaveIndicator();
         showSuccess('Draft saved successfully!');
     };
     
-    // Enhanced form validation
     function validateForm() {
         let isValid = true;
         
-        // Clear previous errors
         $('.is-invalid').removeClass('is-invalid');
         $('.invalid-feedback').text('');
         
-        // Validate customer
         if (!$('#customer_id').val()) {
             $('#customer_id').addClass('is-invalid');
             $('#customer-error').text('Please select a customer');
             isValid = false;
         }
         
-        // Validate items
         let hasValidItems = false;
         $('.product-row').each(function() {
             const $row = $(this);
@@ -1580,7 +1384,6 @@ $(document).ready(function() {
         return isValid;
     }
     
-    // Enhanced form submission
     $('#invoice-form').on('submit', function(e) {
         e.preventDefault();
         
@@ -1588,24 +1391,18 @@ $(document).ready(function() {
             return false;
         }
         
-        // Show loading state
         $('#submit-btn').prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Creating Invoice...');
         
-        // Clear draft after successful submission
         localStorage.removeItem('invoice_draft');
         
-        // Submit the form
         this.submit();
     });
     
-    // Initialize
     loadDraftData();
     updateProgress();
     
-    // Add first item automatically
     addNewItem();
     
-    // Add input change listeners for auto-save
     $('input, select, textarea').on('change keyup', function() {
         saveDraftData();
     });
