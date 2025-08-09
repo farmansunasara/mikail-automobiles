@@ -877,8 +877,12 @@ $(document).ready(function() {
             gstin: $('#customer_gstin').val()
         };
         
-        if (!customerData.name || !customerData.mobile || !customerData.address) {
-            alert('Please fill in all required fields (Name, Mobile, Address)');
+        // if (!customerData.name || !customerData.mobile || !customerData.address) {
+        //     alert('Please fill in all required fields (Name, Mobile, Address)');
+        //     return;
+        // }
+         if (!customerData.name) {
+            alert('Please fill  name is required');
             return;
         }
         
