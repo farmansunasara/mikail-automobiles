@@ -666,39 +666,46 @@
             </div>
             <div class="modal-body">
                 <form id="customer-form">
+                    @csrf
                     <div class="row">
                         <div class="col-md-6">
                             <div class="form-group">
                                 <label for="customer_name">Name *</label>
-                                <input type="text" class="form-control" id="customer_name" required>
+                                <input type="text" class="form-control" id="customer_name" name="name" required>
+                                <div class="invalid-feedback"></div>
                             </div>
                         </div>
                         <div class="col-md-6">
                             <div class="form-group">
-                                <label for="customer_mobile">Mobile </label>
-                                <input type="text" class="form-control" id="customer_mobile" >
+                                <label for="customer_mobile">Mobile</label>
+                                <input type="text" class="form-control" id="customer_mobile" name="mobile">
+                                <div class="invalid-feedback"></div>
                             </div>
                         </div>
                     </div>
                     <div class="form-group">
                         <label for="customer_email">Email</label>
-                        <input type="email" class="form-control" id="customer_email">
+                        <input type="email" class="form-control" id="customer_email" name="email">
+                        <div class="invalid-feedback"></div>
                     </div>
                     <div class="form-group">
-                        <label for="customer_address">Address *</label>
-                        <textarea class="form-control" id="customer_address" rows="3"></textarea>
+                        <label for="customer_address">Address</label>
+                        <textarea class="form-control" id="customer_address" name="address" rows="3"></textarea>
+                        <div class="invalid-feedback"></div>
                     </div>
                     <div class="row">
                         <div class="col-md-6">
                             <div class="form-group">
                                 <label for="customer_state">State</label>
-                                <input type="text" class="form-control" id="customer_state">
+                                <input type="text" class="form-control" id="customer_state" name="state">
+                                <div class="invalid-feedback"></div>
                             </div>
                         </div>
                         <div class="col-md-6">
                             <div class="form-group">
                                 <label for="customer_gstin">GSTIN</label>
-                                <input type="text" class="form-control" id="customer_gstin">
+                                <input type="text" class="form-control" id="customer_gstin" name="gstin">
+                                <div class="invalid-feedback"></div>
                             </div>
                         </div>
                     </div>
@@ -874,19 +881,18 @@ $(document).ready(function() {
             email: $('#customer_email').val(),
             address: $('#customer_address').val(),
             state: $('#customer_state').val(),
-            gstin: $('#customer_gstin').val()
+            gstin: $('#customer_gstin').val(),
+            _token: $('meta[name="csrf-token"]').attr('content') // Add CSRF token
         };
         
-        // if (!customerData.name || !customerData.mobile || !customerData.address) {
-        //     alert('Please fill in all required fields (Name, Mobile, Address)');
-        //     return;
-        // }
-         if (!customerData.name) {
-            alert('Please fill  name is required');
+        if (!customerData.name) {
+            showToast('Please fill in the required field: Name', 'error');
+            $('#customer_name').addClass('is-invalid');
+            $('#customer_name').siblings('.invalid-feedback').text('Name is required');
             return;
         }
         
-        $.post('/customers/ajax-store', customerData)
+        $.post('/customers', customerData)
             .done(function(response) {
                 if (response.success) {
                     // Add new customer to select
@@ -901,11 +907,32 @@ $(document).ready(function() {
                     // Show success message
                     showToast('Customer added successfully!', 'success');
                 } else {
-                    alert('Error: ' + response.message);
+                    showToast('Error: ' + response.message, 'error');
                 }
             })
-            .fail(function() {
-                alert('Error adding customer. Please try again.');
+            .fail(function(xhr) {
+                let errorMessage = 'Error adding customer. Please try again.';
+                if (xhr.responseJSON && xhr.responseJSON.errors) {
+                    const errors = Object.values(xhr.responseJSON.errors).flat();
+                    errorMessage = errors.join(', ');
+                    // Display validation errors in form
+                    Object.keys(xhr.responseJSON.errors).forEach(function(key) {
+                        const field = key === 'name' ? 'customer_name' : 
+                                     key === 'mobile' ? 'customer_mobile' : 
+                                     key === 'email' ? 'customer_email' : 
+                                     key === 'address' ? 'customer_address' : 
+                                     key === 'state' ? 'customer_state' : 
+                                     key === 'gstin' ? 'customer_gstin' : null;
+                        if (field) {
+                            $('#' + field).addClass('is-invalid');
+                            $('#' + field).siblings('.invalid-feedback').text(xhr.responseJSON.errors[key][0]);
+                        }
+                    });
+                } else if (xhr.responseJSON && xhr.responseJSON.message) {
+                    errorMessage = xhr.responseJSON.message;
+                }
+                showToast(errorMessage, 'error');
+                console.log('Error details:', xhr.responseJSON);
             });
     });
     
@@ -916,7 +943,7 @@ $(document).ready(function() {
                 position: fixed;
                 top: 20px;
                 right: 20px;
-                background: ${type === 'success' ? '#28a745' : '#17a2b8'};
+                background: ${type === 'success' ? '#28a745' : '#dc3545'};
                 color: white;
                 padding: 12px 20px;
                 border-radius: 8px;
@@ -925,7 +952,7 @@ $(document).ready(function() {
                 transform: translateX(100%);
                 transition: all 0.3s ease;
             ">
-                <i class="fas fa-${type === 'success' ? 'check' : 'info'}-circle"></i> ${message}
+                <i class="fas fa-${type === 'success' ? 'check' : 'exclamation'}-circle"></i> ${message}
             </div>
         `);
         
@@ -1032,23 +1059,15 @@ $(document).ready(function() {
             allowClear: true,
             width: '100%',
             matcher: function(params, data) {
-                // If there are no search terms, return all of the data
                 if ($.trim(params.term) === '') {
                     return data;
                 }
-
-                // Do not display the item if there is no 'text' property
                 if (typeof data.text === 'undefined') {
                     return null;
                 }
-
-                // `params.term` should be the term that is used for searching
-                // `data.text` is the text that is displayed for the data object
                 if (data.text.toLowerCase().indexOf(params.term.toLowerCase()) > -1) {
                     return data;
                 }
-
-                // Return `null` if the term should not be displayed
                 return null;
             }
         });
@@ -1083,29 +1102,19 @@ $(document).ready(function() {
                     allowClear: true,
                     width: '100%',
                     matcher: function(params, data) {
-                        // If there are no search terms, return all of the data
                         if ($.trim(params.term) === '') {
                             return data;
                         }
-
-                        // Do not display the item if there is no 'text' property
                         if (typeof data.text === 'undefined') {
                             return null;
                         }
-
-                        // Fuzzy search implementation
                         const searchStr = params.term.toLowerCase();
                         const text = data.text.toLowerCase();
-                        
-                        // Check if the search string appears anywhere in the product name
                         if (text.indexOf(searchStr) > -1) {
                             return data;
                         }
-                        
-                        // Split search string into characters and check if they appear in sequence
                         const chars = searchStr.split('');
                         let currentIndex = 0;
-                        
                         for (let char of chars) {
                             const index = text.indexOf(char, currentIndex);
                             if (index === -1) {
@@ -1113,12 +1122,10 @@ $(document).ready(function() {
                             }
                             currentIndex = index + 1;
                         }
-                        
                         return data;
                     },
                     templateResult: function(data) {
                         if (!data.id) return data.text;
-                        
                         const $result = $(`
                             <div class="select2-result">
                                 <div class="select2-result__title">${data.text}</div>
@@ -1126,7 +1133,6 @@ $(document).ready(function() {
                                     '<span class="composite-badge">Composite</span>' : ''}
                             </div>
                         `);
-                        
                         return $result;
                     }
                 });
@@ -1156,16 +1162,12 @@ $(document).ready(function() {
             .done(function(data) {
                 if (data.variants && data.variants.length > 0) {
                     createColorInputs($row, data.variants);
-                    
-                    // Set price and make it editable
                     const firstVariant = data.variants[0];
                     const $priceInput = $row.find('.price-input');
                     const price = parseFloat(firstVariant.price) || 0;
-                    
                     $priceInput.val(price)
                               .data('original-price', price)
                               .prop('readonly', false);
-                    
                     $row.find('.original-price').text(price.toFixed(2));
                     $row.find('.price-history').show();
                 }
@@ -1207,7 +1209,6 @@ $(document).ready(function() {
                 </div>
             `;
             
-            // Add component information for composite products
             if (isComposite && variant.components && variant.components.length > 0) {
                 html += `
                     <div class="component-info">
