@@ -81,9 +81,15 @@ class StockController extends Controller
     /**
      * Update stock for a product color variant.
      */
-    public function update(Request $request)
+      public function update(Request $request)
     {
-        $request->validate([
+        \Log::channel('stock')->info('STARTING STOCK UPDATE', [
+            'request_data' => $request->all(),
+            'ip' => $request->ip(),
+            'user' => auth()->user()->id ?? null
+        ]);
+
+        $validated = $request->validate([
             'product_id' => 'required|exists:products,id',
             'color_variant_id' => 'required|exists:product_color_variants,id',
             'change_type' => 'required|in:inward,outward',
@@ -93,29 +99,43 @@ class StockController extends Controller
         ]);
 
         try {
+            \Log::channel('stock')->info('VALIDATION PASSED', $validated);
+
             $product = Product::findOrFail($request->product_id);
             $colorVariant = ProductColorVariant::findOrFail($request->color_variant_id);
-            
-            // Verify the color variant belongs to the product
+
+            \Log::channel('stock')->info('FETCHED MODELS', [
+                'product' => $product->toArray(),
+                'variant' => $colorVariant->toArray()
+            ]);
+
             if ($colorVariant->product_id !== $product->id) {
-                throw new \Exception('Color variant does not belong to the selected product.');
+                throw new \Exception('Color variant does not belong to product');
             }
-            
+
             if ($request->change_type === 'inward') {
                 $this->stockService->inwardColorVariantStock($colorVariant, $request->quantity, $request->notes);
             } else {
                 $this->stockService->outwardColorVariantStock($colorVariant, $request->quantity, $request->notes);
             }
 
-            $target = $request->input('redirect');
-            if (!$target) {
-                $target = url()->previous();
-            }
-            // Append anchor to focus updated product row
-            $targetWithAnchor = rtrim($target, '#') . '#product-' . $product->id;
-            return redirect($targetWithAnchor)->with('success', 'Stock updated successfully.');
+            \Log::channel('stock')->info('STOCK UPDATE COMPLETED', [
+                'product_id' => $product->id,
+                'variant_id' => $colorVariant->id,
+                'new_quantity' => $colorVariant->fresh()->quantity
+            ]);
+
+            $target = $request->input('redirect', url()->previous());
+            return redirect(rtrim($target, '#') . '#product-' . $product->id)
+                   ->with('success', 'Stock updated successfully.');
+
         } catch (\Exception $e) {
-            return redirect()->back()->with('error', $e->getMessage());
+            \Log::channel('stock')->error('STOCK UPDATE FAILED', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            return redirect()->back()
+                   ->with('error', $e->getMessage());
         }
     }
 

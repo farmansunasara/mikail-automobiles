@@ -250,20 +250,65 @@
 @push('scripts')
 <script>
     $('#stockModal').on('show.bs.modal', function (event) {
+        console.log("Modal is being shown");
+
         var button = $(event.relatedTarget);
         var productId = button.data('product-id');
         var productName = button.data('product-name');
         var changeType = button.data('change-type');
         
+        console.log('Data from button:', {
+            productId: productId,
+            productName: productName,
+            changeType: changeType
+        });
+        
         var modal = $(this);
-        modal.find('.modal-title #modalProductName').text(productName);
-        modal.find('.modal-body #modalProductId').val(productId);
-        modal.find('.modal-body #modalChangeType').val(changeType);
+        
+        // Update modal title
+        modal.find('#modalProductName').text(productName);
+        
+        // Update hidden form fields - fix the selectors
+        modal.find('#modalProductId').val(productId);
+        modal.find('#modalChangeType').val(changeType);
+        
+        // Log the values to verify they're set
+        console.log('Form field values set:', {
+            productId: modal.find('#modalProductId').val(),
+            changeType: modal.find('#modalChangeType').val()
+        });
 
+        // Clear previous form data
+        modal.find('#quantity').val('');
+        modal.find('#notes').val('');
+
+        // Update modal styling based on action type
         if(changeType === 'inward') {
             modal.find('.modal-header').css('background-color', '#28a745').css('color', 'white');
+            modal.find('.modal-title').text('Add Stock for ' + productName);
         } else {
             modal.find('.modal-header').css('background-color', '#dc3545').css('color', 'white');
+            modal.find('.modal-title').text('Remove Stock for ' + productName);
+        }
+    });
+
+    // Debug: Log form submission data
+    $('#stockModal form').on('submit', function(e) {
+        var formData = $(this).serialize();
+        console.log('Form submission data:', formData);
+        
+        // Check if required fields are populated
+        var productId = $(this).find('#modalProductId').val();
+        var changeType = $(this).find('#modalChangeType').val();
+        var quantity = $(this).find('#quantity').val();
+        
+        if (!productId || !changeType) {
+            e.preventDefault();
+            alert('Error: Missing required data. Please try again.');
+            console.error('Missing required fields:', {
+                productId: productId,
+                changeType: changeType
+            });
         }
     });
 </script>
