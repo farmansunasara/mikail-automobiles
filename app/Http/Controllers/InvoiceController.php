@@ -400,6 +400,34 @@ class InvoiceController extends Controller
         return redirect()->route('invoices.show', $invoice);
     }
 
+    public function markPaid(Request $request, Invoice $invoice)
+    {
+        $request->validate([
+            'payment_amount' => 'required|numeric|min:0|max:' . $invoice->amount_due,
+            'payment_date' => 'required|date|before_or_equal:today',
+            'payment_method' => 'nullable|string|max:255',
+        ]);
+
+        try {
+            $invoice->markAsPaid(
+                $request->payment_amount,
+                $request->payment_date,
+                $request->payment_method
+            );
+
+            $redirectRoute = $invoice->invoice_type === 'gst' ? 'invoices.gst.index' : 'invoices.non_gst.index';
+            
+            return redirect()->route($redirectRoute)
+                ->with('success', 'Invoice marked as paid successfully.');
+                
+        } catch (\Exception $e) {
+            $redirectRoute = $invoice->invoice_type === 'gst' ? 'invoices.gst.index' : 'invoices.non_gst.index';
+            
+            return redirect()->route($redirectRoute)
+                ->with('error', 'Error marking invoice as paid: ' . $e->getMessage());
+        }
+    }
+
     public function destroy(Invoice $invoice)
     {
         try {

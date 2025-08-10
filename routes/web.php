@@ -80,6 +80,12 @@ Route::middleware('auth')->group(function () {
     });
     
     // Common invoice routes (used by both GST and Non-GST)
+    Route::post('/invoices/{invoice}/mark-paid', [InvoiceController::class, 'markPaid'])->name('invoices.mark-paid');
+    Route::post('/invoices/{invoice}/mark-sent', [InvoiceController::class, 'markSent'])->name('invoices.mark-sent');
+    Route::post('/invoices/{invoice}/mark-cancelled', [InvoiceController::class, 'markCancelled'])->name('invoices.mark-cancelled');
+    Route::post('/invoices/{invoice}/partial-payment', [InvoiceController::class, 'partialPayment'])->name('invoices.partial-payment');
+    Route::post('/invoices/{invoice}/dispute', [InvoiceController::class, 'markDisputed'])->name('invoices.dispute');
+    Route::get('/invoices/{invoice}/payment-history', [InvoiceController::class, 'paymentHistory'])->name('invoices.payment-history');
     Route::delete('/invoices/{invoice}', [InvoiceController::class, 'destroy'])->name('invoices.destroy');
     
     // Reports

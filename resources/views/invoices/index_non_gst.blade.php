@@ -141,7 +141,7 @@
                 <div class="modal-body">
                     <div class="form-group">
                         <label for="payment_amount">Payment Amount</label>
-                        <input type="number" name="amount" id="payment_amount" class="form-control" step="0.01" required>
+                        <input type="number" name="payment_amount" id="payment_amount" class="form-control" step="0.01" required>
                     </div>
                     <div class="form-group">
                         <label for="payment_date">Payment Date</label>
