@@ -41,4 +41,17 @@ class StockLog extends Model
     {
         return $query->where('change_type', 'outward');
     }
+
+    // Accessor: human readable color variant name (or fallback)
+    public function getVariantColorAttribute(): string
+    {
+        if ($this->colorVariant && $this->colorVariant->color) {
+            return $this->colorVariant->color;
+        }
+        // Legacy fallback if product had a color field
+        if ($this->product && $this->product->color) {
+            return $this->product->color;
+        }
+        return '-';
+    }
 }

@@ -22,9 +22,10 @@
                 <thead>
                     <tr>
                         <th>Date</th>
+                        <th>Variant / Color</th>
                         <th>Type</th>
                         <th>Quantity</th>
-                        <th>Notes</th>
+                        <th>Remarks</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -32,16 +33,26 @@
                     <tr>
                         <td>{{ $log->created_at->format('d M, Y H:i A') }}</td>
                         <td>
+                            @if($log->colorVariant)
+                                <span class="badge badge-{{ $log->colorVariant->stock_status ?? 'secondary' }}">{{ $log->colorVariant->color ?? '-' }}</span>
+                            @else
+                                <span class="text-muted">-</span>
+                            @endif
+                        </td>
+                        <td>
                             <span class="badge badge-{{ $log->change_type == 'inward' ? 'success' : 'danger' }}">
                                 {{ ucfirst($log->change_type) }}
                             </span>
                         </td>
-                        <td>{{ $log->quantity }}</td>
-                        <td>{{ $log->notes ?? 'N/A' }}</td>
+                        <td>
+                            {{ $log->quantity }}
+                            <small class="text-muted d-block">{{ $log->previous_quantity }} → {{ $log->new_quantity }}</small>
+                        </td>
+                        <td>{{ $log->remarks ?? 'N/A' }}</td>
                     </tr>
                     @empty
                     <tr>
-                        <td colspan="4" class="text-center">No stock logs found for this product.</td>
+                        <td colspan="5" class="text-center">No stock logs found for this product.</td>
                     </tr>
                     @endforelse
                 </tbody>
