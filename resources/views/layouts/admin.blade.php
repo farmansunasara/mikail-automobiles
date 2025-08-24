@@ -338,7 +338,14 @@
 
     <!-- Main Footer -->
     <footer class="main-footer">
-        <strong>Copyright &copy; {{ date('Y') }} <a href="#">{{ config('app.name') }}</a>.</strong> All rights reserved.
+        <div class="d-flex justify-content-between align-items-center flex-wrap">
+            <div>
+                <strong>Copyright &copy; {{ date('Y') }} <a href="#">{{ config('app.name') }}</a>.</strong> All rights reserved.
+            </div>
+            <div class="text-muted text-sm">
+                Developed by <strong><a class="text-muted" href="{{ config('app.developer_url') }}" target="_blank" rel="noopener">{{ config('app.developer') }}</a></strong>
+            </div>
+        </div>
     </footer>
 </div>
 <!-- ./wrapper -->

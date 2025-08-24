@@ -290,6 +290,9 @@
                 Your trusted partner for quality automobile parts and professional services. 
                 Access your dashboard to manage inventory, customers, and invoices.
             </p>
+            <div style="text-align:center; margin-top: 16px; color:#ecf0f1; font-size:.9rem;">
+                Developed by <strong><a href="{{ config('app.developer_url') }}" target="_blank" rel="noopener" style="color:#ecf0f1; text-decoration: underline;">{{ config('app.developer') }}</a></strong>
+            </div>
         </div>
         
         <!-- Right Side - Login Form -->
@@ -377,6 +380,7 @@
             </form>
         </div>
     </div>
+    
     
     <script>
         // Add loading state to login button
