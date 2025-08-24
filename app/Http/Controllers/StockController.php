@@ -161,8 +161,13 @@ class StockController extends Controller
         if ($request->filled('end_date')) {
             $query->whereDate('created_at', '<=', $request->end_date);
         }
+        if ($request->filled('remarks')) {
+            $remarks = trim($request->remarks);
+            $query->where('remarks', 'like', "%{$remarks}%");
+        }
 
-        $logs = $query->latest()->paginate(20);
+    // Preserve applied filters when navigating pagination links
+    $logs = $query->latest()->paginate(20)->appends($request->query());
         $products = Product::orderBy('name')->get();
 
         return view('stock.logs', compact('logs', 'products'));

@@ -14,6 +14,9 @@ return [
     */
 
     'name' => env('APP_NAME', 'AL MIKAIL AUTOMOBILE'),
+    // Developer/Author attribution (can be overridden via APP_DEVELOPER / APP_DEVELOPER_URL in .env)
+    'developer' => env('APP_DEVELOPER', 'Farman Sunasara'),
+    'developer_url' => env('APP_DEVELOPER_URL', '#'),
 
     /*
     |--------------------------------------------------------------------------
