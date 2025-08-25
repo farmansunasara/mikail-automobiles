@@ -185,6 +185,11 @@ Pelhar, Vasai Pelghar, Vasai-Virar - 401208
     <div class="row no-print">
         <div class="col-12">
             <a href="{{ route('invoices.non_gst.preview', $invoice) }}" rel="noopener" target="_blank" class="btn btn-default"><i class="fas fa-print"></i> Print</a>
+            @if(in_array($invoice->status, ['draft', 'sent']))
+                <a href="{{ route('invoices.non_gst.edit', $invoice) }}" class="btn btn-info" style="margin-right: 5px;">
+                    <i class="fas fa-edit"></i> Edit Invoice
+                </a>
+            @endif
             <a href="{{ route('invoices.non_gst.download', $invoice) }}" class="btn btn-primary float-right" style="margin-right: 5px;">
                 <i class="fas fa-download"></i> Generate PDF
             </a>

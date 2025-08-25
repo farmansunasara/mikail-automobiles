@@ -65,6 +65,8 @@ Route::middleware('auth')->group(function () {
         Route::get('/create', [InvoiceController::class, 'createGst'])->name('create');
         Route::post('/', [InvoiceController::class, 'storeGst'])->name('store');
         Route::get('/{invoice}', [InvoiceController::class, 'showGst'])->name('show');
+        Route::get('/{invoice}/edit', [InvoiceController::class, 'edit'])->name('edit');
+        Route::put('/{invoice}', [InvoiceController::class, 'update'])->name('update');
         Route::get('/{invoice}/download', [InvoiceController::class, 'downloadPdfGst'])->name('download');
         Route::get('/{invoice}/preview', [InvoiceController::class, 'previewGst'])->name('preview');
     });
@@ -75,6 +77,8 @@ Route::middleware('auth')->group(function () {
         Route::get('/create', [InvoiceController::class, 'createNonGst'])->name('create');
         Route::post('/', [InvoiceController::class, 'storeNonGst'])->name('store');
         Route::get('/{invoice}', [InvoiceController::class, 'showNonGst'])->name('show');
+        Route::get('/{invoice}/edit', [InvoiceController::class, 'edit'])->name('edit');
+        Route::put('/{invoice}', [InvoiceController::class, 'update'])->name('update');
         Route::get('/{invoice}/download', [InvoiceController::class, 'downloadPdfNonGst'])->name('download');
         Route::get('/{invoice}/preview', [InvoiceController::class, 'previewNonGst'])->name('preview');
     });
@@ -95,6 +99,15 @@ Route::middleware('auth')->group(function () {
     Route::get('/reports/product-movement', [ReportController::class, 'productMovement'])->name('reports.product-movement');
     Route::get('/reports/sales', [ReportController::class, 'salesReport'])->name('reports.sales');
     Route::get('/reports/gst', [ReportController::class, 'gstReport'])->name('reports.gst');
+    Route::get('/reports/non-gst', [ReportController::class, 'nonGstReport'])->name('reports.non-gst');
+
+    // Report Exports
+    Route::get('/reports/export/low-stock', [ReportController::class, 'exportLowStock'])->name('reports.export.low-stock');
+    Route::get('/reports/export/stock-report', [ReportController::class, 'exportStockReport'])->name('reports.export.stock-report');
+    Route::get('/reports/export/product-movement', [ReportController::class, 'exportProductMovement'])->name('reports.export.product-movement');
+    Route::get('/reports/export/sales', [ReportController::class, 'exportSalesReport'])->name('reports.export.sales');
+    Route::get('/reports/export/gst', [ReportController::class, 'exportGstReport'])->name('reports.export.gst');
+    Route::get('/reports/export/non-gst', [ReportController::class, 'exportNonGstReport'])->name('reports.export.non-gst');
 });
 
 require __DIR__.'/auth.php';

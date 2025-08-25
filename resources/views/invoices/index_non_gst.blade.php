@@ -99,15 +99,18 @@
                         </td>
                         <td>
                             <div class="btn-group" role="group">
-                                <a href="{{ route('invoices.non_gst.show', $invoice) }}" class="btn btn-sm btn-info">View</a>
-                                <a href="{{ route('invoices.non_gst.download', $invoice) }}" class="btn btn-sm btn-success">PDF</a>
+                                <a href="{{ route('invoices.non_gst.show', $invoice) }}" class="btn btn-sm btn-info" title="View Invoice" data-toggle="tooltip"><i class="fas fa-eye"></i></a>
+                                @if(in_array($invoice->status, ['draft', 'sent']))
+                                    <a href="{{ route('invoices.non_gst.edit', $invoice) }}" class="btn btn-sm btn-primary" title="Edit Invoice" data-toggle="tooltip"><i class="fas fa-edit"></i></a>
+                                @endif
+                                <a href="{{ route('invoices.non_gst.download', $invoice) }}" class="btn btn-sm btn-success" title="Download PDF" data-toggle="tooltip"><i class="fas fa-download"></i></a>
                                 @if($invoice->status !== 'paid')
-                                    <button type="button" class="btn btn-sm btn-warning" onclick="markAsPaid({{ $invoice->id }})">Mark Paid</button>
+                                    <button type="button" class="btn btn-sm btn-warning" onclick="markAsPaid({{ $invoice->id }})" title="Mark as Paid" data-toggle="tooltip"><i class="fas fa-check-circle"></i></button>
                                 @endif
                                 <form action="{{ route('invoices.destroy', $invoice) }}" method="POST" class="d-inline" onsubmit="return confirm('Are you sure you want to delete this invoice? Stock will be restored.');">
                                     @csrf
                                     @method('DELETE')
-                                    <button type="submit" class="btn btn-sm btn-danger">Delete</button>
+                                    <button type="submit" class="btn btn-sm btn-danger" title="Delete Invoice" data-toggle="tooltip"><i class="fas fa-trash"></i></button>
                                 </form>
                             </div>
                         </td>
@@ -160,7 +163,7 @@
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-success">Mark as Paid</button>
+                    <button type="submit" class="btn btn-success"><i class="fas fa-check-circle mr-1"></i> Mark as Paid</button>
                 </div>
             </form>
         </div>
@@ -169,6 +172,11 @@
 
 @push('scripts')
 <script>
+$(document).ready(function() {
+    // Initialize tooltips
+    $('[data-toggle="tooltip"]').tooltip();
+});
+
 function markAsPaid(invoiceId) {
     // Get invoice data from the table row
     var row = $('button[onclick="markAsPaid(' + invoiceId + ')"]').closest('tr');

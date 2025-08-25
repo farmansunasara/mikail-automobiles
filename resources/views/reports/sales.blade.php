@@ -28,6 +28,12 @@
                     <label>&nbsp;</label>
                     <button type="submit" class="btn btn-primary btn-block">Filter</button>
                 </div>
+                <div class="col-md-2">
+                    <label>&nbsp;</label>
+                    <a href="{{ route('reports.export.sales', request()->query()) }}" class="btn btn-success btn-block" title="Export to CSV" data-toggle="tooltip">
+                        <i class="fas fa-download"></i> Export CSV
+                    </a>
+                </div>
             </div>
         </form>
 
