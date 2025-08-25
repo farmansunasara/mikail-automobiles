@@ -392,12 +392,345 @@ class InvoiceController extends Controller
 
     public function edit(Invoice $invoice)
     {
-        return redirect()->route('invoices.show', $invoice)->with('info', 'Invoices cannot be edited. Please create a new one if changes are needed.');
+        // Check if invoice can be edited (only draft and sent status)
+        if (!in_array($invoice->status, ['draft', 'sent'])) {
+            $redirectRoute = $invoice->invoice_type === 'gst' ? 'invoices.gst.index' : 'invoices.non_gst.index';
+            return redirect()->route($redirectRoute)
+                ->with('error', 'Only draft and sent invoices can be edited.');
+        }
+
+        $customers = Customer::orderBy('name')->get();
+        $categories = \App\Models\Category::orderBy('name')->get();
+        $productNames = Product::select('name')
+            ->distinct()
+            ->orderBy('name')
+            ->pluck('name');
+
+        // Load invoice with relationships
+        $invoice->load('customer', 'items.product.category', 'items.colorVariant');
+
+        // Get all color variants for each product in the invoice
+        $productVariants = [];
+        $groupedItems = $invoice->items->groupBy('product_id');
+        foreach ($groupedItems as $productId => $items) {
+            $product = $items->first()->product;
+            $allVariants = ProductColorVariant::where('product_id', $productId)
+                ->with(['product.components.component_product', 'colorModel'])
+                ->get();
+            // Create a map of existing quantities
+            $existingQuantities = [];
+            foreach ($items as $item) {
+                $existingQuantities[$item->color_variant_id] = $item->quantity;
+            }
+            $productVariants[$productId] = [
+                'product' => $product,
+                'variants' => $allVariants,
+                'existing_quantities' => $existingQuantities,
+                'price' => $items->first()->price
+            ];
+        }
+
+        if ($invoice->invoice_type === 'gst') {
+            return view('invoices.edit_gst', compact('invoice', 'customers', 'productNames', 'categories', 'productVariants'));
+        } else {
+            return view('invoices.edit_non_gst', compact('invoice', 'customers', 'productNames', 'categories', 'productVariants'));
+        }
     }
 
     public function update(Request $request, Invoice $invoice)
     {
-        return redirect()->route('invoices.show', $invoice);
+        // Check if invoice can be edited
+        if (!in_array($invoice->status, ['draft', 'sent'])) {
+            $redirectRoute = $invoice->invoice_type === 'gst' ? 'invoices.gst.index' : 'invoices.non_gst.index';
+            return redirect()->route($redirectRoute)
+                ->with('error', 'Only draft and sent invoices can be edited.');
+        }
+
+        if ($invoice->invoice_type === 'gst') {
+            return $this->updateGst($request, $invoice);
+        } else {
+            return $this->updateNonGst($request, $invoice);
+        }
+    }
+
+    private function updateGst(Request $request, Invoice $invoice)
+    {
+        $request->validate([
+            'customer_id' => 'required|exists:customers,id',
+            'invoice_date' => 'required|date',
+            'due_date' => 'nullable|date|after_or_equal:invoice_date',
+            'notes' => 'nullable|string',
+            'gst_rate' => 'required|numeric|min:0|max:100',
+            'discount_type' => 'nullable|numeric|in:0,1',
+            'discount_value' => 'nullable|numeric|min:0',
+            'items' => 'required|array|min:1',
+            'items.*.price' => 'required|numeric|min:0',
+            'items.*.variants' => 'required|array',
+        ]);
+
+        try {
+            \Log::info('GST Invoice edit started', [
+                'invoice_id' => $invoice->id,
+                'invoice_number' => $invoice->invoice_number,
+                'user_id' => auth()->id(),
+                'original_total' => $invoice->grand_total
+            ]);
+
+            // Parse new invoice items
+            $newInvoiceItems = [];
+            foreach ($request->items as $itemData) {
+                $price = floatval($itemData['price']);
+                if (isset($itemData['variants'])) {
+                    foreach ($itemData['variants'] as $variantData) {
+                        $quantity = intval($variantData['quantity'] ?? 0);
+                        $product_id = $variantData['product_id'] ?? null;
+                        if ($quantity > 0 && $product_id) {
+                            $colorVariant = ProductColorVariant::find($product_id);
+                            if (!$colorVariant) {
+                                throw new \Exception("Product color variant not found (ID: {$product_id})");
+                            }
+                            $newInvoiceItems[] = [
+                                'color_variant_id' => $product_id,
+                                'product_id' => $colorVariant->product_id,
+                                'quantity' => $quantity,
+                                'price' => $price,
+                            ];
+                        }
+                    }
+                }
+            }
+
+            if (empty($newInvoiceItems)) {
+                throw new \Exception("Please add at least one item with quantity greater than 0");
+            }
+
+            DB::transaction(function () use ($request, $invoice, $newInvoiceItems) {
+                // First, restore stock from old invoice items
+                foreach ($invoice->items as $oldItem) {
+                    $this->stockService->inwardColorVariantStock(
+                        $oldItem->colorVariant,
+                        $oldItem->quantity,
+                        "Stock restored from edited Invoice #{$invoice->invoice_number}"
+                    );
+                }
+
+                // Check new stock availability and deduct
+                foreach ($newInvoiceItems as $item) {
+                    $colorVariant = ProductColorVariant::find($item['color_variant_id']);
+                    if ($colorVariant->quantity < $item['quantity']) {
+                        throw new \Exception("Insufficient stock for {$colorVariant->product->name} ({$colorVariant->color}). Available: {$colorVariant->quantity}, Required: {$item['quantity']}");
+                    }
+                }
+
+                // Calculate totals
+                $total_amount = 0;
+                foreach ($newInvoiceItems as $item) {
+                    $subtotal = $item['quantity'] * $item['price'];
+                    $total_amount += $subtotal;
+                }
+
+                // Calculate discount
+                $discount_type = $request->discount_type ?? 0;
+                $discount_value = $request->discount_value ?? 0;
+                $discount_amount = 0;
+
+                if ($discount_value > 0) {
+                    if ($discount_type == 1) {
+                        $discount_amount = ($total_amount * $discount_value) / 100;
+                    } else {
+                        $discount_amount = min($discount_value, $total_amount);
+                    }
+                }
+
+                $after_discount = $total_amount - $discount_amount;
+
+                // Calculate GST
+                $invoice_gst_rate = floatval($request->gst_rate);
+                $total_gst_amount = ($after_discount * $invoice_gst_rate) / 100;
+                $total_cgst = $total_gst_amount / 2;
+                $total_sgst = $total_gst_amount / 2;
+
+                $grand_total = $after_discount + $total_cgst + $total_sgst;
+
+                // Update invoice
+                $invoice->update([
+                    'customer_id' => $request->customer_id,
+                    'invoice_date' => $request->invoice_date,
+                    'due_date' => $request->due_date ?? now()->addDays(30),
+                    'notes' => $request->notes,
+                    'total_amount' => $total_amount,
+                    'discount_type' => $discount_type,
+                    'discount_value' => $discount_value,
+                    'discount_amount' => $discount_amount,
+                    'gst_rate' => $invoice_gst_rate,
+                    'cgst' => $total_cgst,
+                    'sgst' => $total_sgst,
+                    'grand_total' => $grand_total,
+                ]);
+
+                // Delete old items
+                $invoice->items()->delete();
+
+                // Create new items and deduct stock
+                foreach ($newInvoiceItems as $item) {
+                    $colorVariant = ProductColorVariant::find($item['color_variant_id']);
+                    $subtotal = $item['quantity'] * $item['price'];
+
+                    $invoice->items()->create([
+                        'product_id' => $item['product_id'],
+                        'color_variant_id' => $item['color_variant_id'],
+                        'quantity' => $item['quantity'],
+                        'price' => $item['price'],
+                        'gst_rate' => $invoice_gst_rate,
+                        'cgst' => 0,
+                        'sgst' => 0,
+                        'subtotal' => $subtotal,
+                    ]);
+
+                    $this->stockService->outwardColorVariantStockSaleOnly($colorVariant, $item['quantity'], "Sale via Updated Invoice #{$invoice->invoice_number}");
+                }
+            });
+
+            \Log::info('GST Invoice edit completed successfully', [
+                'invoice_id' => $invoice->id,
+                'invoice_number' => $invoice->invoice_number,
+                'user_id' => auth()->id(),
+                'new_total' => $invoice->fresh()->grand_total
+            ]);
+
+            return redirect()->route('invoices.gst.index')->with('success', 'GST Invoice updated successfully.');
+
+        } catch (\Exception $e) {
+            return redirect()->back()->with('error', 'Error updating GST invoice: ' . $e->getMessage())->withInput();
+        }
+    }
+
+    private function updateNonGst(Request $request, Invoice $invoice)
+    {
+        $request->validate([
+            'customer_id' => 'required|exists:customers,id',
+            'invoice_date' => 'required|date',
+            'due_date' => 'nullable|date|after_or_equal:invoice_date',
+            'notes' => 'nullable|string',
+            'discount_type' => 'nullable|numeric|in:0,1',
+            'discount_value' => 'nullable|numeric|min:0',
+            'items' => 'required|array|min:1',
+            'items.*.price' => 'required|numeric|min:0',
+            'items.*.variants' => 'required|array',
+        ]);
+
+        try {
+            // Parse new invoice items
+            $newInvoiceItems = [];
+            foreach ($request->items as $itemData) {
+                $price = floatval($itemData['price']);
+                if (isset($itemData['variants'])) {
+                    foreach ($itemData['variants'] as $variantData) {
+                        $quantity = intval($variantData['quantity'] ?? 0);
+                        $product_id = $variantData['product_id'] ?? null;
+                        if ($quantity > 0 && $product_id) {
+                            $colorVariant = ProductColorVariant::find($product_id);
+                            if (!$colorVariant) {
+                                throw new \Exception("Product color variant not found (ID: {$product_id})");
+                            }
+                            $newInvoiceItems[] = [
+                                'color_variant_id' => $product_id,
+                                'product_id' => $colorVariant->product_id,
+                                'quantity' => $quantity,
+                                'price' => $price,
+                            ];
+                        }
+                    }
+                }
+            }
+
+            if (empty($newInvoiceItems)) {
+                throw new \Exception("Please add at least one item with quantity greater than 0");
+            }
+
+            DB::transaction(function () use ($request, $invoice, $newInvoiceItems) {
+                // First, restore stock from old invoice items
+                foreach ($invoice->items as $oldItem) {
+                    $this->stockService->inwardColorVariantStock(
+                        $oldItem->colorVariant,
+                        $oldItem->quantity,
+                        "Stock restored from edited Invoice #{$invoice->invoice_number}"
+                    );
+                }
+
+                // Check new stock availability
+                foreach ($newInvoiceItems as $item) {
+                    $colorVariant = ProductColorVariant::find($item['color_variant_id']);
+                    if ($colorVariant->quantity < $item['quantity']) {
+                        throw new \Exception("Insufficient stock for {$colorVariant->product->name} ({$colorVariant->color}). Available: {$colorVariant->quantity}, Required: {$item['quantity']}");
+                    }
+                }
+
+                // Calculate totals
+                $total_amount = 0;
+                foreach ($newInvoiceItems as $item) {
+                    $subtotal = $item['quantity'] * $item['price'];
+                    $total_amount += $subtotal;
+                }
+
+                // Calculate discount
+                $discount_type = $request->discount_type ?? 0;
+                $discount_value = $request->discount_value ?? 0;
+                $discount_amount = 0;
+
+                if ($discount_value > 0) {
+                    if ($discount_type == 1) {
+                        $discount_amount = ($total_amount * $discount_value) / 100;
+                    } else {
+                        $discount_amount = min($discount_value, $total_amount);
+                    }
+                }
+
+                $grand_total = $total_amount - $discount_amount;
+
+                // Update invoice
+                $invoice->update([
+                    'customer_id' => $request->customer_id,
+                    'invoice_date' => $request->invoice_date,
+                    'due_date' => $request->due_date ?? now()->addDays(30),
+                    'notes' => $request->notes,
+                    'total_amount' => $total_amount,
+                    'discount_type' => $discount_type,
+                    'discount_value' => $discount_value,
+                    'discount_amount' => $discount_amount,
+                    'cgst' => 0,
+                    'sgst' => 0,
+                    'grand_total' => $grand_total,
+                ]);
+
+                // Delete old items
+                $invoice->items()->delete();
+
+                // Create new items and deduct stock
+                foreach ($newInvoiceItems as $item) {
+                    $colorVariant = ProductColorVariant::find($item['color_variant_id']);
+                    $subtotal = $item['quantity'] * $item['price'];
+
+                    $invoice->items()->create([
+                        'product_id' => $item['product_id'],
+                        'color_variant_id' => $item['color_variant_id'],
+                        'quantity' => $item['quantity'],
+                        'price' => $item['price'],
+                        'gst_rate' => 0,
+                        'cgst' => 0,
+                        'sgst' => 0,
+                        'subtotal' => $subtotal,
+                    ]);
+
+                    $this->stockService->outwardColorVariantStockSaleOnly($colorVariant, $item['quantity'], "Sale via Updated Non-GST Invoice #{$invoice->invoice_number}");
+                }
+            });
+
+            return redirect()->route('invoices.non_gst.index')->with('success', 'Non-GST Invoice updated successfully.');
+
+        } catch (\Exception $e) {
+            return redirect()->back()->with('error', 'Error updating Non-GST invoice: ' . $e->getMessage())->withInput();
+        }
     }
 
     public function markPaid(Request $request, Invoice $invoice)

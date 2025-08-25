@@ -17,6 +17,9 @@
                 <label for="threshold" class="mr-2">Threshold:</label>
                 <input type="number" name="threshold" id="threshold" class="form-control mr-2" value="{{ $threshold }}">
                 <button type="submit" class="btn btn-primary">Set</button>
+                <a href="{{ route('reports.export.low-stock', request()->query()) }}" class="btn btn-success ml-2" title="Export to CSV" data-toggle="tooltip">
+                    <i class="fas fa-download"></i> Export CSV
+                </a>
             </form>
         </div>
     </div>

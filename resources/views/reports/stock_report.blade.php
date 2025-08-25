@@ -27,6 +27,9 @@
                 </select>
                 <div class="input-group-append">
                     <button type="submit" class="btn btn-primary">Filter</button>
+                    <a href="{{ route('reports.export.stock-report', request()->query()) }}" class="btn btn-success" title="Export to CSV" data-toggle="tooltip">
+                        <i class="fas fa-download"></i> Export CSV
+                    </a>
                 </div>
             </div>
         </form>
