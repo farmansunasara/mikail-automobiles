@@ -38,11 +38,11 @@
             <table class="table table-bordered">
                 <thead>
                     <tr>
-                        <th>ID</th>
+                        <x-sortable-header column="id" label="ID" />
                         <th>Product</th>
-                        <th>Color</th>
+                        <x-sortable-header column="color" label="Color" />
                         <th>Category</th>
-                        <th>Quantity</th>
+                        <x-sortable-header column="quantity" label="Quantity" />
                         <th>Price</th>
                         <th>Stock Value</th>
                     </tr>

@@ -119,7 +119,7 @@
             </table>
         </div>
         <div class="mt-3">
-            {{ $logs->appends(request()->except('page'))->links() }}
+            {{ $logs->links() }}
         </div>
     </div>
 </div>

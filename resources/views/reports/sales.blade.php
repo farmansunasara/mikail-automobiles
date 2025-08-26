@@ -76,13 +76,13 @@
             <table class="table table-bordered">
                 <thead>
                     <tr>
-                        <th>Invoice #</th>
+                        <x-sortable-header column="invoice_number" label="Invoice #" />
                         <th>Customer</th>
-                        <th>Date</th>
-                        <th>Taxable Amount</th>
+                        <x-sortable-header column="invoice_date" label="Date" />
+                        <x-sortable-header column="total_amount" label="Taxable Amount" />
                         <th>CGST</th>
                         <th>SGST</th>
-                        <th>Grand Total</th>
+                        <x-sortable-header column="grand_total" label="Grand Total" />
                         <th>Action</th>
                     </tr>
                 </thead>
