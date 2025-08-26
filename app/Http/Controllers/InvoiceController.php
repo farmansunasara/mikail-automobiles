@@ -50,7 +50,7 @@ class InvoiceController extends Controller
                   ->where('status', '!=', 'cancelled');
         }
 
-        $invoices = $query->latest()->paginate(10);
+        $invoices = $query->latest()->paginate(10)->appends($request->query());
         $customers = Customer::orderBy('name')->get();
 
         return view('invoices.index', compact('invoices', 'customers'))->with('invoice_type', 'gst');
@@ -221,7 +221,7 @@ class InvoiceController extends Controller
                   ->where('status', '!=', 'cancelled');
         }
 
-        $invoices = $query->latest()->paginate(10);
+        $invoices = $query->latest()->paginate(10)->appends($request->query());
         $customers = Customer::orderBy('name')->get();
 
         return view('invoices.index_non_gst', compact('invoices', 'customers'))->with('invoice_type', 'non_gst');

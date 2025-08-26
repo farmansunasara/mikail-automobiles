@@ -40,7 +40,7 @@ class ProductController extends Controller
             });
         }
 
-        $products = $query->latest()->paginate(10);
+        $products = $query->latest()->paginate(10)->appends($request->query());
         $categories = Category::all();
         
         $colors = \App\Models\ProductColorVariant::distinct()

@@ -27,7 +27,7 @@ class ColorController extends Controller
             }
         }
 
-        $colors = $query->latest()->paginate(15);
+        $colors = $query->latest()->paginate(15)->appends($request->query());
 
         return view('colors.index', compact('colors'));
     }

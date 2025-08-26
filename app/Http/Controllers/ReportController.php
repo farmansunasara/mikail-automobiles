@@ -27,11 +27,24 @@ class ReportController extends Controller
     {
         $threshold = $request->input('threshold', 10);
         
-        // Get color variants with low stock
-        $lowStockVariants = ProductColorVariant::with(['product.category', 'product.subcategory'])
-            ->where('quantity', '<', $threshold)
-            ->orderBy('quantity', 'asc')
-            ->paginate(20);
+        $query = ProductColorVariant::with(['product.category', 'product.subcategory'])
+            ->where('quantity', '<', $threshold);
+
+        // Handle sorting
+        $sortColumn = $request->get('sort', 'quantity');
+        $sortDirection = $request->get('direction', 'asc');
+        
+        // Validate sort column to prevent SQL injection
+        $allowedSortColumns = ['quantity', 'color', 'id'];
+        if (!in_array($sortColumn, $allowedSortColumns)) {
+            $sortColumn = 'quantity';
+        }
+        
+        // Validate sort direction
+        $sortDirection = in_array($sortDirection, ['asc', 'desc']) ? $sortDirection : 'asc';
+        
+        $lowStockVariants = $query->orderBy($sortColumn, $sortDirection)
+            ->paginate(20)->appends($request->query());
 
         return view('reports.low_stock', compact('lowStockVariants', 'threshold'));
     }
@@ -49,7 +62,20 @@ class ReportController extends Controller
             });
         }
 
-        $stockReport = $query->orderBy('color')->paginate(20);
+        // Handle sorting
+        $sortColumn = $request->get('sort', 'color');
+        $sortDirection = $request->get('direction', 'asc');
+        
+        // Validate sort column to prevent SQL injection
+        $allowedSortColumns = ['id', 'color', 'quantity'];
+        if (!in_array($sortColumn, $allowedSortColumns)) {
+            $sortColumn = 'color';
+        }
+        
+        // Validate sort direction
+        $sortDirection = in_array($sortDirection, ['asc', 'desc']) ? $sortDirection : 'asc';
+
+        $stockReport = $query->orderBy($sortColumn, $sortDirection)->paginate(20)->appends($request->query());
         
         // Calculate total value from color variants
         $totalValue = ProductColorVariant::with('product')
@@ -82,8 +108,27 @@ class ReportController extends Controller
         if ($request->filled('end_date')) {
             $query->whereDate('created_at', '<=', $request->end_date);
         }
+        if ($request->filled('remarks')) {
+            $remarks = trim($request->remarks);
+            $query->where('remarks', 'like', "%{$remarks}%");
+        }
 
-        $movementHistory = $query->latest()->paginate(25);
+        // Handle sorting
+        $sortColumn = $request->get('sort', 'created_at');
+        $sortDirection = $request->get('direction', 'desc');
+        
+        // Validate sort column to prevent SQL injection
+        $allowedSortColumns = ['created_at', 'quantity', 'change_type', 'remarks'];
+        if (!in_array($sortColumn, $allowedSortColumns)) {
+            $sortColumn = 'created_at';
+        }
+        
+        // Validate sort direction
+        $sortDirection = in_array($sortDirection, ['asc', 'desc']) ? $sortDirection : 'desc';
+        
+        $query->orderBy($sortColumn, $sortDirection);
+
+        $movementHistory = $query->paginate(25)->appends($request->query());
         return view('reports.product_movement', compact('movementHistory'));
     }
 
@@ -104,7 +149,20 @@ class ReportController extends Controller
 
         $query->whereBetween('invoice_date', [$startDate, $endDate]);
 
-        $salesReport = $query->latest()->paginate(20);
+        // Handle sorting
+        $sortColumn = $request->get('sort', 'invoice_date');
+        $sortDirection = $request->get('direction', 'desc');
+        
+        // Validate sort column to prevent SQL injection
+        $allowedSortColumns = ['invoice_date', 'invoice_number', 'total_amount', 'grand_total', 'status'];
+        if (!in_array($sortColumn, $allowedSortColumns)) {
+            $sortColumn = 'invoice_date';
+        }
+        
+        // Validate sort direction
+        $sortDirection = in_array($sortDirection, ['asc', 'desc']) ? $sortDirection : 'desc';
+
+        $salesReport = $query->orderBy($sortColumn, $sortDirection)->paginate(20)->appends($request->query());
         
         // FIXED: Using selectRaw instead of DB::raw for security
         $totals = Invoice::selectRaw('
@@ -186,10 +244,24 @@ class ReportController extends Controller
     public function exportLowStock(Request $request)
     {
         $threshold = $request->input('threshold', 10);
-        $lowStockVariants = ProductColorVariant::with(['product.category', 'product.subcategory'])
-            ->where('quantity', '<', $threshold)
-            ->orderBy('quantity', 'asc')
-            ->get();
+        
+        $query = ProductColorVariant::with(['product.category', 'product.subcategory'])
+            ->where('quantity', '<', $threshold);
+
+        // Handle sorting (same as display method)
+        $sortColumn = $request->get('sort', 'quantity');
+        $sortDirection = $request->get('direction', 'asc');
+        
+        // Validate sort column
+        $allowedSortColumns = ['quantity', 'color', 'id'];
+        if (!in_array($sortColumn, $allowedSortColumns)) {
+            $sortColumn = 'quantity';
+        }
+        
+        // Validate sort direction
+        $sortDirection = in_array($sortDirection, ['asc', 'desc']) ? $sortDirection : 'asc';
+        
+        $lowStockVariants = $query->orderBy($sortColumn, $sortDirection)->get();
 
         $filename = 'low_stock_report_' . now()->format('Y_m_d') . '.csv';
         $headers = [
@@ -199,6 +271,10 @@ class ReportController extends Controller
 
         $callback = function() use ($lowStockVariants) {
             $file = fopen('php://output', 'w');
+            
+            // Add BOM for Excel compatibility
+            fprintf($file, chr(0xEF).chr(0xBB).chr(0xBF));
+            
             // Add CSV headers
             fputcsv($file, [
                 'ID',
@@ -244,7 +320,20 @@ class ReportController extends Controller
             });
         }
 
-        $stockReport = $query->orderBy('color')->get();
+        // Handle sorting (same as display method)
+        $sortColumn = $request->get('sort', 'color');
+        $sortDirection = $request->get('direction', 'asc');
+        
+        // Validate sort column
+        $allowedSortColumns = ['id', 'color', 'quantity'];
+        if (!in_array($sortColumn, $allowedSortColumns)) {
+            $sortColumn = 'color';
+        }
+        
+        // Validate sort direction
+        $sortDirection = in_array($sortDirection, ['asc', 'desc']) ? $sortDirection : 'asc';
+
+        $stockReport = $query->orderBy($sortColumn, $sortDirection)->get();
 
         $filename = 'stock_report_' . now()->format('Y_m_d') . '.csv';
         $headers = [
@@ -254,6 +343,10 @@ class ReportController extends Controller
 
         $callback = function() use ($stockReport) {
             $file = fopen('php://output', 'w');
+            
+            // Add BOM for Excel compatibility
+            fprintf($file, chr(0xEF).chr(0xBB).chr(0xBF));
+            
             // Add CSV headers
             fputcsv($file, [
                 'ID',
@@ -302,8 +395,27 @@ class ReportController extends Controller
         if ($request->filled('end_date')) {
             $query->whereDate('created_at', '<=', $request->end_date);
         }
+        if ($request->filled('remarks')) {
+            $remarks = trim($request->remarks);
+            $query->where('remarks', 'like', "%{$remarks}%");
+        }
 
-        $movementHistory = $query->latest()->get();
+        // Handle sorting (same as display method)
+        $sortColumn = $request->get('sort', 'created_at');
+        $sortDirection = $request->get('direction', 'desc');
+        
+        // Validate sort column
+        $allowedSortColumns = ['created_at', 'quantity', 'change_type', 'remarks'];
+        if (!in_array($sortColumn, $allowedSortColumns)) {
+            $sortColumn = 'created_at';
+        }
+        
+        // Validate sort direction
+        $sortDirection = in_array($sortDirection, ['asc', 'desc']) ? $sortDirection : 'desc';
+        
+        $query->orderBy($sortColumn, $sortDirection);
+
+        $movementHistory = $query->get();
         $filename = 'product_movement_report_' . now()->format('Y_m_d') . '.csv';
 
         $headers = [
@@ -313,9 +425,13 @@ class ReportController extends Controller
 
         $callback = function() use ($movementHistory) {
             $file = fopen('php://output', 'w');
+            
+            // Add BOM for Excel compatibility
+            fprintf($file, chr(0xEF).chr(0xBB).chr(0xBF));
+            
             // Add CSV headers
             fputcsv($file, [
-                'Date',
+                'Date & Time (DD/MM/YYYY HH:MM:SS)',
                 'Product Name',
                 'Color',
                 'Change Type',
@@ -326,7 +442,7 @@ class ReportController extends Controller
             // Add data rows
             foreach ($movementHistory as $log) {
                 fputcsv($file, [
-                    $log->created_at->format('Y-m-d H:i:s'),
+                    "'" . $log->created_at->format('d/m/Y H:i:s'),
                     $log->product->name,
                     $log->colorVariant ? $log->colorVariant->color : ($log->product->color ?? 'N/A'),
                     ucfirst($log->change_type),
@@ -366,11 +482,15 @@ class ReportController extends Controller
 
         $callback = function() use ($salesReport) {
             $file = fopen('php://output', 'w');
+            
+            // Add BOM for Excel compatibility
+            fprintf($file, chr(0xEF).chr(0xBB).chr(0xBF));
+            
             // Add CSV headers
             fputcsv($file, [
                 'Invoice Number',
                 'Customer Name',
-                'Invoice Date',
+                'Invoice Date (DD/MM/YYYY)',
                 'Invoice Type',
                 'Total Amount',
                 'CGST',
@@ -384,7 +504,7 @@ class ReportController extends Controller
                 fputcsv($file, [
                     $invoice->invoice_number,
                     $invoice->customer->name,
-                    $invoice->invoice_date ? \Carbon\Carbon::parse($invoice->invoice_date)->format('Y-m-d') : 'N/A',
+                    $invoice->invoice_date ? "'" . \Carbon\Carbon::parse($invoice->invoice_date)->format('d/m/Y') : 'N/A',
                     ucfirst($invoice->invoice_type),
                     number_format((float)$invoice->total_amount, 2),
                     number_format((float)$invoice->cgst, 2),
@@ -425,9 +545,13 @@ class ReportController extends Controller
 
         $callback = function() use ($invoices, $targetMonth) {
             $file = fopen('php://output', 'w');
+            
+            // Add BOM for Excel compatibility
+            fprintf($file, chr(0xEF).chr(0xBB).chr(0xBF));
+            
             // Add CSV headers
             fputcsv($file, [
-                'Date',
+                'Date (DD/MM/YYYY)',
                 'Invoice Number',
                 'Customer Name',
                 'GSTIN',
@@ -440,7 +564,7 @@ class ReportController extends Controller
             // Add data rows
             foreach ($invoices as $invoice) {
                 fputcsv($file, [
-                    $invoice->invoice_date ? \Carbon\Carbon::parse($invoice->invoice_date)->format('Y-m-d') : 'N/A',
+                    $invoice->invoice_date ? "'" . \Carbon\Carbon::parse($invoice->invoice_date)->format('d/m/Y') : 'N/A',
                     $invoice->invoice_number,
                     $invoice->customer->name,
                     $invoice->customer->gstin ?? 'N/A',
@@ -480,9 +604,13 @@ class ReportController extends Controller
 
         $callback = function() use ($invoices, $targetMonth) {
             $file = fopen('php://output', 'w');
+            
+            // Add BOM for Excel compatibility
+            fprintf($file, chr(0xEF).chr(0xBB).chr(0xBF));
+            
             // Add CSV headers
             fputcsv($file, [
-                'Date',
+                'Date (DD/MM/YYYY)',
                 'Invoice Number',
                 'Customer Name',
                 'Total Amount',
@@ -492,7 +620,7 @@ class ReportController extends Controller
             // Add data rows
             foreach ($invoices as $invoice) {
                 fputcsv($file, [
-                    $invoice->invoice_date ? \Carbon\Carbon::parse($invoice->invoice_date)->format('Y-m-d') : 'N/A',
+                    $invoice->invoice_date ? "'" . \Carbon\Carbon::parse($invoice->invoice_date)->format('d/m/Y') : 'N/A',
                     $invoice->invoice_number,
                     $invoice->customer->name,
                     number_format((float)$invoice->total_amount, 2),

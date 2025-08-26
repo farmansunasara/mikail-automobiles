@@ -269,6 +269,14 @@
             border-top-right-radius: 0.375rem;
             border-bottom-right-radius: 0.375rem;
         }
+        
+        /* Sortable Header Styles */
+        .sortable-header a:hover {
+            background-color: #f8f9fa;
+        }
+        .sortable-header a:hover i {
+            color: #007bff !important;
+        }
     </style>
     @stack('styles')
 </head>

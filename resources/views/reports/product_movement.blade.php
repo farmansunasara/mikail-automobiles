@@ -16,41 +16,59 @@
     <div class="card-body">
         <form action="{{ route('reports.product-movement') }}" method="GET" class="mb-3">
             <div class="row">
-                <div class="col-md-4">
-                    <select name="product_id" class="form-control">
+                <div class="col-md-3">
+                    <label for="product_id">Product</label>
+                    <select name="product_id" id="product_id" class="form-control">
                         <option value="">All Products</option>
-                        @foreach(App\Models\Product::all() as $product)
+                        @foreach(App\Models\Product::orderBy('name')->get() as $product)
                             <option value="{{ $product->id }}" {{ request('product_id') == $product->id ? 'selected' : '' }}>{{ $product->name }}</option>
                         @endforeach
                     </select>
                 </div>
-                <div class="col-md-3">
-                    <input type="date" name="start_date" class="form-control" value="{{ request('start_date') }}">
-                </div>
-                <div class="col-md-3">
-                    <input type="date" name="end_date" class="form-control" value="{{ request('end_date') }}">
+                <div class="col-md-2">
+                    <label for="start_date">Start Date</label>
+                    <input type="date" name="start_date" id="start_date" class="form-control" value="{{ request('start_date') }}">
                 </div>
                 <div class="col-md-2">
+                    <label for="end_date">End Date</label>
+                    <input type="date" name="end_date" id="end_date" class="form-control" value="{{ request('end_date') }}">
+                </div>
+                <div class="col-md-3">
+                    <label for="remarks">Remarks</label>
+                    <input type="text" name="remarks" id="remarks" class="form-control" placeholder="Search in remarks..." value="{{ request('remarks') }}">
+                </div>
+                <div class="col-md-1">
+                    <label>&nbsp;</label>
                     <button type="submit" class="btn btn-primary btn-block">Filter</button>
                 </div>
-                <div class="col-md-2">
+                <div class="col-md-1">
+                    <label>&nbsp;</label>
                     <a href="{{ route('reports.export.product-movement', request()->query()) }}" class="btn btn-success btn-block" title="Export to CSV" data-toggle="tooltip">
-                        <i class="fas fa-download"></i> Export CSV
+                        <i class="fas fa-download"></i>
                     </a>
                 </div>
             </div>
+            @if(request()->hasAny(['product_id', 'start_date', 'end_date', 'remarks']))
+            <div class="row mt-2">
+                <div class="col-md-12">
+                    <a href="{{ route('reports.product-movement') }}" class="btn btn-secondary btn-sm">
+                        <i class="fas fa-times"></i> Clear Filters
+                    </a>
+                </div>
+            </div>
+            @endif
         </form>
 
         <div class="table-responsive">
             <table class="table table-bordered">
                 <thead>
                     <tr>
-                        <th>Date</th>
+                        <x-sortable-header column="created_at" label="Date" />
                         <th>Product</th>
                         <th>Color</th>
-                        <th>Type</th>
-                        <th>Quantity</th>
-                        <th>Notes</th>
+                        <x-sortable-header column="change_type" label="Type" />
+                        <x-sortable-header column="quantity" label="Quantity" />
+                        <x-sortable-header column="remarks" label="Notes" />
                     </tr>
                 </thead>
                 <tbody>
