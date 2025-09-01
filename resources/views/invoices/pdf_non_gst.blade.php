@@ -212,6 +212,12 @@
                     <td class="text-right" style="color: #dc3545;">-Rs.{{ number_format($invoice->discount_amount, 2) }}</td>
                 </tr>
                 @endif
+                @if($invoice->packaging_fees > 0)
+                <tr>
+                    <td>Packaging Fees</td>
+                    <td class="text-right">Rs.{{ number_format($invoice->packaging_fees, 2) }}</td>
+                </tr>
+                @endif
                 <tr style="background-color: #f0f0f0;">
                     <td><strong>Grand Total</strong></td>
                     <td class="text-right"><strong>Rs.{{ number_format($invoice->grand_total, 2) }}</strong></td>

@@ -206,6 +206,16 @@
     background: #fff3cd;
 }
 
+.price-input.is-invalid {
+    border-color: #dc3545;
+    box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.25);
+}
+
+.price-input.is-invalid:focus {
+    border-color: #dc3545;
+    box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.25);
+}
+
 /* Stock Information */
 .stock-info {
     font-size: 0.85rem;
@@ -532,7 +542,8 @@
                                 <td>
                                     <div class="price-container">
                                         <input type="number" name="items[{{ $index }}][price]" class="form-control price-input editable" 
-                                               step="0.01" value="{{ $items->first()->price }}" data-original-price="{{ $items->first()->price }}">
+                                               step="0.01" min="0.01" value="{{ $items->first()->price }}" data-original-price="{{ $items->first()->price }}">
+                                        <div class="invalid-feedback">Price must be greater than zero</div>
                                         <small class="price-history text-muted" style="display: {{ $items->first()->price ? 'block' : 'none' }};">
                                             Original: ₹<span class="original-price">{{ number_format($items->first()->price, 2) }}</span>
                                         </small>
@@ -601,6 +612,13 @@
                                                placeholder="0" min="0" step="0.01" value="{{ $invoice->discount_value }}" style="max-width: 80px;">
                                     </div>
                                     <small class="text-muted" id="discount_amount_display">₹{{ number_format($invoice->discount_amount, 2) }}</small>
+                                </td>
+                            </tr>
+                            <tr>
+                                <th>Packaging Fees:</th>
+                                <td class="text-right">
+                                    <input type="number" name="packaging_fees" id="packaging_fees" class="form-control form-control-sm text-right"
+                                           placeholder="0.00" min="0" step="0.01" value="{{ $invoice->packaging_fees ?? 0 }}" style="max-width: 100px; display: inline-block;">
                                 </td>
                             </tr>
                             <tr class="border-top">
@@ -813,7 +831,8 @@ $(document).ready(function() {
                 <td>
                     <div class="price-container">
                         <input type="number" name="items[${itemIndex}][price]" class="form-control price-input" 
-                               step="0.01" readonly data-original-price="0">
+                               step="0.01" min="0.01" readonly data-original-price="0">
+                        <div class="invalid-feedback">Price must be greater than zero</div>
                         <small class="price-history text-muted" style="display: none;">
                             Original: ₹<span class="original-price">0.00</span>
                         </small>
@@ -970,6 +989,21 @@ $(document).ready(function() {
             });
     });
     
+    // Price validation function
+    function validatePriceInput($priceInput) {
+        const price = parseFloat($priceInput.val()) || 0;
+        
+        if (price <= 0) {
+            $priceInput.addClass('is-invalid');
+            $priceInput.siblings('.invalid-feedback').show();
+            return false;
+        } else {
+            $priceInput.removeClass('is-invalid');
+            $priceInput.siblings('.invalid-feedback').hide();
+            return true;
+        }
+    }
+
     function makePriceEditable($priceInput) {
         $priceInput.removeClass('readonly').prop('readonly', false).addClass('editable');
         
@@ -980,6 +1014,9 @@ $(document).ready(function() {
         $priceInput.on('change keyup', function() {
             const originalPrice = parseFloat($(this).attr('data-original-price')) || 0;
             const currentPrice = parseFloat($(this).val()) || 0;
+            
+            // Validate price
+            validatePriceInput($(this));
             
             if (currentPrice !== originalPrice) {
                 $(this).addClass('editable');
@@ -1094,6 +1131,12 @@ $(document).ready(function() {
             const price = parseFloat($row.find('.price-input').val()) || 0;
             let rowTotal = 0;
             
+            // Validate price input
+            const $priceInput = $row.find('.price-input');
+            if ($priceInput.length && !$priceInput.prop('readonly')) {
+                validatePriceInput($priceInput);
+            }
+            
             $row.find('.quantity-input').each(function() {
                 const qty = parseInt($(this).val()) || 0;
                 rowTotal += qty * price;
@@ -1115,7 +1158,8 @@ $(document).ready(function() {
             }
         }
 
-        const grand_total = grandSubtotal - discountAmount;
+        const packagingFees = parseFloat($('#packaging_fees').val()) || 0;
+        const grand_total = grandSubtotal - discountAmount + packagingFees;
 
         $('#subtotal').text('₹' + grandSubtotal.toFixed(2));
         $('#discount_amount_display').text('₹' + discountAmount.toFixed(2));
@@ -1149,7 +1193,7 @@ $(document).ready(function() {
         $('#submit-btn').prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Updating...');
     });
     
-    $('#discount_type, #discount_value').on('change keyup', function() {
+    $('#discount_type, #discount_value, #packaging_fees').on('change keyup', function() {
         calculateTotals();
     });
     
@@ -1269,7 +1313,11 @@ $(document).ready(function() {
             
             if (price <= 0 && productId) {
                 $row.find('.price-input').addClass('is-invalid');
+                $row.find('.price-input').siblings('.invalid-feedback').show().text('Price must be greater than zero');
                 isValid = false;
+            } else {
+                $row.find('.price-input').removeClass('is-invalid');
+                $row.find('.price-input').siblings('.invalid-feedback').hide();
             }
             
             if (hasQuantity && categoryId && productId && price > 0) {

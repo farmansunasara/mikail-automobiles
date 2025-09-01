@@ -170,6 +170,12 @@ Pelhar, Vasai Pelghar, Vasai-Virar - 401208
                         <td class="text-danger">-₹{{ number_format($invoice->discount_amount, 2) }}</td>
                     </tr>
                     @endif
+                    @if($invoice->packaging_fees > 0)
+                    <tr>
+                        <th>Packaging Fees:</th>
+                        <td>₹{{ number_format($invoice->packaging_fees, 2) }}</td>
+                    </tr>
+                    @endif
                     <tr>
                         <th>Total:</th>
                         <td><strong>₹{{ number_format($invoice->grand_total, 2) }}</strong></td>
