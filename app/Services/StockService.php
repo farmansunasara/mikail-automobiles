@@ -14,6 +14,32 @@ use Exception;
 class StockService
 {
     /**
+     * Restore stock for a color variant (sale only - no component restoration).
+     * This is used for invoice editing where components were already consumed during assembly.
+     *
+     * @param ProductColorVariant $colorVariant
+     * @param int $quantity
+     * @param string|null $notes
+     * @return void
+     * @throws Exception
+     */
+    public function inwardColorVariantStockSaleOnly(ProductColorVariant $colorVariant, int $quantity, ?string $notes = null): void
+    {
+        DB::transaction(function () use ($colorVariant, $quantity, $notes) {
+            $previousQuantity = $colorVariant->quantity;
+            $colorVariant->increment('quantity', $quantity);
+            $colorVariant->refresh();
+            $colorVariant->product->stockLogs()->create([
+                'change_type' => 'inward',
+                'quantity' => $quantity,
+                'previous_quantity' => $previousQuantity,
+                'new_quantity' => $colorVariant->quantity,
+                'color_variant_id' => $colorVariant->id,
+                'remarks' => $notes,
+            ]);
+        });
+    }
+    /**
      * Handle inward stock movement.
      *
      * @param Product $product

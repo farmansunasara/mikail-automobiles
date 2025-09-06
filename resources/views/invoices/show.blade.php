@@ -176,6 +176,12 @@ Pelhar, Vasai Pelghar, Vasai-Virar - 401208
                         <td>₹{{ number_format($invoice->subtotal_after_discount, 2) }}</td>
                     </tr>
                     @endif
+                    @if($invoice->packaging_fees > 0)
+                    <tr>
+                        <th>Packaging Fees:</th>
+                        <td>₹{{ number_format($invoice->packaging_fees, 2) }}</td>
+                    </tr>
+                    @endif
                     <tr>
                         <th>CGST ({{ $invoice->gst_rate / 2 }}%)</th>
                         <td>₹{{ number_format($invoice->cgst, 2) }}</td>
