@@ -366,7 +366,7 @@ class InvoiceController extends Controller
             DB::transaction(function () use ($request, $invoice, $newInvoiceItems) {
                 // First, restore stock from old invoice items
                 foreach ($invoice->items as $oldItem) {
-                    $this->stockService->inwardColorVariantStock(
+                    $this->stockService->inwardColorVariantStockSaleOnly(
                         $oldItem->colorVariant,
                         $oldItem->quantity,
                         "Stock restored from edited Invoice #{$invoice->invoice_number}"
@@ -511,7 +511,7 @@ class InvoiceController extends Controller
             DB::transaction(function () use ($request, $invoice, $newInvoiceItems) {
                 // First, restore stock from old invoice items
                 foreach ($invoice->items as $oldItem) {
-                    $this->stockService->inwardColorVariantStock(
+                    $this->stockService->inwardColorVariantStockSaleOnly(
                         $oldItem->colorVariant,
                         $oldItem->quantity,
                         "Stock restored from edited Invoice #{$invoice->invoice_number}"
