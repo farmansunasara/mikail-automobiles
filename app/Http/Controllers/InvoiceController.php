@@ -625,31 +625,34 @@ class InvoiceController extends Controller
     {
         try {
             DB::transaction(function () use ($invoice) {
-                foreach ($invoice->items as $item) {
-                    // Restore stock to the actual color variant sold if available
-                    $colorVariant = $item->colorVariant ?? null;
-                    if ($colorVariant) {
-                        $this->stockService->inwardColorVariantStock(
-                            $colorVariant,
-                            $item->quantity,
-                            "Stock restored from deleted Invoice #{$invoice->invoice_number}"
-                        );
-                    } else {
-                        // Fallback to product-level stock restoration
-                        $this->stockService->inwardStock(
-                            $item->product,
-                            $item->quantity,
-                            "Stock restored from deleted Invoice #{$invoice->invoice_number}"
-                        );
+                // Only restore stock if invoice is not paid
+                if (!$invoice->isPaid()) {
+                    foreach ($invoice->items as $item) {
+                        $colorVariant = $item->colorVariant ?? null;
+                        if ($colorVariant) {
+                            $this->stockService->inwardColorVariantStockSaleOnly(
+                                $colorVariant,
+                                $item->quantity,
+                                "Stock restored from deleted Invoice #{$invoice->invoice_number}"
+                            );
+                        } else {
+                            $this->stockService->inwardStock(
+                                $item->product,
+                                $item->quantity,
+                                "Stock restored from deleted Invoice #{$invoice->invoice_number}"
+                            );
+                        }
                     }
                 }
                 $invoice->items()->delete();
                 $invoice->delete();
             });
 
+            $msg = $invoice->isPaid()
+                ? 'Paid invoice deleted. No stock was restored because the invoice was already paid. Inventory remains unchanged.'
+                : 'Invoice deleted successfully. Stock for all items has been restored to inventory.';
             return redirect()->route('invoices.index')
-                ->with('success', 'Invoice deleted successfully and stock has been restored.');
-                
+                ->with('success', $msg);
         } catch (\Exception $e) {
             return redirect()->route('invoices.index')
                 ->with('error', 'Error deleting invoice: ' . $e->getMessage());

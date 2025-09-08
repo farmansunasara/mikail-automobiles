@@ -25,28 +25,26 @@ class ReportController extends Controller
      */
     public function lowStock(Request $request)
     {
-        $threshold = $request->input('threshold', 10);
-        
+        // Show all color variants where quantity < product.minimum_threshold (per-product threshold)
         $query = ProductColorVariant::with(['product.category', 'product.subcategory'])
-            ->where('quantity', '<', $threshold);
+            ->whereHas('product', function($q) {
+                $q->whereNotNull('minimum_threshold');
+            })
+            ->whereRaw('quantity < (SELECT minimum_threshold FROM products WHERE products.id = product_color_variants.product_id)');
 
         // Handle sorting
         $sortColumn = $request->get('sort', 'quantity');
         $sortDirection = $request->get('direction', 'asc');
-        
-        // Validate sort column to prevent SQL injection
         $allowedSortColumns = ['quantity', 'color', 'id'];
         if (!in_array($sortColumn, $allowedSortColumns)) {
             $sortColumn = 'quantity';
         }
-        
-        // Validate sort direction
         $sortDirection = in_array($sortDirection, ['asc', 'desc']) ? $sortDirection : 'asc';
-        
+
         $lowStockVariants = $query->orderBy($sortColumn, $sortDirection)
             ->paginate(20)->appends($request->query());
 
-        return view('reports.low_stock', compact('lowStockVariants', 'threshold'));
+        return view('reports.low_stock', compact('lowStockVariants'));
     }
 
     /**
@@ -243,24 +241,23 @@ class ReportController extends Controller
      */
     public function exportLowStock(Request $request)
     {
-        $threshold = $request->input('threshold', 10);
-        
+
+        // Show all color variants where quantity < product.minimum_threshold (per-product threshold)
         $query = ProductColorVariant::with(['product.category', 'product.subcategory'])
-            ->where('quantity', '<', $threshold);
+            ->whereHas('product', function($q) {
+                $q->whereNotNull('minimum_threshold');
+            })
+            ->whereRaw('quantity < (SELECT minimum_threshold FROM products WHERE products.id = product_color_variants.product_id)');
 
         // Handle sorting (same as display method)
         $sortColumn = $request->get('sort', 'quantity');
         $sortDirection = $request->get('direction', 'asc');
-        
-        // Validate sort column
         $allowedSortColumns = ['quantity', 'color', 'id'];
         if (!in_array($sortColumn, $allowedSortColumns)) {
             $sortColumn = 'quantity';
         }
-        
-        // Validate sort direction
         $sortDirection = in_array($sortDirection, ['asc', 'desc']) ? $sortDirection : 'asc';
-        
+
         $lowStockVariants = $query->orderBy($sortColumn, $sortDirection)->get();
 
         $filename = 'low_stock_report_' . now()->format('Y_m_d') . '.csv';

@@ -106,6 +106,7 @@ class ProductController extends Controller
             'category_id' => 'required|exists:categories,id',
             'subcategory_id' => 'required|exists:subcategories,id',
             'price' => 'required|numeric|min:0',
+            'minimum_threshold' => 'required|integer|min:0',
             'is_composite' => 'boolean',
             'components' => 'nullable|array',
             'components.*.component_product_id' => 'required_if:is_composite,1|exists:products,id',
@@ -146,6 +147,7 @@ class ProductController extends Controller
 
         DB::transaction(function () use ($request) {
             $productData = $request->except(['components', 'color_variants', 'default_quantity']);
+            $productData['minimum_threshold'] = $request->input('minimum_threshold', 0);
             
             if (empty($productData['hsn_code'])) {
                 $productData['hsn_code'] = null;
@@ -233,6 +235,7 @@ class ProductController extends Controller
             'category_id' => 'required|exists:categories,id',
             'subcategory_id' => 'required|exists:subcategories,id',
             'price' => 'required|numeric|min:0',
+            'minimum_threshold' => 'required|integer|min:0',
             'is_composite' => 'boolean',
             'components' => 'nullable|array',
             'components.*.component_product_id' => 'required_if:is_composite,1|exists:products,id',
@@ -269,6 +272,7 @@ class ProductController extends Controller
 
         DB::transaction(function () use ($request, $product) {
             $productData = $request->except(['components', 'color_variants']);
+            $productData['minimum_threshold'] = $request->input('minimum_threshold', 0);
             
             if (empty($productData['hsn_code'])) {
                 $productData['hsn_code'] = null;
