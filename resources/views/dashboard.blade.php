@@ -88,16 +88,16 @@
                     <li class="item">
                         <div class="product-info">
                             <a href="{{ route('products.show', $variant->product_id) }}" class="product-title">
-                                {{ $variant->product->name ?? 'Unknown Product' }}
-                                @if($variant->color)
+                                {{ optional($variant->product)->name ?? 'Unknown Product' }}
+                                @if(isset($variant->color) && $variant->color)
                                     <small>({{ $variant->color }})</small>
                                 @endif
                                 <span class="badge badge-warning float-right">{{ $variant->quantity }}</span>
                             </a>
                             <span class="product-description">
-                                {{ $variant->product->category->name ?? 'No Category' }}
-                                @if($variant->product->subcategory)
-                                    / {{ $variant->product->subcategory->name }}
+                                {{ optional(optional($variant->product)->category)->name ?? 'No Category' }}
+                                @if(optional($variant->product)->subcategory)
+                                    / {{ optional($variant->product->subcategory)->name ?? '' }}
                                 @endif
                             </span>
                         </div>

@@ -165,6 +165,14 @@
                 </div>
                 <div class="col-md-6">
                     <div class="form-group">
+                        <label for="minimum_threshold">Minimum Threshold (Reorder Level) <span class="text-danger">*</span></label>
+                        <input type="number" name="minimum_threshold" id="minimum_threshold" class="form-control @error('minimum_threshold') is-invalid @enderror" value="{{ old('minimum_threshold', 0) }}" min="0" required>
+                        <small class="form-text text-muted">Set the minimum stock level at which you want to be alerted for low stock.</small>
+                        @error('minimum_threshold') <span class="invalid-feedback">{{ $message }}</span> @enderror
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="form-group">
                         <label for="price">Price (₹) *</label>
                         <input type="number" name="price" id="price" step="0.01" class="form-control @error('price') is-invalid @enderror" value="{{ old('price') }}" required>
                         @error('price') <span class="invalid-feedback">{{ $message }}</span> @enderror

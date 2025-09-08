@@ -536,6 +536,12 @@ class StockService
         'color_variant_id' => $colorVariant->id,
         'remarks' => $notes,
     ]);
+
+    // Notify admins if this variant is now below its product's minimum threshold
+    $product = $colorVariant->product;
+    if ($product && isset($product->minimum_threshold) && $product->minimum_threshold > 0 && $colorVariant->quantity < $product->minimum_threshold) {
+        \App\Notifications\LowStockProductNotification::notifyAdmins($colorVariant);
+    }
 }
 
     /**
