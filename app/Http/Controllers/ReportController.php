@@ -25,12 +25,10 @@ class ReportController extends Controller
      */
     public function lowStock(Request $request)
     {
-        // Show all color variants where quantity < product.minimum_threshold (per-product threshold)
+        // Show all color variants where quantity < color variant minimum_threshold
         $query = ProductColorVariant::with(['product.category', 'product.subcategory'])
-            ->whereHas('product', function($q) {
-                $q->whereNotNull('minimum_threshold');
-            })
-            ->whereRaw('quantity < (SELECT minimum_threshold FROM products WHERE products.id = product_color_variants.product_id)');
+            ->whereNotNull('minimum_threshold')
+            ->whereColumn('quantity', '<', 'minimum_threshold');
 
         // Handle sorting
         $sortColumn = $request->get('sort', 'quantity');

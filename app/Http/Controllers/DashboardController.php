@@ -30,12 +30,10 @@ class DashboardController extends Controller
                                   ->whereYear('invoice_date', Carbon::now()->year)
                                   ->count();
         
-        // Get low stock items (quantity < product.minimum_threshold)
-        $lowStockItems = ProductColorVariant::whereHas('product', function($q) {
-            $q->whereNotNull('minimum_threshold');
-        })
-        ->whereRaw('quantity < (SELECT minimum_threshold FROM products WHERE products.id = product_color_variants.product_id)')
-        ->count();
+        // Get low stock items (quantity < color variant minimum_threshold)
+        $lowStockItems = ProductColorVariant::whereNotNull('minimum_threshold')
+            ->whereColumn('quantity', '<', 'minimum_threshold')
+            ->count();
         
         // Get recent invoices
         $recentInvoices = Invoice::with('customer')
@@ -56,12 +54,10 @@ class DashboardController extends Controller
             ];
         }
         
-        // Get low stock products - Using per-product minimum_threshold
+        // Get low stock products - Using color variant minimum_threshold
         $lowStockProducts = ProductColorVariant::with(['product.category', 'product.subcategory'])
-            ->whereHas('product', function($q) {
-                $q->whereNotNull('minimum_threshold');
-            })
-            ->whereRaw('quantity < (SELECT minimum_threshold FROM products WHERE products.id = product_color_variants.product_id)')
+            ->whereNotNull('minimum_threshold')
+            ->whereColumn('quantity', '<', 'minimum_threshold')
             ->orderBy('quantity', 'asc')
             ->take(10)
             ->get();

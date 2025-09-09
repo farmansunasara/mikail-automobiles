@@ -5,16 +5,16 @@ use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration {
-    public function up()
+    public function up(): void
     {
-        Schema::table('products', function (Blueprint $table) {
+        Schema::table('product_color_variants', function (Blueprint $table) {
             $table->integer('minimum_threshold')->nullable()->after('quantity');
         });
     }
 
-    public function down()
+    public function down(): void
     {
-        Schema::table('products', function (Blueprint $table) {
+        Schema::table('product_color_variants', function (Blueprint $table) {
             $table->dropColumn('minimum_threshold');
         });
     }

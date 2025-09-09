@@ -116,6 +116,7 @@
                                                 <span class="badge badge-pill" style="background-color: {{ $bgColor }}; color: {{ $textColor }};">
                                                     {{ ucfirst($variant->color) }}
                                                 </span>
+                                                <span style="font-size:0.9em; color:{{ $textColor }};">(Min: {{ $variant->minimum_threshold }})</span>
                                             </div>
                                             <div class="col-4">
                                                 <span class="badge badge-{{ $variant->quantity > 20 ? 'success' : ($variant->quantity > 10 ? 'warning' : 'danger') }} badge-lg">

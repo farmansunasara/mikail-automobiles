@@ -18,15 +18,13 @@ class Product extends Model
         'price',
         'gst_rate',
         'is_composite',
-        'image',
-        'minimum_threshold'
+        'image'
     ];
 
     protected $casts = [
         'is_composite' => 'boolean',
         'price' => 'decimal:2',
-        'gst_rate' => 'decimal:2',
-        'minimum_threshold' => 'integer'
+        'gst_rate' => 'decimal:2'
     ];
 
     public function category(): BelongsTo

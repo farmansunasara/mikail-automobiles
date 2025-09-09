@@ -28,10 +28,7 @@
                 </div>
                 <div class="col-md-6">
                     <div class="form-group">
-                        <label for="minimum_threshold">Minimum Threshold (Reorder Level) <span class="text-danger">*</span></label>
-                        <input type="number" name="minimum_threshold" id="minimum_threshold" class="form-control @error('minimum_threshold') is-invalid @enderror" value="{{ old('minimum_threshold', $product->minimum_threshold ?? 0) }}" min="0" required>
-                        <small class="form-text text-muted">Set the minimum stock level at which you want to be alerted for low stock.</small>
-                        @error('minimum_threshold') <span class="invalid-feedback">{{ $message }}</span> @enderror
+                        <!-- Removed product-level minimum_threshold input -->
                     </div>
                     <div class="form-group">
                         <label for="category_id">Category</label>
@@ -94,12 +91,17 @@
                             <input type="number" id="new-quantity" class="form-control" placeholder="Enter quantity" min="0">
                             <small class="form-text text-muted">Product quantity</small>
                         </div>
-                        <div class="col-md-3">
+                        <div class="col-md-2">
                             <label>Color Usage (grams)</label>
                             <input type="number" id="color-usage-grams" class="form-control" placeholder="Color usage (grams)" min="0" step="0.01">
                             <small class="form-text text-muted">Grams per unit</small>
                         </div>
-                        <div class="col-md-3">
+                        <div class="col-md-2">
+                            <label>Min Threshold</label>
+                            <input type="number" id="color-minimum-threshold" class="form-control" placeholder="Min threshold" min="0">
+                            <small class="form-text text-muted">Min threshold</small>
+                        </div>
+                        <div class="col-md-2">
                             <label>&nbsp;</label>
                             <button type="button" class="btn btn-success form-control" id="add-color-btn">
                                 <i class="fas fa-plus"></i> Add Color
@@ -497,6 +499,7 @@
             const colorName = selectedColorName || $('#color-search').val().trim();
             const quantity = parseInt($('#new-quantity').val()) || 0;
             const colorUsageGrams = parseFloat($('#color-usage-grams').val()) || 0;
+            const minimumThreshold = parseInt($('#color-minimum-threshold').val()) || 0;
             
             if (!colorName) {
                 alert('Please search and select a color or enter a custom color name');
@@ -518,13 +521,14 @@
                 return;
             }
             
-            addColorVariant(colorName, quantity, selectedColorId, colorUsageGrams);
+            addColorVariant(colorName, quantity, selectedColorId, colorUsageGrams, minimumThreshold);
             
             // Clear the form
             $('#color-search').val('');
             $('#color-dropdown').hide();
             $('#new-quantity').val('');
             $('#color-usage-grams').val('');
+            $('#color-minimum-threshold').val('');
             selectedColorId = null;
             selectedColorName = '';
         });
@@ -536,7 +540,7 @@
             }
         });
         
-        function addColorVariant(color, quantity, colorId = null, colorUsageGrams = 0) {
+    function addColorVariant(color, quantity, colorId = null, colorUsageGrams = 0, minimumThreshold = 0) {
             if (!color) {
                 alert('Please enter a color name');
                 return false;
@@ -569,9 +573,9 @@
                             <small class="text-muted">grams per unit</small>
                         </div>
                         <div class="col-md-3">
-                            <button type="button" class="remove-color-btn btn btn-danger btn-sm" onclick="removeColorVariant(this)" title="Remove Color">
-                                <i class="fas fa-times"></i> Remove
-                            </button>
+                            <label>Min Threshold:</label>
+                            <input type="number" name="color_variants[${colorVariantIndex}][minimum_threshold]" 
+                                   class="form-control" value="${minimumThreshold}" min="0">
                         </div>
                     </div>
                 </div>
@@ -611,7 +615,13 @@
         // Load existing color variants
         @if($product->colorVariants->count() > 0)
             @foreach($product->colorVariants as $variant)
-                addColorVariant('{{ $variant->color }}', {{ $variant->quantity }}, {{ $variant->color_id ?? 'null' }}, {{ $variant->color_usage_grams ?? 0 }});
+                addColorVariant(
+                    @json($variant->color),
+                    {{ $variant->quantity }},
+                    {{ $variant->color_id ?? 'null' }},
+                    {{ $variant->color_usage_grams ?? 0 }},
+                    {{ $variant->minimum_threshold ?? 0 }}
+                );
             @endforeach
         @endif
         
