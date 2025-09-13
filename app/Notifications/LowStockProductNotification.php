@@ -40,23 +40,25 @@ class LowStockProductNotification extends Notification implements ShouldQueue
 
     public function toMail($notifiable)
     {
+    $threshold = $this->variant->minimum_threshold ?? 0;
         return (new MailMessage)
             ->subject('Low Stock Alert: ' . $this->variant->product->name)
             ->line('The product "' . $this->variant->product->name . '" (Color: ' . $this->variant->color . ') is below its minimum threshold.')
             ->line('Current Quantity: ' . $this->variant->quantity)
-            ->line('Minimum Threshold: ' . $this->variant->product->minimum_threshold)
+            ->line('Minimum Threshold: ' . $threshold)
             ->action('View Product', url(route('products.show', $this->variant->product)))
             ->line('Please restock soon.');
     }
 
     public function toArray($notifiable)
     {
+        $threshold = $this->variant->minimum_threshold ?? $this->variant->product->minimum_threshold;
         return [
             'product_id' => $this->variant->product->id,
             'product_name' => $this->variant->product->name,
             'color' => $this->variant->color,
             'quantity' => $this->variant->quantity,
-            'minimum_threshold' => $this->variant->product->minimum_threshold,
+            'minimum_threshold' => $threshold,
         ];
     }
 }

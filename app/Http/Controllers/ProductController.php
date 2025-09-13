@@ -106,7 +106,7 @@ class ProductController extends Controller
             'category_id' => 'required|exists:categories,id',
             'subcategory_id' => 'required|exists:subcategories,id',
             'price' => 'required|numeric|min:0',
-            'minimum_threshold' => 'required|integer|min:0',
+            // Removed product-level minimum_threshold
             'is_composite' => 'boolean',
             'components' => 'nullable|array',
             'components.*.component_product_id' => 'required_if:is_composite,1|exists:products,id',
@@ -136,6 +136,7 @@ class ProductController extends Controller
             'color_variants.*.quantity' => 'required|integer|min:1',
             'color_variants.*.color_id' => 'nullable|exists:colors,id',
             'color_variants.*.color_usage_grams' => 'nullable|numeric|min:0',
+            'color_variants.*.minimum_threshold' => 'required|integer|min:0',
         ]);
 
         if ($validator->fails()) {
@@ -146,43 +147,37 @@ class ProductController extends Controller
         }
 
         DB::transaction(function () use ($request) {
-            $productData = $request->except(['components', 'color_variants', 'default_quantity']);
-            $productData['minimum_threshold'] = $request->input('minimum_threshold', 0);
-            
+            $productData = $request->except(['components', 'color_variants', 'default_quantity', 'minimum_threshold']);
             if (empty($productData['hsn_code'])) {
                 $productData['hsn_code'] = null;
             }
-            
             $productData['color'] = null;
             $productData['quantity'] = 0;
-            
             $product = Product::create($productData);
-
             if ($request->boolean('is_composite') && $request->has('components')) {
                 foreach ($request->components as $componentData) {
                     $product->components()->create($componentData);
                 }
             }
-
             $colorVariants = $request->color_variants ?: [];
             if (empty($colorVariants) && $request->filled('default_quantity') && $request->default_quantity > 0) {
                 $colorVariants[] = [
                     'color' => 'No Color',
                     'quantity' => $request->default_quantity,
+                    'minimum_threshold' => 0
                 ];
             }
-
             foreach ($colorVariants as $variant) {
                 if ($variant['quantity'] > 0) {
                     $color = !empty($variant['color']) ? $variant['color'] : 'No Color';
-                    
+                    $minThreshold = $variant['minimum_threshold'];
                     $colorVariant = $product->colorVariants()->create([
                         'color' => $color,
                         'quantity' => 0,
                         'color_id' => $variant['color_id'] ?? null,
-                        'color_usage_grams' => $variant['color_usage_grams'] ?? 0
+                        'color_usage_grams' => $variant['color_usage_grams'] ?? 0,
+                        'minimum_threshold' => $minThreshold
                     ]);
-                    
                     try {
                         $this->stockService->inwardColorVariantStock(
                             $colorVariant, 
@@ -235,7 +230,7 @@ class ProductController extends Controller
             'category_id' => 'required|exists:categories,id',
             'subcategory_id' => 'required|exists:subcategories,id',
             'price' => 'required|numeric|min:0',
-            'minimum_threshold' => 'required|integer|min:0',
+            // Removed product-level minimum_threshold
             'is_composite' => 'boolean',
             'components' => 'nullable|array',
             'components.*.component_product_id' => 'required_if:is_composite,1|exists:products,id',
@@ -271,67 +266,50 @@ class ProductController extends Controller
         }
 
         DB::transaction(function () use ($request, $product) {
-            $productData = $request->except(['components', 'color_variants']);
-            $productData['minimum_threshold'] = $request->input('minimum_threshold', 0);
-            
+            $productData = $request->except(['components', 'color_variants', 'minimum_threshold']);
             if (empty($productData['hsn_code'])) {
                 $productData['hsn_code'] = null;
             }
-            
             $productData['color'] = null;
             $productData['quantity'] = 0;
-            
             $originalData = $product->toArray();
             $product->update($productData);
-
             try {
-                // Update components (only structure, not stock)
                 $product->components()->delete();
                 if ($request->boolean('is_composite') && $request->has('components')) {
                     foreach ($request->components as $componentData) {
                         $product->components()->create($componentData);
                     }
                 }
-
-                // Update color variants without re-deducting stock
                 if ($request->has('color_variants')) {
-                    // Store existing variants for comparison
                     $existingVariants = $product->colorVariants()->get()->keyBy('color');
                     $newVariants = collect($request->color_variants);
-                    
-                    // Delete variants that are no longer needed
                     foreach ($existingVariants as $existingVariant) {
                         $found = $newVariants->firstWhere('color', $existingVariant->color);
                         if (!$found) {
                             $existingVariant->delete();
                         }
                     }
-                    
-                    // Update or create variants
                     foreach ($request->color_variants as $variant) {
                         if ($variant['quantity'] > 0) {
                             $color = !empty($variant['color']) ? $variant['color'] : 'No Color';
+                            $minThreshold = $variant['minimum_threshold'];
                             $existingVariant = $existingVariants->get($color);
-                            
                             if ($existingVariant) {
-                                // Update existing variant (only metadata, not stock)
                                 $existingVariant->update([
                                     'color_id' => $variant['color_id'] ?? null,
-                                    'color_usage_grams' => $variant['color_usage_grams'] ?? 0
+                                    'color_usage_grams' => $variant['color_usage_grams'] ?? 0,
+                                    'minimum_threshold' => $minThreshold
                                 ]);
-                                
-                                // Only adjust stock if quantity changed
                                 $quantityDiff = $variant['quantity'] - $existingVariant->quantity;
                                 if ($quantityDiff != 0) {
                                     if ($quantityDiff > 0) {
-                                        // Increase stock - this will deduct components/colors
                                         $this->stockService->inwardColorVariantStock(
                                             $existingVariant,
                                             $quantityDiff,
                                             'Stock increase during product edit'
                                         );
                                     } else {
-                                        // Decrease stock - this will return components/colors
                                         $this->stockService->outwardColorVariantStockSaleOnly(
                                             $existingVariant,
                                             abs($quantityDiff),
@@ -340,12 +318,12 @@ class ProductController extends Controller
                                     }
                                 }
                             } else {
-                                // Create new variant - this will deduct components/colors
                                 $colorVariant = $product->colorVariants()->create([
                                     'color' => $color,
                                     'quantity' => 0,
                                     'color_id' => $variant['color_id'] ?? null,
-                                    'color_usage_grams' => $variant['color_usage_grams'] ?? 0
+                                    'color_usage_grams' => $variant['color_usage_grams'] ?? 0,
+                                    'minimum_threshold' => $minThreshold
                                 ]);
                                 $this->stockService->inwardColorVariantStock(
                                     $colorVariant,

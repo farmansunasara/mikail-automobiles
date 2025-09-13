@@ -8,14 +8,14 @@ return new class extends Migration {
     public function up()
     {
         Schema::table('products', function (Blueprint $table) {
-            $table->integer('minimum_threshold')->default(0)->after('quantity');
+            // Removed product-level minimum_threshold
         });
     }
 
     public function down()
     {
         Schema::table('products', function (Blueprint $table) {
-            $table->dropColumn('minimum_threshold');
+            // Removed product-level minimum_threshold
         });
     }
 };

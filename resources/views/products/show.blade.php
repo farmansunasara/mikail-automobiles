@@ -51,6 +51,7 @@
                                             @endphp
                                             <span class="badge {{ $colorClass }} mr-2 mb-1">
                                                 {{ ucfirst($variant->color) }}: {{ $variant->quantity }} pcs
+                                                <span style="font-size:0.9em; color:inherit;">(Min: {{ $variant->minimum_threshold }})</span>
                                             </span>
                                         @endforeach
                                     </div>
@@ -74,8 +75,7 @@
                                     <span class="badge badge-info">Simple</span>
                                 @endif
                             </dd>
-                            <dt>GST Information</dt>
-                            <dd><small class="text-muted">GST Rate is now managed at invoice level</small></dd>
+                            
                         </dl>
                     </div>
                 </div>

@@ -12,12 +12,14 @@ class ProductColorVariant extends Model
         'color',
         'quantity',
         'color_id',
-        'color_usage_grams'
+        'color_usage_grams',
+        'minimum_threshold',
     ];
 
     protected $casts = [
         'quantity' => 'integer',
-        'color_usage_grams' => 'decimal:2'
+        'color_usage_grams' => 'decimal:2',
+        'minimum_threshold' => 'integer',
     ];
 
     public function product(): BelongsTo

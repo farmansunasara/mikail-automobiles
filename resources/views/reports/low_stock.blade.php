@@ -11,7 +11,7 @@
 @section('content')
 <div class="card">
     <div class="card-header">
-        <h3 class="card-title">Low Stock Products (Below Minimum Threshold)</h3>
+    <h3 class="card-title">Low Stock Color Variants (Below Minimum Threshold)</h3>
         <div class="card-tools">
             <a href="{{ route('reports.export.low-stock') }}" class="btn btn-success ml-2" title="Export to CSV" data-toggle="tooltip">
                 <i class="fas fa-download"></i> Export CSV
@@ -28,6 +28,7 @@
                         <x-sortable-header column="color" label="Color" />
                         <th>Category</th>
                         <x-sortable-header column="quantity" label="Current Quantity" />
+                        <th>Min Threshold</th>
                         <th>Action</th>
                     </tr>
                 </thead>
@@ -43,6 +44,7 @@
                         </td>
                         <td>{{ $variant->product->category->name }}</td>
                         <td><span class="badge badge-danger">{{ $variant->quantity }}</span></td>
+                        <td>{{ $variant->minimum_threshold }}</td>
                         <td>
                             <a href="{{ route('stock.index') }}" class="btn btn-sm btn-success">Update Stock</a>
                         </td>

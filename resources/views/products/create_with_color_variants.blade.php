@@ -163,14 +163,7 @@
                         @error('name') <span class="invalid-feedback">{{ $message }}</span> @enderror
                     </div>
                 </div>
-                <div class="col-md-6">
-                    <div class="form-group">
-                        <label for="minimum_threshold">Minimum Threshold (Reorder Level) <span class="text-danger">*</span></label>
-                        <input type="number" name="minimum_threshold" id="minimum_threshold" class="form-control @error('minimum_threshold') is-invalid @enderror" value="{{ old('minimum_threshold', 0) }}" min="0" required>
-                        <small class="form-text text-muted">Set the minimum stock level at which you want to be alerted for low stock.</small>
-                        @error('minimum_threshold') <span class="invalid-feedback">{{ $message }}</span> @enderror
-                    </div>
-                </div>
+              
                 <div class="col-md-6">
                     <div class="form-group">
                         <label for="price">Price (₹) *</label>
@@ -221,6 +214,10 @@
                                 <input type="number" id="default-quantity" class="form-control" placeholder="Enter quantity for product without specific color" min="0" value="0">
                                 <small class="form-text text-muted">Leave as 0 if you want to add specific colors below</small>
                             </div>
+                            <div class="col-md-6">
+                                <input type="number" id="default-minimum-threshold" class="form-control" placeholder="Minimum threshold for no color" min="0" value="0">
+                                <small class="form-text text-muted">Set minimum threshold for default (no color) quantity</small>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -246,11 +243,15 @@
                             <input type="number" id="new-quantity" class="form-control" placeholder="Enter quantity" min="0">
                             <small class="form-text text-muted">Product quantity</small>
                         </div>
-                        <div class="col-md-3">
+                        <div class="col-md-2">
                             <input type="number" id="color-usage-grams" class="form-control" placeholder="Color usage (grams)" min="0" step="0.01">
                             <small class="form-text text-muted">Grams per unit</small>
                         </div>
-                        <div class="col-md-3">
+                        <div class="col-md-2">
+                            <input type="number" id="color-minimum-threshold" class="form-control" placeholder="Min threshold" min="0">
+                            <small class="form-text text-muted">Min threshold</small>
+                        </div>
+                        <div class="col-md-2">
                             <button type="button" class="btn btn-success" id="add-color-btn">
                                 <i class="fas fa-plus"></i> Add Color
                             </button>
@@ -449,6 +450,7 @@ $(document).ready(function() {
         const colorName = selectedColorName || $('#color-search').val().trim();
         const quantity = parseInt($('#new-quantity').val()) || 0;
         const colorUsageGrams = parseFloat($('#color-usage-grams').val()) || 0;
+        const minimumThreshold = parseInt($('#color-minimum-threshold').val()) || 0;
         
         if (!colorName) {
             alert('Please search and select a color or enter a custom color name');
@@ -477,13 +479,14 @@ $(document).ready(function() {
             return;
         }
         
-        addColorVariant(colorName, quantity, selectedColorId, colorUsageGrams);
+        addColorVariant(colorName, quantity, selectedColorId, colorUsageGrams, minimumThreshold);
         
         // Clear the form
         $('#color-search').val('');
         $('#color-dropdown').hide();
         $('#new-quantity').val('');
         $('#color-usage-grams').val('');
+        $('#color-minimum-threshold').val('');
         selectedColorId = null;
         selectedColorName = '';
     });
@@ -495,7 +498,7 @@ $(document).ready(function() {
         }
     });
     
-    function addColorVariant(color, quantity, colorId = null, colorUsageGrams = 0) {
+    function addColorVariant(color, quantity, colorId = null, colorUsageGrams = 0, minimumThreshold = 0) {
         if (!color) {
             alert('Please enter a color name');
             return false;
@@ -524,7 +527,7 @@ $(document).ready(function() {
                 <div class="color-badge" style="${colorStyle}">${color}</div>
                 <div class="flex-grow-1">
                     <div class="row">
-                        <div class="col-md-4">
+                        <div class="col-md-3">
                             <input type="hidden" name="color_variants[${colorVariantIndex}][color]" value="${color}">
                             ${colorIdInput}
                             <input type="hidden" name="color_variants[${colorVariantIndex}][color_usage_grams]" value="${colorUsageGrams}">
@@ -542,7 +545,14 @@ $(document).ready(function() {
                                    class="form-control" value="${colorUsageGrams}" min="0" step="0.01" readonly>
                             <small class="text-muted">grams per unit</small>
                         </div>
-                        <div class="col-md-2">
+                        <div class="col-md-3">
+                            <label>Min Threshold:</label>
+                            <input type="number" name="color_variants[${colorVariantIndex}][minimum_threshold]" 
+                                   class="form-control" value="${minimumThreshold}" min="0">
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-12 text-right">
                             <button type="button" class="remove-color-btn" onclick="removeColorVariant(this)" title="Remove Color">
                                 <i class="fas fa-times"></i>
                             </button>
@@ -723,6 +733,7 @@ $(document).ready(function() {
         const $submitBtn = $(this);
         const colorVariants = $('.color-variant-item').length;
         const defaultQuantity = parseInt($('#default-quantity').val()) || 0;
+        const defaultMinThreshold = parseInt($('#default-minimum-threshold').val()) || 0;
         const name = $('#name').val().trim();
         const price = $('#price').val();
         const categoryId = $('#category_id').val();
@@ -741,10 +752,10 @@ $(document).ready(function() {
 
         // Show loader only after validation passes
         showLoader();
-        
-        // If using default quantity, add "No Color" variant
+
+        // If using default quantity, add "No Color" variant with threshold
         if (colorVariants === 0 && defaultQuantity > 0) {
-            addColorVariant('No Color', defaultQuantity);
+            addColorVariant('No Color', defaultQuantity, null, 0, defaultMinThreshold);
         }
 
         // All validations passed, prepare for submission
