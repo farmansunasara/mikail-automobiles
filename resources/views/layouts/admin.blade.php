@@ -495,6 +495,119 @@ function showChartLoader($chartContainer) {
 function hideChartLoader($chartContainer) {
     $chartContainer.find('.chart-loader').remove();
 }
+
+// Enhanced Alert and Confirm System for Order Management
+function showOrderAlert(type, title, message, confirmCallback = null) {
+    const icons = {
+        'success': 'success',
+        'error': 'error', 
+        'warning': 'warning',
+        'info': 'info',
+        'confirm': 'question'
+    };
+    
+    const colors = {
+        'success': '#28a745',
+        'error': '#dc3545',
+        'warning': '#ffc107',
+        'info': '#17a2b8',
+        'confirm': '#007bff'
+    };
+
+    if (typeof Swal !== 'undefined') {
+        if (type === 'confirm') {
+            Swal.fire({
+                title: title,
+                text: message,
+                icon: icons[type],
+                showCancelButton: true,
+                confirmButtonColor: colors[type],
+                cancelButtonColor: '#6c757d',
+                confirmButtonText: 'Yes, proceed',
+                cancelButtonText: 'No, cancel',
+                reverseButtons: true,
+                focusCancel: true
+            }).then((result) => {
+                if (result.isConfirmed && confirmCallback) {
+                    confirmCallback();
+                }
+            });
+        } else {
+            Swal.fire({
+                title: title,
+                text: message,
+                icon: icons[type],
+                confirmButtonColor: colors[type],
+                timer: type === 'success' ? 3000 : null,
+                timerProgressBar: type === 'success'
+            });
+        }
+    } else {
+        // Fallback to native alerts if SweetAlert2 is not loaded
+        if (type === 'confirm') {
+            if (confirm(title + '\n\n' + message) && confirmCallback) {
+                confirmCallback();
+            }
+        } else {
+            alert(title + '\n\n' + message);
+        }
+    }
+}
+
+// Specific order management alerts
+function showOrderSuccess(message) {
+    showOrderAlert('success', 'Success!', message);
+}
+
+function showOrderError(message) {
+    showOrderAlert('error', 'Error!', message);
+}
+
+function showOrderWarning(message) {
+    showOrderAlert('warning', 'Warning!', message);
+}
+
+function showOrderInfo(message) {
+    showOrderAlert('info', 'Information', message);
+}
+
+function confirmOrderAction(title, message, callback) {
+    showOrderAlert('confirm', title, message, callback);
+}
+
+// Specific confirmations for order operations
+function confirmOrderCancellation(orderNumber, callback) {
+    const message = `Are you sure you want to cancel order #${orderNumber}?\n\nThis action cannot be undone and will:\n• Cancel the order permanently\n• Cancel all related manufacturing requirements\n• Release any reserved stock`;
+    confirmOrderAction('Cancel Order', message, callback);
+}
+
+function confirmOrderDeletion(orderNumber, callback) {
+    const message = `Are you sure you want to delete order #${orderNumber}?\n\nThis action cannot be undone and will permanently remove all order data.`;
+    confirmOrderAction('Delete Order', message, callback);
+}
+
+function confirmInvoiceGeneration(orderNumber, callback) {
+    const message = `Generate invoice for order #${orderNumber}?\n\nThis will:\n• Create an official invoice\n• Deduct stock quantities\n• Mark the order as completed\n• Cannot be reversed`;
+    confirmOrderAction('Generate Invoice', message, callback);
+}
+
+function showStockWarning(stockWarnings, callback) {
+    let message = 'Stock shortage detected for the following items:\n\n';
+    stockWarnings.forEach(warning => {
+        message += `• ${warning}\n`;
+    });
+    message += '\nManufacturing requirements will be generated for these items.\n\nDo you want to continue?';
+    
+    confirmOrderAction('Stock Shortage Warning', message, callback);
+}
+
+function showValidationErrors(errors) {
+    let message = 'Please fix the following errors:\n\n';
+    errors.forEach(error => {
+        message += `• ${error}\n`;
+    });
+    showOrderError(message);
+}
 </script>
 
 @stack('scripts')

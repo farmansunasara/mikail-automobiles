@@ -4,9 +4,11 @@ namespace App\Services;
 
 use App\Models\Invoice;
 use App\Models\InvoiceItem;
+use App\Models\Order;
 use App\Models\ProductColorVariant;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Log;
 
 class InvoiceService
 {
@@ -61,6 +63,21 @@ class InvoiceService
             // 6. Bulk update stock
             $this->updateStock($invoiceItems);
 
+            // 7. Update order status if invoice was created from an order
+            if (isset($data['order_id']) && $data['order_id']) {
+                $order = Order::find($data['order_id']);
+                if ($order && $order->status === 'pending') {
+                    $order->update(['status' => 'completed']);
+                    
+                    Log::info('Order status updated to COMPLETED via GST invoice creation', [
+                        'order_id' => $order->id,
+                        'order_number' => $order->order_number,
+                        'invoice_id' => $invoice->id,
+                        'invoice_number' => $invoice->invoice_number
+                    ]);
+                }
+            }
+
             return $invoice;
         });
     }
@@ -101,6 +118,21 @@ class InvoiceService
 
             $this->createInvoiceItems($invoice, $invoiceItems, 0);
             $this->updateStock($invoiceItems);
+
+            // Update order status if invoice was created from an order
+            if (isset($data['order_id']) && $data['order_id']) {
+                $order = Order::find($data['order_id']);
+                if ($order && $order->status === 'pending') {
+                    $order->update(['status' => 'completed']);
+                    
+                    Log::info('Order status updated to COMPLETED via Non-GST invoice creation', [
+                        'order_id' => $order->id,
+                        'order_number' => $order->order_number,
+                        'invoice_id' => $invoice->id,
+                        'invoice_number' => $invoice->invoice_number
+                    ]);
+                }
+            }
 
             return $invoice;
         });

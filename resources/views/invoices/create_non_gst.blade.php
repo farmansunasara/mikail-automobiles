@@ -425,13 +425,15 @@
                     <div class="col-md-3 col-sm-6">
                         <div class="form-group">
                             <label for="invoice_date">Invoice Date</label>
-                            <input type="date" name="invoice_date" class="form-control" value="{{ date('Y-m-d') }}" required>
+                            <input type="date" name="invoice_date" class="form-control" 
+                                   value="{{ isset($orderData) ? $orderData['invoice_date'] : date('Y-m-d') }}" required>
                         </div>
                     </div>
                     <div class="col-md-3 col-sm-6">
                         <div class="form-group">
                             <label for="due_date">Due Date</label>
-                            <input type="date" name="due_date" class="form-control" value="{{ date('Y-m-d', strtotime('+30 days')) }}">
+                            <input type="date" name="due_date" class="form-control" 
+                                   value="{{ isset($orderData) ? $orderData['due_date'] : date('Y-m-d', strtotime('+30 days')) }}">
                         </div>
                     </div>
                     <div class="col-md-3 col-sm-6">
@@ -443,9 +445,9 @@
                                     @foreach($customers as $customer)
                                         <option value="{{ $customer->id }}" 
                                                 data-address="{{ $customer->address }}" 
-                                                data-gstin="{{ $customer->gstin }}"
                                                 data-mobile="{{ $customer->mobile }}"
-                                                data-email="{{ $customer->email }}">
+                                                data-email="{{ $customer->email }}"
+                                                {{ isset($orderData) && $orderData['customer_id'] == $customer->id ? 'selected' : '' }}>
                                             {{ $customer->name }}
                                         </option>
                                     @endforeach
@@ -466,14 +468,14 @@
                         <div id="customer-details" style="display: none;">
                             <div class="alert alert-info">
                                 <strong>Address:</strong> <span id="cust-address"></span><br>
-                                <strong>GSTIN:</strong> <span id="cust-gstin"></span>
+                                <strong>Mobile:</strong> <span id="cust-mobile"></span>
                             </div>
                         </div>
                     </div>
                     <div class="col-md-6">
                         <div class="form-group">
                             <label for="notes">Notes</label>
-                            <textarea name="notes" class="form-control" rows="3" placeholder="Additional notes..."></textarea>
+                            <textarea name="notes" class="form-control" rows="3" placeholder="Additional notes...">{{ isset($orderData) ? $orderData['notes'] : '' }}</textarea>
                         </div>
                     </div>
                 </div>
@@ -628,8 +630,8 @@
                         </div>
                         <div class="col-md-6">
                             <div class="form-group">
-                                <label for="customer_gstin">GSTIN</label>
-                                <input type="text" class="form-control" id="customer_gstin" name="gstin">
+                                <label for="customer_state">State</label>
+                                <input type="text" class="form-control" id="customer_state" name="state">
                                 <div class="invalid-feedback"></div>
                             </div>
                         </div>
@@ -701,7 +703,7 @@ $(document).ready(function() {
         const selected = $(this).find('option:selected');
         if (selected.val()) {
             $('#cust-address').text(selected.data('address') || '');
-            $('#cust-gstin').text(selected.data('gstin') || '');
+            $('#cust-mobile').text(selected.data('mobile') || '');
             $('#customer-details').show();
             updateProgress();
             saveDraftData();
@@ -1236,7 +1238,6 @@ $(document).ready(function() {
             name: $('#customer_name').val(),
             mobile: $('#customer_mobile').val(),
             email: $('#customer_email').val(),
-            gstin: $('#customer_gstin').val(),
             address: $('#customer_address').val(),
             state: $('#customer_state').val(),
             _token: $('meta[name="csrf-token"]').attr('content') || ''
@@ -1261,7 +1262,6 @@ $(document).ready(function() {
                     );
                     
                     $(newOption).attr('data-address', response.customer.address);
-                    $(newOption).attr('data-gstin', response.customer.gstin);
                     $(newOption).attr('data-mobile', response.customer.mobile);
                     $(newOption).attr('data-email', response.customer.email);
                     
@@ -1385,6 +1385,7 @@ $(document).ready(function() {
     });
     
     loadDraftData();
+    loadOrderData();
     updateProgress();
     
     addNewItem();
@@ -1392,6 +1393,106 @@ $(document).ready(function() {
     $('input, select, textarea').on('change keyup', function() {
         saveDraftData();
     });
+    
+    // Load order data if available
+    function loadOrderData() {
+        @if(isset($orderData) && $orderData)
+            const orderData = @json($orderData);
+            console.log('Loading order data:', orderData);
+            
+            // Clear any existing items
+            $('#items-tbody').empty();
+            itemIndex = 0;
+            
+            // Load order items
+            if (orderData.items && orderData.items.length > 0) {
+                orderData.items.forEach(function(item, index) {
+                    console.log(`Loading item ${index}:`, item);
+                    addNewItem();
+                    const $row = $('#items-tbody tr:last');
+                    
+                    // Set category
+                    console.log(`Setting category ${item.category_id} for item ${index}`);
+                    $row.find('.category-select').val(item.category_id).trigger('change');
+                    
+                    // Wait for products to load, then set product
+                    setTimeout(function() {
+                        console.log(`Setting product ${item.product_id} for item ${index}`);
+                        console.log('Available products in dropdown:', $row.find('.product-select option').length);
+                        console.log('Product options:', $row.find('.product-select option').map(function() { return $(this).val() + ': ' + $(this).text(); }).get());
+                        
+                        // Check if the product exists in the dropdown
+                        const productExists = $row.find('.product-select option[value="' + item.product_id + '"]').length > 0;
+                        console.log('Product exists in dropdown:', productExists);
+                        
+                        if (productExists) {
+                            $row.find('.product-select').val(item.product_id).trigger('change');
+                        } else {
+                            console.log('Product not found in dropdown, retrying...');
+                            // Retry after a longer delay
+                            setTimeout(function() {
+                                console.log('Retry: Setting product', item.product_id);
+                                $row.find('.product-select').val(item.product_id).trigger('change');
+                            }, 1000);
+                        }
+                        
+                        // Wait for variants to load, then set quantities
+                        setTimeout(function() {
+                            console.log(`Checking if variants loaded for item ${index}`);
+                            console.log('Available hidden inputs:', $row.find('input[type="hidden"]').length);
+                            console.log('Available quantity inputs:', $row.find('input[type="number"]').length);
+                            if (item.variants && item.variants.length > 0) {
+                                console.log(`Setting variants for item ${index}:`, item.variants);
+                                
+                                // Function to set quantities with retry mechanism
+                                function setQuantities(retryCount = 0) {
+                                    let allFound = true;
+                                    
+                                    item.variants.forEach(function(variant) {
+                                        // Find the quantity input by looking for the hidden input with the variant ID
+                                        const $hiddenInput = $row.find(`input[type="hidden"][value="${variant.product_id}"]`);
+                                        console.log(`Looking for variant ${variant.product_id}, found:`, $hiddenInput.length);
+                                        
+                                        if ($hiddenInput.length) {
+                                            const $quantityInput = $hiddenInput.siblings('input[type="number"]');
+                                            console.log(`Setting quantity ${variant.quantity} for variant ${variant.product_id}`);
+                                            if ($quantityInput.length) {
+                                                $quantityInput.val(variant.quantity);
+                                            }
+                                        } else {
+                                            allFound = false;
+                                        }
+                                    });
+                                    
+                                    // If not all variants found and we haven't exceeded retry limit, try again
+                                    if (!allFound && retryCount < 5) {
+                                        console.log(`Retrying to find variants (attempt ${retryCount + 1})`);
+                                        setTimeout(function() {
+                                            setQuantities(retryCount + 1);
+                                        }, 500);
+                                    } else if (!allFound) {
+                                        console.log('Could not find all variants after retries');
+                                    }
+                                }
+                                
+                                setQuantities();
+                            }
+                            
+                            // Set price
+                            $row.find('.price-input').val(item.price);
+                            
+                            updateTotals();
+                        }, 1500);
+                    }, 1000);
+                });
+            }
+            
+            // Show customer details if customer is selected
+            if (orderData.customer_id) {
+                $('#customer_id').trigger('change');
+            }
+        @endif
+    }
 });
 </script>
 @endpush
