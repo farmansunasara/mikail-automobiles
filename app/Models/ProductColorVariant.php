@@ -32,6 +32,16 @@ class ProductColorVariant extends Model
         return $this->belongsTo(Color::class, 'color_id');
     }
 
+    public function orderItems(): HasMany
+    {
+        return $this->hasMany(OrderItem::class, 'color_variant_id');
+    }
+
+    public function manufacturingRequirements(): HasMany
+    {
+        return $this->hasMany(ManufacturingRequirement::class, 'color_variant_id');
+    }
+
     // Check if variant has sufficient stock
     public function hasSufficientStock(int $requiredQuantity): bool
     {

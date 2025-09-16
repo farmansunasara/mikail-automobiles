@@ -56,6 +56,11 @@ class Invoice extends Model
         return $this->hasMany(InvoiceItem::class);
     }
 
+    public function order(): BelongsTo
+    {
+        return $this->belongsTo(Order::class);
+    }
+
     public function getTotalTaxAttribute(): float
     {
         return $this->cgst + $this->sgst;

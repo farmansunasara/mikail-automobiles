@@ -52,10 +52,12 @@ class Product extends Model
         return $this->hasMany(OrderItem::class);
     }
 
-    public function stockReservations(): HasMany
+    public function manufacturingRequirements(): HasMany
     {
-        return $this->hasMany(StockReservation::class);
+        return $this->hasMany(ManufacturingRequirement::class);
     }
+
+    
 
     public function colorVariants(): HasMany
     {

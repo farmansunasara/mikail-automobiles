@@ -92,6 +92,22 @@ Route::middleware('auth')->group(function () {
     Route::get('/invoices/{invoice}/payment-history', [InvoiceController::class, 'paymentHistory'])->name('invoices.payment-history');
     Route::delete('/invoices/{invoice}', [InvoiceController::class, 'destroy'])->name('invoices.destroy');
     
+    // Orders Management
+    Route::resource('orders', \App\Http\Controllers\OrderController::class);
+    Route::get('/orders/{order}/generate-invoice', [\App\Http\Controllers\OrderController::class, 'generateInvoice'])->name('orders.generate-invoice');
+    Route::delete('/orders/{order}/cancel', [\App\Http\Controllers\OrderController::class, 'cancel'])->name('orders.cancel');
+    Route::get('/api/orders/product-variants', [\App\Http\Controllers\OrderController::class, 'getProductVariants'])->name('orders.product-variants');
+    Route::get('/api/orders/stock-availability', [\App\Http\Controllers\OrderController::class, 'getStockAvailability'])->name('orders.stock-availability');
+    
+    // Manufacturing Requirements (Simplified Dynamic System)
+    Route::get('/manufacturing/requirements', [\App\Http\Controllers\ManufacturingRequirementController::class, 'index'])->name('manufacturing.requirements.index');
+    Route::post('/manufacturing/requirements/add-stock', [\App\Http\Controllers\ManufacturingRequirementController::class, 'addStock'])->name('manufacturing.requirements.add-stock');
+    Route::post('/manufacturing/requirements/add-component-stock', [\App\Http\Controllers\ManufacturingRequirementController::class, 'addComponentStock'])->name('manufacturing.requirements.add-component-stock');
+    Route::get('/api/manufacturing/requirements-data', [\App\Http\Controllers\ManufacturingRequirementController::class, 'getRequirementsData'])->name('manufacturing.requirements.data');
+    Route::get('/api/manufacturing/ready-orders', [\App\Http\Controllers\ManufacturingRequirementController::class, 'getReadyOrders'])->name('manufacturing.ready-orders');
+    Route::get('/api/manufacturing/assembly-preview', [\App\Http\Controllers\ManufacturingRequirementController::class, 'getAssemblyPreview'])->name('manufacturing.assembly-preview');
+    Route::get('/api/manufacturing/component-colors', [\App\Http\Controllers\ManufacturingRequirementController::class, 'getComponentColors'])->name('manufacturing.component-colors');
+    
     // Reports
     Route::get('/reports', [ReportController::class, 'index'])->name('reports.index');
     Route::get('/reports/low-stock', [ReportController::class, 'lowStock'])->name('reports.low-stock');

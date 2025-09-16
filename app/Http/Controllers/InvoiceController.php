@@ -59,7 +59,7 @@ class InvoiceController extends Controller
         return view('invoices.index', compact('invoices', 'customers'))->with('invoice_type', 'gst');
     }
 
-    public function createGst()
+    public function createGst(Request $request)
     {
         $customers = Customer::orderBy('name')->get();
         $categories = \App\Models\Category::orderBy('name')->get();
@@ -68,7 +68,47 @@ class InvoiceController extends Controller
             ->orderBy('name')
             ->pluck('name');
         $invoice_number = Invoice::generateInvoiceNumber();
-        return view('invoices.create_optimized', compact('customers', 'productNames', 'invoice_number', 'categories'))->with('invoice_type', 'gst');
+        
+        // Check if order_id is provided for pre-filling
+        $order = null;
+        $orderData = null;
+        if ($request->has('order_id')) {
+            $order = \App\Models\Order::with(['customer', 'items.product.category', 'items.colorVariant'])->find($request->order_id);
+            if ($order) {
+                // Group order items by product_id
+                $groupedItems = $order->items->groupBy('product_id');
+                $items = [];
+                
+                foreach ($groupedItems as $productId => $orderItems) {
+                    $firstItem = $orderItems->first();
+                    $variants = [];
+                    
+                    foreach ($orderItems as $orderItem) {
+                        $variants[] = [
+                            'product_id' => $orderItem->color_variant_id,
+                            'quantity' => $orderItem->quantity
+                        ];
+                    }
+                    
+                    $items[] = [
+                        'product_id' => $productId,
+                        'category_id' => $firstItem->product->category_id,
+                        'price' => $firstItem->price,
+                        'variants' => $variants
+                    ];
+                }
+                
+                $orderData = [
+                    'customer_id' => $order->customer_id,
+                    'invoice_date' => now()->toDateString(),
+                    'due_date' => now()->addDays(30)->toDateString(),
+                    'notes' => "Generated from Order #{$order->order_number}",
+                    'items' => $items
+                ];
+            }
+        }
+        
+        return view('invoices.create_optimized', compact('customers', 'productNames', 'invoice_number', 'categories', 'order', 'orderData'))->with('invoice_type', 'gst');
     }
 
     public function storeGst(Request $request)
@@ -153,7 +193,7 @@ class InvoiceController extends Controller
         return view('invoices.index_non_gst', compact('invoices', 'customers'))->with('invoice_type', 'non_gst');
     }
 
-    public function createNonGst()
+    public function createNonGst(Request $request)
     {
         $customers = Customer::orderBy('name')->get();
         $categories = \App\Models\Category::orderBy('name')->get();
@@ -162,7 +202,47 @@ class InvoiceController extends Controller
             ->orderBy('name')
             ->pluck('name');
         $invoice_number = Invoice::generateInvoiceNumber();
-        return view('invoices.create_non_gst', compact('customers', 'productNames', 'invoice_number', 'categories'))->with('invoice_type', 'non_gst');
+        
+        // Check if order_id is provided for pre-filling
+        $order = null;
+        $orderData = null;
+        if ($request->has('order_id')) {
+            $order = \App\Models\Order::with(['customer', 'items.product.category', 'items.colorVariant'])->find($request->order_id);
+            if ($order) {
+                // Group order items by product_id
+                $groupedItems = $order->items->groupBy('product_id');
+                $items = [];
+                
+                foreach ($groupedItems as $productId => $orderItems) {
+                    $firstItem = $orderItems->first();
+                    $variants = [];
+                    
+                    foreach ($orderItems as $orderItem) {
+                        $variants[] = [
+                            'product_id' => $orderItem->color_variant_id,
+                            'quantity' => $orderItem->quantity
+                        ];
+                    }
+                    
+                    $items[] = [
+                        'product_id' => $productId,
+                        'category_id' => $firstItem->product->category_id,
+                        'price' => $firstItem->price,
+                        'variants' => $variants
+                    ];
+                }
+                
+                $orderData = [
+                    'customer_id' => $order->customer_id,
+                    'invoice_date' => now()->toDateString(),
+                    'due_date' => now()->addDays(30)->toDateString(),
+                    'notes' => "Generated from Order #{$order->order_number}",
+                    'items' => $items
+                ];
+            }
+        }
+        
+        return view('invoices.create_non_gst', compact('customers', 'productNames', 'invoice_number', 'categories', 'order', 'orderData'));
     }
 
     public function storeNonGst(Request $request)
