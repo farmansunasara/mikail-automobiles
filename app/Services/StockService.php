@@ -778,4 +778,177 @@ class StockService
         $requiredColorGrams = $colorVariant->color_usage_grams * $quantity;
         return $colorVariant->colorModel->hasSufficientStock($requiredColorGrams);
     }
+
+    /**
+     * Handle outward stock movement for color variant with proper restoration.
+     * This method restores components and colors when reducing stock of composite products.
+     *
+     * @param ProductColorVariant $colorVariant
+     * @param int $quantity
+     * @param string|null $notes
+     * @return void
+     * @throws Exception
+     */
+    public function outwardColorVariantStockWithRestoration(ProductColorVariant $colorVariant, int $quantity, ?string $notes = null): void
+    {
+        Log::channel('stock')->info('STARTING OUTWARD STOCK WITH RESTORATION', [
+            'variant_id' => $colorVariant->id,
+            'product_id' => $colorVariant->product->id,
+            'product_name' => $colorVariant->product->name,
+            'is_composite' => $colorVariant->product->is_composite,
+            'color' => $colorVariant->color,
+            'initial_qty' => $colorVariant->quantity,
+            'decrement_by' => $quantity
+        ]);
+
+        DB::beginTransaction();
+        try {
+            // For composite products, restore components first
+            if ($colorVariant->product->is_composite) {
+                $this->restoreComponentsForStockReduction($colorVariant, $quantity, $notes);
+            }
+
+            // Remove stock from the color variant
+            $this->handleSimpleColorVariantOutward($colorVariant, $quantity, $notes);
+
+            // Restore color stock if applicable
+            if ($colorVariant->colorModel && $colorVariant->color_usage_grams > 0) {
+                $this->restoreColorStock($colorVariant, $quantity, $notes);
+            }
+
+            DB::commit();
+            Log::channel('stock')->info('OUTWARD STOCK WITH RESTORATION COMPLETED', [
+                'variant_id' => $colorVariant->id,
+                'final_quantity' => $colorVariant->quantity
+            ]);
+
+        } catch (Exception $e) {
+            DB::rollBack();
+            Log::channel('stock')->error('OUTWARD STOCK WITH RESTORATION FAILED', [
+                'variant_id' => $colorVariant->id,
+                'error' => $e->getMessage()
+            ]);
+            throw $e;
+        }
+    }
+
+    /**
+     * Restore components when reducing stock of a composite product.
+     *
+     * @param ProductColorVariant $colorVariant
+     * @param int $quantity
+     * @param string|null $notes
+     * @return void
+     * @throws Exception
+     */
+    protected function restoreComponentsForStockReduction(ProductColorVariant $colorVariant, int $quantity, ?string $notes = null): void
+    {
+        $product = $colorVariant->product;
+
+        Log::channel('stock')->info('STARTING COMPONENT RESTORATION', [
+            'product_id' => $product->id,
+            'product_name' => $product->name,
+            'color_variant_id' => $colorVariant->id,
+            'color' => $colorVariant->color,
+            'quantity_to_restore' => $quantity,
+            'components_count' => $product->components->count()
+        ]);
+
+        foreach ($product->components as $component) {
+            $restoreQuantity = $component->quantity_needed * $quantity;
+            
+            Log::channel('stock')->info('RESTORING COMPONENT STOCK', [
+                'component_product_id' => $component->componentProduct->id,
+                'component_name' => $component->componentProduct->name,
+                'restore_quantity' => $restoreQuantity
+            ]);
+            
+            $this->restoreToComponentColorVariants(
+                $component->componentProduct,
+                $restoreQuantity,
+                "Component restored from stock reduction of {$product->name} ({$colorVariant->color}). {$notes}"
+            );
+        }
+
+        Log::channel('stock')->info('COMPONENT RESTORATION COMPLETED', [
+            'product_id' => $product->id,
+            'color_variant_id' => $colorVariant->id
+        ]);
+    }
+
+    /**
+     * Restore stock to component product's color variants.
+     *
+     * @param Product $componentProduct
+     * @param int $totalRestore
+     * @param string $notes
+     * @return void
+     * @throws Exception
+     */
+    protected function restoreToComponentColorVariants(Product $componentProduct, int $totalRestore, string $notes): void
+    {
+        Log::channel('stock')->info('STARTING COMPONENT RESTORATION TO VARIANTS', [
+            'component_product_id' => $componentProduct->id,
+            'component_name' => $componentProduct->name,
+            'total_restore' => $totalRestore,
+            'available_variants' => $componentProduct->colorVariants->count()
+        ]);
+
+        $remaining = $totalRestore;
+        $colorVariants = $componentProduct->colorVariants()->orderBy('quantity', 'asc')->get();
+
+        // Restore to color variants with lowest stock first (FIFO-like approach)
+        foreach ($colorVariants as $variant) {
+            if ($remaining <= 0) break;
+
+            $restoreAmount = $remaining; // Restore all remaining to this variant
+            $this->handleSimpleColorVariantInward($variant, $restoreAmount, $notes);
+            $remaining -= $restoreAmount;
+
+            Log::channel('stock')->info('RESTORED TO COLOR VARIANT', [
+                'variant_id' => $variant->id,
+                'variant_color' => $variant->color,
+                'restore_amount' => $restoreAmount,
+                'remaining_after' => $remaining
+            ]);
+        }
+
+        Log::channel('stock')->info('COMPONENT RESTORATION TO VARIANTS COMPLETED', [
+            'component_product_id' => $componentProduct->id,
+            'total_restored' => $totalRestore
+        ]);
+    }
+
+    /**
+     * Restore color stock when reducing product stock.
+     *
+     * @param ProductColorVariant $colorVariant
+     * @param int $quantity
+     * @param string|null $notes
+     * @return void
+     * @throws Exception
+     */
+    protected function restoreColorStock(ProductColorVariant $colorVariant, int $quantity, ?string $notes = null): void
+    {
+        if (!$colorVariant->colorModel || $colorVariant->color_usage_grams <= 0) {
+            return; // No color restoration needed
+        }
+
+        $restoreColorGrams = $colorVariant->color_usage_grams * $quantity;
+
+        Log::channel('stock')->info('RESTORING COLOR STOCK', [
+            'color_id' => $colorVariant->colorModel->id,
+            'color_name' => $colorVariant->colorModel->name,
+            'usage_per_unit' => $colorVariant->color_usage_grams,
+            'total_restore' => $restoreColorGrams
+        ]);
+
+        $this->inwardColorStock(
+            $colorVariant->colorModel,
+            $restoreColorGrams,
+            "Restored from stock reduction of {$colorVariant->product->name} ({$colorVariant->color}). {$notes}",
+            'product_stock_reduction',
+            $colorVariant->id
+        );
+    }
 }

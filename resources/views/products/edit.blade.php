@@ -14,7 +14,7 @@
         <h3 class="card-title">Edit Product: {{ $product->name }}</h3>
     </div>
     <div class="card-body">
-        <form action="{{ route('products.update', $product) }}" method="POST">
+        <form id="product-edit-form" action="{{ route('products.update', $product) }}" method="POST">
             @csrf
             @method('PUT')
             <div class="row">
@@ -170,6 +170,11 @@
 @push('scripts')
 <script>
     $(document).ready(function() {
+        // Check if the product edit form exists
+        if ($('#product-edit-form').length === 0) {
+            return;
+        }
+        
         // Subcategory fetcher
         var initialCategoryId = $('#category_id').val();
         if(initialCategoryId) {
@@ -200,7 +205,6 @@
 
         // Initialize simpleProducts first
         var simpleProducts = {!! json_encode($simpleProducts->toArray()) !!};
-        console.log('Simple Products:', simpleProducts); // Debug log
 
         // Function to check component stock availability
         function validateComponentStock() {
@@ -245,31 +249,35 @@
         }
 
         // Add form submit handler for validation
-        $('form').on('submit', function(e) {
-            if (!validateComponentStock()) {
-                e.preventDefault();
-                return false;
+        $('#product-edit-form').on('submit', function(e) {
+            try {
+                if (!validateComponentStock()) {
+                    e.preventDefault();
+                    return false;
+                }
+                
+                // Additional validation for color variants
+                if (!validateColorVariants()) {
+                    e.preventDefault();
+                    return false;
+                }
+            } catch (error) {
+                // Allow form to submit if there's a JavaScript error
             }
         });
 
         // Composite product fields
         function addNewComponentRow() {
             try {
-                console.log('Adding new component row...'); // Debug log
                 var componentIndex = $('#components-container .component-row').length;
-                console.log('Component index:', componentIndex); // Debug log
-                
                 var selectedCategory = $('#component_category_filter').val();
-                console.log('Selected category:', selectedCategory); // Debug log
                 
                 // Ensure simpleProducts is defined and has data
                 if (!simpleProducts || !Array.isArray(simpleProducts)) {
-                    console.error('Simple products data is not properly initialized:', simpleProducts);
                     return;
                 }
 
                 var filteredProducts = simpleProducts.filter(p => selectedCategory === '' || p.category_id == selectedCategory);
-                console.log('Filtered products:', filteredProducts); // Debug log
 
                 var productOptions = filteredProducts
                     .map(p => {
@@ -299,9 +307,8 @@
                 `;
 
                 $('#components-container').append(newRow);
-                console.log('New row added successfully'); // Debug log
             } catch (error) {
-                console.error('Error adding component row:', error);
+                // Handle error silently
             }
         }
 
@@ -341,6 +348,51 @@
             }
         });
 
+        // Add color variant validation function
+        function validateColorVariants() {
+            let isValid = true;
+            let errorMessages = [];
+            
+            // Check if at least one color variant has quantity > 0
+            let hasValidVariants = false;
+            let totalVariants = 0;
+            
+            $('.color-variant-item').each(function() {
+                totalVariants++;
+                const $quantityInput = $(this).find('input[name*="[quantity]"]');
+                const quantity = parseInt($quantityInput.val()) || 0;
+                if (quantity > 0) {
+                    hasValidVariants = true;
+                }
+            });
+            
+            // Only validate if there are color variants
+            if (totalVariants > 0 && !hasValidVariants) {
+                errorMessages.push('At least one color variant must have quantity greater than 0');
+                isValid = false;
+            }
+            
+            // Check for duplicate colors
+            let colors = [];
+            $('.color-variant-item').each(function() {
+                const color = $(this).find('input[name*="[color]"]').val();
+                if (color && color.trim() !== '') {
+                    const colorLower = color.toLowerCase();
+                    if (colors.includes(colorLower)) {
+                        errorMessages.push(`Duplicate color variant: ${color}`);
+                        isValid = false;
+                    }
+                    colors.push(colorLower);
+                }
+            });
+            
+            if (!isValid) {
+                alert('Color Variant Validation Failed:\n' + errorMessages.join('\n'));
+            }
+            
+            return isValid;
+        }
+
         function filterComponentOptions(categoryId) {
             $('.component-product-select').each(function() {
                 var $select = $(this);
@@ -369,7 +421,6 @@
         // Add component button handler
         $(document).on('click', '#add-component-btn', function(e) {
             e.preventDefault();
-            console.log('Add component button clicked'); // Debug log
             addNewComponentRow();
         });
 
@@ -626,5 +677,6 @@
         @endif
         
     });
+
 </script>
 @endpush

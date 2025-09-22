@@ -240,10 +240,14 @@ class ProductController extends Controller
                 'array',
                 'min:1',
                 function ($attribute, $value, $fail) {
+                    $hasValidQuantity = false;
                     foreach ($value as $variant) {
-                        if (empty($variant['quantity']) || $variant['quantity'] <= 0) {
-                            $fail('All color variant quantities must be greater than 0.');
+                        if (!empty($variant['quantity']) && $variant['quantity'] > 0) {
+                            $hasValidQuantity = true;
                         }
+                    }
+                    if (!$hasValidQuantity) {
+                        $fail('At least one color variant must have quantity greater than 0.');
                     }
                     $colors = array_column($value, 'color');
                     $uniqueColors = array_unique(array_map('strtolower', array_filter($colors)));
@@ -253,9 +257,10 @@ class ProductController extends Controller
                 },
             ],
             'color_variants.*.color' => 'nullable|string|max:100',
-            'color_variants.*.quantity' => 'required|integer|min:1',
+            'color_variants.*.quantity' => 'required|integer|min:0',
             'color_variants.*.color_id' => 'nullable|exists:colors,id',
             'color_variants.*.color_usage_grams' => 'nullable|numeric|min:0',
+            'color_variants.*.minimum_threshold' => 'required|integer|min:0',
         ]);
 
         if ($validator->fails()) {
@@ -266,65 +271,94 @@ class ProductController extends Controller
         }
 
         DB::transaction(function () use ($request, $product) {
-            $productData = $request->except(['components', 'color_variants', 'minimum_threshold']);
-            if (empty($productData['hsn_code'])) {
-                $productData['hsn_code'] = null;
-            }
-            $productData['color'] = null;
-            $productData['quantity'] = 0;
+            // Store original data for rollback
             $originalData = $product->toArray();
-            $product->update($productData);
+            $originalVariants = $product->colorVariants->toArray();
+            $originalComponents = $product->components->toArray();
+            
             try {
+                // Update basic product data
+                $productData = $request->except(['components', 'color_variants', 'minimum_threshold']);
+                if (empty($productData['hsn_code'])) {
+                    $productData['hsn_code'] = null;
+                }
+                $productData['color'] = null;
+                $productData['quantity'] = 0;
+                $product->update($productData);
+
+                // Update components
                 $product->components()->delete();
                 if ($request->boolean('is_composite') && $request->has('components')) {
                     foreach ($request->components as $componentData) {
                         $product->components()->create($componentData);
                     }
                 }
+
+                // Update color variants with proper stock management
                 if ($request->has('color_variants')) {
                     $existingVariants = $product->colorVariants()->get()->keyBy('color');
                     $newVariants = collect($request->color_variants);
+                    
+                    // Remove variants that are no longer needed
                     foreach ($existingVariants as $existingVariant) {
                         $found = $newVariants->firstWhere('color', $existingVariant->color);
                         if (!$found) {
+                            // Restore components and colors before deleting variant
+                            if ($existingVariant->quantity > 0) {
+                                $this->stockService->outwardColorVariantStockWithRestoration(
+                                    $existingVariant,
+                                    $existingVariant->quantity,
+                                    'Variant removed during product edit'
+                                );
+                            }
                             $existingVariant->delete();
                         }
                     }
+                    
+                    // Update or create variants
                     foreach ($request->color_variants as $variant) {
-                        if ($variant['quantity'] > 0) {
-                            $color = !empty($variant['color']) ? $variant['color'] : 'No Color';
-                            $minThreshold = $variant['minimum_threshold'];
-                            $existingVariant = $existingVariants->get($color);
-                            if ($existingVariant) {
-                                $existingVariant->update([
-                                    'color_id' => $variant['color_id'] ?? null,
-                                    'color_usage_grams' => $variant['color_usage_grams'] ?? 0,
-                                    'minimum_threshold' => $minThreshold
-                                ]);
-                                $quantityDiff = $variant['quantity'] - $existingVariant->quantity;
-                                if ($quantityDiff != 0) {
-                                    if ($quantityDiff > 0) {
-                                        $this->stockService->inwardColorVariantStock(
-                                            $existingVariant,
-                                            $quantityDiff,
-                                            'Stock increase during product edit'
-                                        );
-                                    } else {
-                                        $this->stockService->outwardColorVariantStockSaleOnly(
-                                            $existingVariant,
-                                            abs($quantityDiff),
-                                            'Stock decrease during product edit'
-                                        );
-                                    }
+                        $color = !empty($variant['color']) ? $variant['color'] : 'No Color';
+                        $minThreshold = $variant['minimum_threshold'] ?? 0;
+                        $existingVariant = $existingVariants->get($color);
+                        
+                        if ($existingVariant) {
+                            // Update existing variant
+                            $existingVariant->update([
+                                'color_id' => $variant['color_id'] ?? null,
+                                'color_usage_grams' => $variant['color_usage_grams'] ?? 0,
+                                'minimum_threshold' => $minThreshold
+                            ]);
+                            
+                            // Handle stock changes
+                            $quantityDiff = $variant['quantity'] - $existingVariant->quantity;
+                            if ($quantityDiff != 0) {
+                                if ($quantityDiff > 0) {
+                                    // Stock increase - consume components and colors
+                                    $this->stockService->inwardColorVariantStock(
+                                        $existingVariant,
+                                        $quantityDiff,
+                                        'Stock increase during product edit'
+                                    );
+                                } else {
+                                    // Stock decrease - restore components and colors
+                                    $this->stockService->outwardColorVariantStockWithRestoration(
+                                        $existingVariant,
+                                        abs($quantityDiff),
+                                        'Stock decrease during product edit'
+                                    );
                                 }
-                            } else {
-                                $colorVariant = $product->colorVariants()->create([
-                                    'color' => $color,
-                                    'quantity' => 0,
-                                    'color_id' => $variant['color_id'] ?? null,
-                                    'color_usage_grams' => $variant['color_usage_grams'] ?? 0,
-                                    'minimum_threshold' => $minThreshold
-                                ]);
+                            }
+                        } else {
+                            // Create new variant
+                            $colorVariant = $product->colorVariants()->create([
+                                'color' => $color,
+                                'quantity' => 0,
+                                'color_id' => $variant['color_id'] ?? null,
+                                'color_usage_grams' => $variant['color_usage_grams'] ?? 0,
+                                'minimum_threshold' => $minThreshold
+                            ]);
+                            
+                            if ($variant['quantity'] > 0) {
                                 $this->stockService->inwardColorVariantStock(
                                     $colorVariant,
                                     $variant['quantity'],
@@ -334,8 +368,26 @@ class ProductController extends Controller
                         }
                     }
                 }
+                
             } catch (\Exception $e) {
-                $product->update($originalData);
+                // Comprehensive rollback
+                try {
+                    $product->update($originalData);
+                    $product->colorVariants()->delete();
+                    foreach ($originalVariants as $variant) {
+                        $product->colorVariants()->create($variant);
+                    }
+                    $product->components()->delete();
+                    foreach ($originalComponents as $component) {
+                        $product->components()->create($component);
+                    }
+                } catch (\Exception $rollbackException) {
+                    \Log::error('Failed to rollback product update', [
+                        'product_id' => $product->id,
+                        'original_error' => $e->getMessage(),
+                        'rollback_error' => $rollbackException->getMessage()
+                    ]);
+                }
                 throw new \Exception("Cannot update product: " . $e->getMessage());
             }
         });
