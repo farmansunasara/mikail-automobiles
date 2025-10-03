@@ -87,6 +87,9 @@ class Product extends Model
     // Check if product has sufficient stock
     public function hasSufficientStock(int $requiredQuantity): bool
     {
+        if ($this->hasColorVariants()) {
+            return $this->getTotalColorVariantStock() >= $requiredQuantity;
+        }
         return $this->quantity >= $requiredQuantity;
     }
 
@@ -156,5 +159,95 @@ class Product extends Model
     public function getTotalStockAcrossVariants(): int
     {
         return $this->hasColorVariants() ? $this->getTotalColorVariantStock() : $this->quantity;
+    }
+
+    // Validate business rules for product operations
+    public function validateBusinessRules(): array
+    {
+        $errors = [];
+
+        // Check if product has sufficient stock for operations
+        if ($this->getTotalStockAcrossVariants() < 0) {
+            $errors[] = 'Product cannot have negative stock.';
+        }
+
+        // Check composite product component availability
+        if ($this->is_composite) {
+            foreach ($this->components as $component) {
+                $componentStock = $component->componentProduct->getTotalStockAcrossVariants();
+                if ($componentStock < $component->quantity_needed) {
+                    $errors[] = "Component '{$component->componentProduct->name}' has insufficient stock. Required: {$component->quantity_needed}, Available: {$componentStock}";
+                }
+            }
+        }
+
+        // Check color variant stock consistency
+        foreach ($this->colorVariants as $variant) {
+            if ($variant->quantity < 0) {
+                $errors[] = "Color variant '{$variant->color}' cannot have negative stock.";
+            }
+            if ($variant->minimum_threshold < 0) {
+                $errors[] = "Color variant '{$variant->color}' minimum threshold cannot be negative.";
+            }
+        }
+
+        return $errors;
+    }
+
+    // Check if product can be safely deleted
+    public function canBeDeleted(): array
+    {
+        $errors = [];
+
+        if ($this->invoiceItems()->exists()) {
+            $errors[] = 'Cannot delete product with associated invoices.';
+        }
+
+        if ($this->orderItems()->exists()) {
+            $errors[] = 'Cannot delete product with associated orders.';
+        }
+
+        // Check if this product is used as a component in other products
+        $usedInComposites = $this->usedInComposites()->with('parentProduct')->get();
+        if ($usedInComposites->count() > 0) {
+            $productNames = $usedInComposites->pluck('parentProduct.name')->implode(', ');
+            $errors[] = "Cannot delete product used as component in: {$productNames}";
+        }
+
+        return $errors;
+    }
+
+    // Validate component relationships
+    public function validateComponentRelationships(): array
+    {
+        $errors = [];
+
+        if (!$this->is_composite) {
+            return $errors; // No components to validate
+        }
+
+        foreach ($this->components as $component) {
+            // Check if component product exists and is not composite
+            if (!$component->componentProduct) {
+                $errors[] = "Component product not found for component ID: {$component->id}";
+                continue;
+            }
+
+            if ($component->componentProduct->is_composite) {
+                $errors[] = "Cannot use composite product '{$component->componentProduct->name}' as a component.";
+            }
+
+            // Check for self-reference
+            if ($component->component_product_id == $this->id) {
+                $errors[] = "Product cannot be a component of itself.";
+            }
+
+            // Check quantity requirements
+            if ($component->quantity_needed <= 0) {
+                $errors[] = "Component '{$component->componentProduct->name}' quantity must be greater than 0.";
+            }
+        }
+
+        return $errors;
     }
 }

@@ -8,6 +8,7 @@ use App\Models\Product;
 use App\Models\ProductColorVariant;
 use App\Services\StockService;
 use App\Services\InvoiceService;
+use App\Http\Requests\InvoiceStoreRequest;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Barryvdh\DomPDF\Facade\Pdf;
@@ -111,21 +112,10 @@ class InvoiceController extends Controller
         return view('invoices.create_optimized', compact('customers', 'productNames', 'invoice_number', 'categories', 'order', 'orderData'))->with('invoice_type', 'gst');
     }
 
-    public function storeGst(Request $request)
+    public function storeGst(InvoiceStoreRequest $request)
     {
-        $request->validate([
-            'customer_id' => 'required|exists:customers,id',
-            'invoice_date' => 'required|date',
-            'due_date' => 'nullable|date|after_or_equal:invoice_date',
-            'notes' => 'nullable|string',
-            'gst_rate' => 'required|numeric|min:0|max:100',
-            'discount_type' => 'nullable|numeric|in:0,1',
-            'discount_value' => 'nullable|numeric|min:0',
-            'packaging_fees' => 'nullable|numeric|min:0',
-            'items' => 'required|array|min:1',
-            'items.*.price' => 'required|numeric|min:0',
-            'items.*.variants' => 'required|array',
-        ]);
+        // Use InvoiceStoreRequest for consistent validation
+        $validated = $request->validated();
 
         try {
             \Log::info('GST Invoice creation started', [
@@ -245,26 +235,17 @@ class InvoiceController extends Controller
         return view('invoices.create_non_gst', compact('customers', 'productNames', 'invoice_number', 'categories', 'order', 'orderData'));
     }
 
-    public function storeNonGst(Request $request)
+    public function storeNonGst(InvoiceStoreRequest $request)
     {
-        $request->validate([
-            'customer_id' => 'required|exists:customers,id',
-            'invoice_date' => 'required|date',
-            'due_date' => 'nullable|date|after_or_equal:invoice_date',
-            'notes' => 'nullable|string',
-            'discount_type' => 'nullable|numeric|in:0,1',
-            'discount_value' => 'nullable|numeric|min:0',
-            'packaging_fees' => 'nullable|numeric|min:0',
-            'items' => 'required|array|min:1',
-            'items.*.price' => 'required|numeric|min:0',
-            'items.*.variants' => 'required|array',
-        ]);
+        // Use InvoiceStoreRequest for consistent validation
+        $validated = $request->validated();
 
         try {
             \Log::info('Non-GST Invoice creation started', [
                 'user_id' => auth()->id(),
                 'customer_id' => $request->customer_id,
-                'items_count' => count($request->items)
+                'items_count' => count($request->items),
+                'form_data' => $request->all()
             ]);
 
             // Use optimized invoice service
@@ -283,7 +264,8 @@ class InvoiceController extends Controller
             \Log::error('Non-GST Invoice creation failed', [
                 'user_id' => auth()->id(),
                 'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
+                'trace' => $e->getTraceAsString(),
+                'form_data' => $request->all()
             ]);
 
             return back()->withInput()->with('error', 'Error creating invoice: ' . $e->getMessage());
@@ -375,7 +357,7 @@ class InvoiceController extends Controller
         }
     }
 
-    public function update(Request $request, Invoice $invoice)
+    public function update(InvoiceStoreRequest $request, Invoice $invoice)
     {
         // Check if invoice can be edited
         if (!in_array($invoice->status, ['draft', 'sent'])) {
@@ -391,21 +373,10 @@ class InvoiceController extends Controller
         }
     }
 
-    private function updateGst(Request $request, Invoice $invoice)
+    private function updateGst(InvoiceStoreRequest $request, Invoice $invoice)
     {
-        $request->validate([
-            'customer_id' => 'required|exists:customers,id',
-            'invoice_date' => 'required|date',
-            'due_date' => 'nullable|date|after_or_equal:invoice_date',
-            'notes' => 'nullable|string',
-            'gst_rate' => 'required|numeric|min:0|max:100',
-            'discount_type' => 'nullable|numeric|in:0,1',
-            'discount_value' => 'nullable|numeric|min:0',
-            'packaging_fees' => 'nullable|numeric|min:0',
-            'items' => 'required|array|min:1',
-            'items.*.price' => 'required|numeric|min:0',
-            'items.*.variants' => 'required|array',
-        ]);
+        // Use InvoiceStoreRequest for consistent validation
+        $validated = $request->validated();
 
         try {
             \Log::info('GST Invoice edit started', [
@@ -453,13 +424,8 @@ class InvoiceController extends Controller
                     );
                 }
 
-                // Check new stock availability and deduct
-                foreach ($newInvoiceItems as $item) {
-                    $colorVariant = ProductColorVariant::find($item['color_variant_id']);
-                    if ($colorVariant->quantity < $item['quantity']) {
-                        throw new \Exception("Insufficient stock for {$colorVariant->product->name} ({$colorVariant->color}). Available: {$colorVariant->quantity}, Required: {$item['quantity']}");
-                    }
-                }
+                // Use proper stock management with locking (handled in InvoiceService)
+                // Stock validation and deduction will be handled by the service layer
 
                 // Calculate totals
                 $total_amount = 0;
@@ -526,8 +492,11 @@ class InvoiceController extends Controller
                         'subtotal' => $subtotal,
                     ]);
 
-                    $this->stockService->outwardColorVariantStockSaleOnly($colorVariant, $item['quantity'], "Sale via Updated Invoice #{$invoice->invoice_number}");
+                    // Stock deduction handled by InvoiceService with proper locking
                 }
+                
+                // Use proper stock management with locking for race condition prevention
+                $this->invoiceService->updateStock($newInvoiceItems);
             });
 
             \Log::info('GST Invoice edit completed successfully', [
@@ -544,20 +513,10 @@ class InvoiceController extends Controller
         }
     }
 
-    private function updateNonGst(Request $request, Invoice $invoice)
+    private function updateNonGst(InvoiceStoreRequest $request, Invoice $invoice)
     {
-        $request->validate([
-            'customer_id' => 'required|exists:customers,id',
-            'invoice_date' => 'required|date',
-            'due_date' => 'nullable|date|after_or_equal:invoice_date',
-            'notes' => 'nullable|string',
-            'discount_type' => 'nullable|numeric|in:0,1',
-            'discount_value' => 'nullable|numeric|min:0',
-            'packaging_fees' => 'nullable|numeric|min:0',
-            'items' => 'required|array|min:1',
-            'items.*.price' => 'required|numeric|min:0',
-            'items.*.variants' => 'required|array',
-        ]);
+        // Use InvoiceStoreRequest for consistent validation
+        $validated = $request->validated();
 
         try {
             // Parse new invoice items
@@ -598,13 +557,8 @@ class InvoiceController extends Controller
                     );
                 }
 
-                // Check new stock availability
-                foreach ($newInvoiceItems as $item) {
-                    $colorVariant = ProductColorVariant::find($item['color_variant_id']);
-                    if ($colorVariant->quantity < $item['quantity']) {
-                        throw new \Exception("Insufficient stock for {$colorVariant->product->name} ({$colorVariant->color}). Available: {$colorVariant->quantity}, Required: {$item['quantity']}");
-                    }
-                }
+                // Use proper stock management with locking (handled in InvoiceService)
+                // Stock validation and deduction will be handled by the service layer
 
                 // Calculate totals
                 $total_amount = 0;
@@ -662,8 +616,11 @@ class InvoiceController extends Controller
                         'subtotal' => $subtotal,
                     ]);
 
-                    $this->stockService->outwardColorVariantStockSaleOnly($colorVariant, $item['quantity'], "Sale via Updated Non-GST Invoice #{$invoice->invoice_number}");
+                    // Stock deduction handled by InvoiceService with proper locking
                 }
+                
+                // Use proper stock management with locking for race condition prevention
+                $this->invoiceService->updateStock($newInvoiceItems);
             });
 
             return redirect()->route('invoices.non_gst.index')->with('success', 'Non-GST Invoice updated successfully.');

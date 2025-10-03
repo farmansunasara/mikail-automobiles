@@ -6,6 +6,7 @@ use App\Models\Category;
 use App\Models\Subcategory;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
+use Illuminate\Support\Facades\DB;
 
 class CategoryController extends Controller
 {
@@ -44,17 +45,25 @@ class CategoryController extends Controller
             'subcategories.*' => 'nullable|string|max:255',
         ]);
 
-        $category = Category::create($request->only('name', 'description'));
+        try {
+            DB::transaction(function () use ($request) {
+                $category = Category::create($request->only('name', 'description'));
 
-        if ($request->has('subcategories')) {
-            foreach ($request->subcategories as $subName) {
-                if (!empty($subName)) {
-                    $category->subcategories()->create(['name' => $subName]);
+                if ($request->has('subcategories')) {
+                    foreach ($request->subcategories as $subName) {
+                        if (!empty($subName)) {
+                            $category->subcategories()->create(['name' => $subName]);
+                        }
+                    }
                 }
-            }
-        }
+            });
 
-        return redirect()->route('categories.index')->with('success', 'Category created successfully.');
+            return redirect()->route('categories.index')->with('success', 'Category created successfully.');
+        } catch (\Exception $e) {
+            return redirect()->back()
+                ->withInput()
+                ->with('error', 'Failed to create category: ' . $e->getMessage());
+        }
     }
 
     /**
@@ -87,23 +96,42 @@ class CategoryController extends Controller
             'subcategories.*' => 'nullable|string|max:255',
         ]);
 
-        $category->update($request->only('name', 'description'));
+        try {
+            DB::transaction(function () use ($request, $category) {
+                $category->update($request->only('name', 'description'));
 
-        // Sync subcategories
-        $existingSubIds = $category->subcategories->pluck('id')->all();
-        $newSubNames = $request->input('subcategories', []);
-        
-        // Delete removed subcategories
-        Subcategory::destroy(array_diff($existingSubIds, array_keys($newSubNames)));
+                // Sync subcategories with proper validation
+                $existingSubIds = $category->subcategories->pluck('id')->all();
+                $newSubNames = $request->input('subcategories', []);
+                
+                // Check if subcategories to be deleted have products
+                $subcategoriesToDelete = array_diff($existingSubIds, array_keys($newSubNames));
+                foreach ($subcategoriesToDelete as $subId) {
+                    $subcategory = Subcategory::find($subId);
+                    if ($subcategory && $subcategory->products()->exists()) {
+                        throw new \Exception("Cannot delete subcategory '{$subcategory->name}' because it has associated products.");
+                    }
+                }
+                
+                // Delete removed subcategories
+                if (!empty($subcategoriesToDelete)) {
+                    Subcategory::destroy($subcategoriesToDelete);
+                }
 
-        // Update existing or create new subcategories
-        foreach ($newSubNames as $id => $name) {
-            if (!empty($name)) {
-                $category->subcategories()->updateOrCreate(['id' => $id], ['name' => $name]);
-            }
+                // Update existing or create new subcategories
+                foreach ($newSubNames as $id => $name) {
+                    if (!empty($name)) {
+                        $category->subcategories()->updateOrCreate(['id' => $id], ['name' => $name]);
+                    }
+                }
+            });
+
+            return redirect()->route('categories.index')->with('success', 'Category updated successfully.');
+        } catch (\Exception $e) {
+            return redirect()->back()
+                ->withInput()
+                ->with('error', $e->getMessage());
         }
-
-        return redirect()->route('categories.index')->with('success', 'Category updated successfully.');
     }
 
     /**
@@ -111,12 +139,36 @@ class CategoryController extends Controller
      */
     public function destroy(Category $category)
     {
-        if ($category->products()->exists() || $category->subcategories()->exists()) {
-            return redirect()->route('categories.index')->with('error', 'Cannot delete category with associated products or subcategories.');
+        try {
+            // Check for associated products
+            if ($category->products()->exists()) {
+                $productCount = $category->products()->count();
+                return redirect()->route('categories.index')
+                    ->with('error', "Cannot delete category '{$category->name}' because it has {$productCount} associated products.");
+            }
+            
+            // Check for subcategories with products
+            $subcategoriesWithProducts = $category->subcategories()
+                ->whereHas('products')
+                ->count();
+                
+            if ($subcategoriesWithProducts > 0) {
+                return redirect()->route('categories.index')
+                    ->with('error', "Cannot delete category '{$category->name}' because its subcategories have associated products.");
+            }
+            
+            DB::transaction(function () use ($category) {
+                // Delete subcategories first (cascade will handle this, but being explicit)
+                $category->subcategories()->delete();
+                // Then delete the category
+                $category->delete();
+            });
+            
+            return redirect()->route('categories.index')->with('success', 'Category deleted successfully.');
+        } catch (\Exception $e) {
+            return redirect()->route('categories.index')
+                ->with('error', 'Failed to delete category: ' . $e->getMessage());
         }
-        
-        $category->delete();
-        return redirect()->route('categories.index')->with('success', 'Category deleted successfully.');
     }
 
     /**

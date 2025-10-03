@@ -110,6 +110,7 @@ class InvoiceService
                 'discount_value' => $data['discount_value'] ?? 0,
                 'discount_amount' => $totals['discount_amount'],
                 'packaging_fees' => $data['packaging_fees'] ?? 0,
+                'gst_rate' => 0, // ✅ FIXED: Non-GST invoices have 0% GST rate
                 'cgst' => 0,
                 'sgst' => 0,
                 'grand_total' => $totals['grand_total'],
@@ -301,18 +302,44 @@ class InvoiceService
     }
 
     /**
-     * Bulk update stock quantities
+     * Bulk update stock quantities with atomic operations
+     * Handles both simple and composite products correctly
      */
-    private function updateStock(array $invoiceItems): void
+    public function updateStock(array $invoiceItems): void
     {
-        // Use stock service for proper logging
-        foreach ($invoiceItems as $item) {
-            $colorVariant = ProductColorVariant::find($item['color_variant_id']);
-            $this->stockService->outwardColorVariantStockSaleOnly(
-                $colorVariant, 
-                $item['quantity'], 
-                "Sale via Invoice (Bulk Processing)"
-            );
-        }
+        // Use database-level locking to prevent race conditions
+        DB::transaction(function () use ($invoiceItems) {
+            foreach ($invoiceItems as $item) {
+                // Lock the color variant row for update to prevent race conditions
+                $colorVariant = ProductColorVariant::lockForUpdate()->find($item['color_variant_id']);
+                
+                if (!$colorVariant) {
+                    throw new \Exception("Color variant not found (ID: {$item['color_variant_id']})");
+                }
+                
+                // Validate stock availability with lock
+                if ($colorVariant->quantity < $item['quantity']) {
+                    throw new \Exception("Insufficient stock for {$colorVariant->product->name} ({$colorVariant->color}). Available: {$colorVariant->quantity}, Required: {$item['quantity']}");
+                }
+                
+                // Handle simple vs composite products differently
+                if ($colorVariant->product->is_composite) {
+                    // For composite products: Only deduct the composite product stock
+                    // Components were already consumed during assembly
+                    $this->stockService->outwardColorVariantStockSaleOnly(
+                        $colorVariant, 
+                        $item['quantity'], 
+                        "Sale via Invoice (Composite Product - Components already consumed during assembly)"
+                    );
+                } else {
+                    // For simple products: Deduct stock normally
+                    $this->stockService->outwardColorVariantStockSaleOnly(
+                        $colorVariant, 
+                        $item['quantity'], 
+                        "Sale via Invoice (Simple Product)"
+                    );
+                }
+            }
+        });
     }
 }

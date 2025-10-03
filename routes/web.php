@@ -29,18 +29,18 @@ Route::middleware('auth')->group(function () {
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
     
-    // Categories Management
-    Route::resource('categories', CategoryController::class);
+    // Categories Management (Admin only)
+    Route::resource('categories', CategoryController::class)->middleware('role:admin');
     Route::get('/api/subcategories/{category}', [CategoryController::class, 'getSubcategories'])->name('api.subcategories');
     
-    // Colors Management
+    // Colors Management (Admin only)
     Route::get('/colors/low-stock', [ColorController::class, 'lowStock'])->name('colors.low-stock');
-    Route::resource('colors', ColorController::class);
+    Route::resource('colors', ColorController::class)->middleware('role:admin');
     Route::get('/api/colors/search', [ColorController::class, 'search'])->name('api.colors.search');
     Route::post('/colors/{color}/update-stock', [ColorController::class, 'updateStock'])->name('colors.update-stock');
     
-    // Products Management
-    Route::resource('products', ProductController::class);
+    // Products Management (Admin only)
+    Route::resource('products', ProductController::class)->middleware('role:admin');
     Route::get('/api/products/search', [ProductController::class, 'search'])->name('api.products.search');
     Route::get('/api/products/{product}/components', [ProductController::class, 'getComponents'])->name('api.products.components');
     Route::get('/api/products/{product}/stock', [ProductController::class, 'getStock'])->name('api.products.stock');
@@ -49,14 +49,14 @@ Route::middleware('auth')->group(function () {
     Route::get('/api/products/by-category', [ProductController::class, 'getProductsByCategory'])->name('api.products.by-category');
     Route::get('/api/products/by-category-components', [ProductController::class, 'getProductsByCategoryForComponents'])->name('api.products.by-category-components');
     
-    // Stock Management
+    // Stock Management (Admin only)
     Route::get('/stock', [StockController::class, 'index'])->name('stock.index');
     Route::get('/stock/logs', [StockController::class, 'logs'])->name('stock.logs');
-    Route::post('/stock/update', [StockController::class, 'update'])->name('stock.update');
+    Route::post('/stock/update', [StockController::class, 'update'])->name('stock.update')->middleware('role:admin');
     Route::get('/stock/product/{product}', [StockController::class, 'productLogs'])->name('stock.product');
     
-    // Customers Management
-    Route::resource('customers', CustomerController::class);
+    // Customers Management (Admin only)
+    Route::resource('customers', CustomerController::class)->middleware('role:admin');
     Route::get('/api/customers/search', [CustomerController::class, 'search'])->name('api.customers.search');
     
     // GST Invoices
@@ -83,14 +83,14 @@ Route::middleware('auth')->group(function () {
         Route::get('/{invoice}/preview', [InvoiceController::class, 'previewNonGst'])->name('preview');
     });
     
-    // Common invoice routes (used by both GST and Non-GST)
+    // Common invoice routes (used by both GST and Non-GST) - Admin only for sensitive operations
     Route::post('/invoices/{invoice}/mark-paid', [InvoiceController::class, 'markPaid'])->name('invoices.mark-paid');
     Route::post('/invoices/{invoice}/mark-sent', [InvoiceController::class, 'markSent'])->name('invoices.mark-sent');
     Route::post('/invoices/{invoice}/mark-cancelled', [InvoiceController::class, 'markCancelled'])->name('invoices.mark-cancelled');
     Route::post('/invoices/{invoice}/partial-payment', [InvoiceController::class, 'partialPayment'])->name('invoices.partial-payment');
     Route::post('/invoices/{invoice}/dispute', [InvoiceController::class, 'markDisputed'])->name('invoices.dispute');
     Route::get('/invoices/{invoice}/payment-history', [InvoiceController::class, 'paymentHistory'])->name('invoices.payment-history');
-    Route::delete('/invoices/{invoice}', [InvoiceController::class, 'destroy'])->name('invoices.destroy');
+    Route::delete('/invoices/{invoice}', [InvoiceController::class, 'destroy'])->name('invoices.destroy')->middleware('role:admin');
     
     // Orders Management
     Route::resource('orders', \App\Http\Controllers\OrderController::class);

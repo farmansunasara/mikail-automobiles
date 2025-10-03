@@ -162,16 +162,24 @@
         });
 
         function fetchSubcategories(categoryId, selectedSubcategoryId = null) {
+            var subcategorySelect = $('#subcategory_id');
+            subcategorySelect.html('<option value="">Loading...</option>').prop('disabled', true);
+            
             $.ajax({
                 url: `/api/subcategories/${categoryId}`,
                 type: 'GET',
                 success: function(data) {
-                    var subcategorySelect = $('#subcategory_id');
                     subcategorySelect.html('<option value="">All Subcategories</option>');
                     $.each(data, function(key, value) {
                         var selected = selectedSubcategoryId == value.id ? 'selected' : '';
                         subcategorySelect.append(`<option value="${value.id}" ${selected}>${value.name}</option>`);
                     });
+                    subcategorySelect.prop('disabled', false);
+                },
+                error: function(xhr, status, error) {
+                    subcategorySelect.html('<option value="">Error loading subcategories</option>');
+                    subcategorySelect.prop('disabled', false);
+                    console.error('Error fetching subcategories:', error);
                 }
             });
         }

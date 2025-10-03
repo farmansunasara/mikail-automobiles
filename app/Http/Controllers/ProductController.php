@@ -8,6 +8,7 @@ use App\Models\Subcategory;
 use App\Models\ProductComponent;
 use App\Services\StockService;
 use Illuminate\Http\Request;
+use App\Http\Requests\ProductStoreRequest;
 use Illuminate\Validation\Rule;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
@@ -19,6 +20,62 @@ class ProductController extends Controller
     public function __construct(StockService $stockService)
     {
         $this->stockService = $stockService;
+    }
+
+    /**
+     * Check for circular dependency in composite products
+     */
+    private function hasCircularDependency($componentProductId, $currentProductId = null): bool
+    {
+        if (!$currentProductId) {
+            return false; // New product, no circular dependency possible
+        }
+
+        if ($componentProductId == $currentProductId) {
+            return true; // Direct self-reference
+        }
+
+        // Check if the component product is already a component of the current product
+        $componentProduct = Product::find($componentProductId);
+        if (!$componentProduct) {
+            return false;
+        }
+
+        // Check if current product is already a component of the component product
+        return $componentProduct->components()
+            ->where('component_product_id', $currentProductId)
+            ->exists();
+    }
+
+    /**
+     * Standardized stock management for product operations
+     */
+    private function manageProductStock($colorVariant, $quantity, $operation, $reason = '')
+    {
+        try {
+            switch ($operation) {
+                case 'inward':
+                    $this->stockService->inwardColorVariantStock($colorVariant, $quantity, $reason);
+                    break;
+                case 'outward_sale':
+                    $this->stockService->outwardColorVariantStockSaleOnly($colorVariant, $quantity, $reason);
+                    break;
+                case 'outward_restore':
+                    $this->stockService->outwardColorVariantStockWithRestoration($colorVariant, $quantity, $reason);
+                    break;
+                default:
+                    throw new \Exception("Invalid stock operation: {$operation}");
+            }
+        } catch (\Exception $e) {
+            \Log::error('Stock management failed', [
+                'color_variant_id' => $colorVariant->id,
+                'quantity' => $quantity,
+                'operation' => $operation,
+                'reason' => $reason,
+                'error' => $e->getMessage()
+            ]);
+            throw $e;
+        }
     }
 
     public function index(Request $request)
@@ -90,7 +147,7 @@ class ProductController extends Controller
         return view('products.create_with_color_variants', compact('categories'));
     }
 
-    public function store(Request $request)
+    public function store(ProductStoreRequest $request)
     {
         $validator = Validator::make($request->all(), [
             'name' => [
@@ -106,10 +163,23 @@ class ProductController extends Controller
             'category_id' => 'required|exists:categories,id',
             'subcategory_id' => 'required|exists:subcategories,id',
             'price' => 'required|numeric|min:0',
+            'gst_rate' => 'nullable|numeric|min:0|max:100',
             // Removed product-level minimum_threshold
             'is_composite' => 'boolean',
             'components' => 'nullable|array',
-            'components.*.component_product_id' => 'required_if:is_composite,1|exists:products,id',
+            'components.*.component_product_id' => [
+                'required_if:is_composite,1',
+                'exists:products,id',
+                function ($attribute, $value, $fail) use ($request) {
+                    if ($request->boolean('is_composite') && $value) {
+                        // Check for circular dependency
+                        $productId = $request->route('product') ? $request->route('product')->id : null;
+                        if ($this->hasCircularDependency($value, $productId)) {
+                            $fail('Cannot add component: This would create a circular dependency.');
+                        }
+                    }
+                }
+            ],
             'components.*.quantity_needed' => 'required_if:is_composite,1|integer|min:1',
             'default_quantity' => 'nullable|integer|min:0',
             'color_variants' => [
@@ -151,6 +221,9 @@ class ProductController extends Controller
             if (empty($productData['hsn_code'])) {
                 $productData['hsn_code'] = null;
             }
+            if (empty($productData['gst_rate'])) {
+                $productData['gst_rate'] = 0; // Default GST rate to 0 if not provided
+            }
             $productData['color'] = null;
             $productData['quantity'] = 0;
             $product = Product::create($productData);
@@ -179,9 +252,10 @@ class ProductController extends Controller
                         'minimum_threshold' => $minThreshold
                     ]);
                     try {
-                        $this->stockService->inwardColorVariantStock(
+                        $this->manageProductStock(
                             $colorVariant, 
                             $variant['quantity'], 
+                            'inward',
                             'Initial stock during product creation'
                         );
                     } catch (\Exception $e) {
@@ -230,10 +304,22 @@ class ProductController extends Controller
             'category_id' => 'required|exists:categories,id',
             'subcategory_id' => 'required|exists:subcategories,id',
             'price' => 'required|numeric|min:0',
+            'gst_rate' => 'nullable|numeric|min:0|max:100',
             // Removed product-level minimum_threshold
             'is_composite' => 'boolean',
             'components' => 'nullable|array',
-            'components.*.component_product_id' => 'required_if:is_composite,1|exists:products,id',
+            'components.*.component_product_id' => [
+                'required_if:is_composite,1',
+                'exists:products,id',
+                function ($attribute, $value, $fail) use ($request, $product) {
+                    if ($request->boolean('is_composite') && $value) {
+                        // Check for circular dependency
+                        if ($this->hasCircularDependency($value, $product->id)) {
+                            $fail('Cannot add component: This would create a circular dependency.');
+                        }
+                    }
+                }
+            ],
             'components.*.quantity_needed' => 'required_if:is_composite,1|integer|min:1',
             'color_variants' => [
                 'required',
@@ -282,6 +368,9 @@ class ProductController extends Controller
                 if (empty($productData['hsn_code'])) {
                     $productData['hsn_code'] = null;
                 }
+                if (empty($productData['gst_rate'])) {
+                    $productData['gst_rate'] = 0; // Default GST rate to 0 if not provided
+                }
                 $productData['color'] = null;
                 $productData['quantity'] = 0;
                 $product->update($productData);
@@ -303,11 +392,12 @@ class ProductController extends Controller
                     foreach ($existingVariants as $existingVariant) {
                         $found = $newVariants->firstWhere('color', $existingVariant->color);
                         if (!$found) {
-                            // Restore components and colors before deleting variant
+                            // Remove stock before deleting variant (no component restoration for sales)
                             if ($existingVariant->quantity > 0) {
-                                $this->stockService->outwardColorVariantStockWithRestoration(
+                                $this->manageProductStock(
                                     $existingVariant,
                                     $existingVariant->quantity,
+                                    'outward_sale',
                                     'Variant removed during product edit'
                                 );
                             }
@@ -334,16 +424,18 @@ class ProductController extends Controller
                             if ($quantityDiff != 0) {
                                 if ($quantityDiff > 0) {
                                     // Stock increase - consume components and colors
-                                    $this->stockService->inwardColorVariantStock(
+                                    $this->manageProductStock(
                                         $existingVariant,
                                         $quantityDiff,
+                                        'inward',
                                         'Stock increase during product edit'
                                     );
                                 } else {
-                                    // Stock decrease - restore components and colors
-                                    $this->stockService->outwardColorVariantStockWithRestoration(
+                                    // Stock decrease - remove stock without component restoration
+                                    $this->manageProductStock(
                                         $existingVariant,
                                         abs($quantityDiff),
+                                        'outward_sale',
                                         'Stock decrease during product edit'
                                     );
                                 }
@@ -359,9 +451,10 @@ class ProductController extends Controller
                             ]);
                             
                             if ($variant['quantity'] > 0) {
-                                $this->stockService->inwardColorVariantStock(
+                                $this->manageProductStock(
                                     $colorVariant,
                                     $variant['quantity'],
+                                    'inward',
                                     'New variant added during product edit'
                                 );
                             }
@@ -400,16 +493,33 @@ class ProductController extends Controller
 
     public function destroy(Product $product)
     {
-        if ($product->invoiceItems()->exists()) {
-            return redirect()->route('products.index')->with('error', 'Cannot delete product with associated invoices.');
+        // Use comprehensive business validation
+        $deletionErrors = $product->canBeDeleted();
+        if (!empty($deletionErrors)) {
+            $errorMessage = implode(' ', $deletionErrors);
+            return redirect()->route('products.index')->with('error', $errorMessage);
         }
 
-        DB::transaction(function () use ($product) {
-            $product->components()->delete();
-            $product->delete();
-        });
+        try {
+            DB::transaction(function () use ($product) {
+                // Validate business rules before deletion
+                $businessErrors = $product->validateBusinessRules();
+                if (!empty($businessErrors)) {
+                    throw new \Exception('Business validation failed: ' . implode(' ', $businessErrors));
+                }
 
-        return redirect()->route('products.index')->with('success', 'Product deleted successfully.');
+                $product->components()->delete();
+                $product->delete();
+            });
+
+            return redirect()->route('products.index')->with('success', 'Product deleted successfully.');
+        } catch (\Exception $e) {
+            \Log::error('Product deletion failed', [
+                'product_id' => $product->id,
+                'error' => $e->getMessage()
+            ]);
+            return redirect()->route('products.index')->with('error', 'Failed to delete product: ' . $e->getMessage());
+        }
     }
 
     public function search(Request $request)
@@ -450,15 +560,23 @@ class ProductController extends Controller
 
     public function getProductVariants($identifier)
     {
-        if (is_numeric($identifier)) {
-            $product = Product::find($identifier);
-            if (!$product) {
-                return response()->json(['error' => 'Product not found'], 404);
-            }
+        try {
+            if (is_numeric($identifier)) {
+                $product = Product::find($identifier);
+                if (!$product) {
+                    return response()->json(['error' => 'Product not found'], 404);
+                }
             
-            $colorVariants = $product->colorVariants()
-                ->orderBy('color')
-                ->get();
+            $product->load([
+                'colorVariants' => function($query) {
+                    $query->orderBy('color');
+                },
+                'components.componentProduct.colorVariants',
+                'components.componentProduct.category',
+                'components.componentProduct.subcategory'
+            ]);
+            
+            $colorVariants = $product->colorVariants;
             
             $variants = [];
             foreach ($colorVariants as $variant) {
@@ -479,27 +597,13 @@ class ProductController extends Controller
                 ];
                 
                 if ($product->is_composite) {
-                    $components = $product->components()->with('componentProduct.colorVariants')->get();
-                    $variantData['components'] = $components->map(function($component) {
-                        return [
-                            'id' => $component->id,
-                            'quantity_needed' => $component->quantity_needed,
-                            'component_product' => [
-                                'id' => $component->componentProduct->id,
-                                'name' => $component->componentProduct->name,
-                                'quantity' => $component->componentProduct->colorVariants->sum('quantity'),
-                            ]
-                        ];
-                    });
-                    
-                    $maxAssembly = PHP_INT_MAX;
-                    foreach ($components as $component) {
-                        $componentTotalStock = $component->componentProduct->colorVariants->sum('quantity');
-                        $possibleAssembly = floor($componentTotalStock / $component->quantity_needed);
-                        $maxAssembly = min($maxAssembly, $possibleAssembly);
-                    }
-                    
-                    $variantData['quantity'] = min($variant->quantity, $maxAssembly === PHP_INT_MAX ? 0 : $maxAssembly);
+                    // ✅ FIXED: For composite products in invoice creation, 
+                    // we don't need to send component information to frontend
+                    // Components are already consumed during assembly
+                    // Users only need to see the composite product stock
+                    $variantData['quantity'] = $variant->quantity; // Use actual composite product stock
+                    $variantData['is_composite'] = true;
+                    // ✅ REMOVED: No component information needed for invoice creation
                 }
                 
                 $variants[] = $variantData;
@@ -514,7 +618,14 @@ class ProductController extends Controller
             
         } else {
             $products = Product::where('name', $identifier)
-                ->with(['category', 'subcategory', 'colorVariants', 'components.componentProduct.colorVariants'])
+                ->with([
+                    'category', 
+                    'subcategory', 
+                    'colorVariants', 
+                    'components.componentProduct.colorVariants',
+                    'components.componentProduct.category',
+                    'components.componentProduct.subcategory'
+                ])
                 ->orderBy('category_id')
                 ->get();
 
@@ -575,6 +686,13 @@ class ProductController extends Controller
                 'has_multiple_categories' => $groupedVariants->count() > 1,
                 'total_stock' => collect($allVariants)->sum('quantity')
             ]);
+        }
+        } catch (\Exception $e) {
+            \Log::error('Error getting product variants', [
+                'identifier' => $identifier,
+                'error' => $e->getMessage()
+            ]);
+            return response()->json(['error' => 'Failed to get product variants'], 500);
         }
     }
 }

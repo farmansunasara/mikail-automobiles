@@ -103,7 +103,7 @@ class OrderController extends Controller
             'items.*.price' => 'required|numeric|min:0.01|max:999999.99',
             'items.*.variants' => 'required|array|min:1',
             'items.*.variants.*.product_id' => 'required|exists:product_color_variants,id',
-            'items.*.variants.*.quantity' => 'required|integer|min:1|max:9999',
+            'items.*.variants.*.quantity' => 'required|integer|min:0|max:9999',
         ], [
             'items.required' => 'Please add at least one item to the order',
             'items.*.product_id.required' => 'Please select a product for each item',
@@ -112,7 +112,7 @@ class OrderController extends Controller
             'items.*.variants.required' => 'Please select at least one color variant',
             'items.*.variants.*.product_id.required' => 'Invalid color variant selected',
             'items.*.variants.*.quantity.required' => 'Please enter quantity for each variant',
-            'items.*.variants.*.quantity.min' => 'Quantity must be 1 or greater',
+            'items.*.variants.*.quantity.min' => 'Quantity cannot be negative',
         ]);
 
         try {
@@ -185,7 +185,7 @@ class OrderController extends Controller
         foreach ($groupedItems as $productId => $items) {
             $product = $items->first()->product;
             $allVariants = ProductColorVariant::where('product_id', $productId)
-                ->with(['product.components.componentProduct', 'colorModel'])
+                ->with(['colorModel'])
                 ->get();
             
             $existingQuantities = [];
@@ -269,7 +269,7 @@ class OrderController extends Controller
                 'items.*.price' => 'required|numeric|min:0.01|max:999999.99',
                 'items.*.variants' => 'required|array|min:1',
                 'items.*.variants.*.product_id' => 'required|exists:product_color_variants,id',
-                'items.*.variants.*.quantity' => 'required|integer|min:1|max:9999',
+                'items.*.variants.*.quantity' => 'required|integer|min:0|max:9999',
             ], [
                 'items.required' => 'Please add at least one item to the order',
                 'items.*.product_id.required' => 'Please select a product for each item',
@@ -278,7 +278,7 @@ class OrderController extends Controller
                 'items.*.variants.required' => 'Please select at least one color variant',
                 'items.*.variants.*.product_id.required' => 'Invalid color variant selected',
                 'items.*.variants.*.quantity.required' => 'Please enter quantity for each variant',
-                'items.*.variants.*.quantity.min' => 'Quantity must be 1 or greater',
+                'items.*.variants.*.quantity.min' => 'Quantity cannot be negative',
             ]);
             
             Log::info('Validation passed for order update');
@@ -394,7 +394,7 @@ class OrderController extends Controller
         $variants = ProductColorVariant::whereHas('product', function ($query) use ($productName) {
             $query->where('name', $productName);
         })
-        ->with(['product.components.componentProduct', 'colorModel'])
+        ->with(['colorModel'])
         ->get();
 
         return response()->json($variants);

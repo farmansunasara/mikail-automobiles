@@ -13,11 +13,17 @@ use Illuminate\Support\Facades\DB;
 
 class DashboardController extends Controller
 {
+    // Configuration constants
+    private const RECENT_INVOICES_LIMIT = 5;
+    private const LOW_STOCK_PRODUCTS_LIMIT = 10;
+    private const MONTHLY_SALES_MONTHS = 6;
+    
     public function index()
     {
-        // Get dashboard statistics
-        $totalProducts = Product::count();
-        $totalCustomers = Customer::count();
+        try {
+            // Get dashboard statistics
+            $totalProducts = Product::count();
+            $totalCustomers = Customer::count();
         
         // Calculate total stock value - Using ProductColorVariant
         $totalStockValue = ProductColorVariant::with('product')
@@ -38,16 +44,30 @@ class DashboardController extends Controller
         // Get recent invoices
         $recentInvoices = Invoice::with('customer')
                                 ->latest()
-                                ->take(5)
+                                ->take(self::RECENT_INVOICES_LIMIT)
                                 ->get();
         
-        // Get monthly sales data for chart (last 6 months)
+        // Get monthly sales data for chart - Optimized single query
+        $startDate = Carbon::now()->subMonths(self::MONTHLY_SALES_MONTHS - 1)->startOfMonth();
+        $endDate = Carbon::now()->endOfMonth();
+        
+        $monthlySalesData = Invoice::selectRaw('
+                DATE_FORMAT(invoice_date, "%Y-%m") as month,
+                SUM(grand_total) as total_sales
+            ')
+            ->whereBetween('invoice_date', [$startDate, $endDate])
+            ->groupBy('month')
+            ->orderBy('month')
+            ->pluck('total_sales', 'month')
+            ->toArray();
+        
+        // Fill in missing months with zero values
         $monthlySales = [];
-        for ($i = 5; $i >= 0; $i--) {
+        for ($i = self::MONTHLY_SALES_MONTHS - 1; $i >= 0; $i--) {
             $date = Carbon::now()->subMonths($i);
-            $sales = Invoice::whereMonth('invoice_date', $date->month)
-                           ->whereYear('invoice_date', $date->year)
-                           ->sum('grand_total');
+            $monthKey = $date->format('Y-m');
+            $sales = $monthlySalesData[$monthKey] ?? 0;
+            
             $monthlySales[] = [
                 'month' => $date->format('M Y'),
                 'sales' => $sales
@@ -59,18 +79,33 @@ class DashboardController extends Controller
             ->whereNotNull('minimum_threshold')
             ->whereColumn('quantity', '<', 'minimum_threshold')
             ->orderBy('quantity', 'asc')
-            ->take(10)
+            ->take(self::LOW_STOCK_PRODUCTS_LIMIT)
             ->get();
         
-        return view('dashboard', compact(
-            'totalProducts',
-            'totalCustomers', 
-            'totalStockValue',
-            'invoicesThisMonth',
-            'lowStockItems',
-            'recentInvoices',
-            'monthlySales',
-            'lowStockProducts'
-        ));
+            return view('dashboard', compact(
+                'totalProducts',
+                'totalCustomers', 
+                'totalStockValue',
+                'invoicesThisMonth',
+                'lowStockItems',
+                'recentInvoices',
+                'monthlySales',
+                'lowStockProducts'
+            ));
+        } catch (\Exception $e) {
+            \Log::error('Dashboard data loading failed: ' . $e->getMessage());
+            
+            // Return dashboard with default values on error
+            return view('dashboard', [
+                'totalProducts' => 0,
+                'totalCustomers' => 0,
+                'totalStockValue' => 0,
+                'invoicesThisMonth' => 0,
+                'lowStockItems' => 0,
+                'recentInvoices' => collect(),
+                'monthlySales' => [],
+                'lowStockProducts' => collect()
+            ]);
+        }
     }
 }
