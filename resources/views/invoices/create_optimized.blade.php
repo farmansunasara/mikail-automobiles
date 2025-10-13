@@ -1080,22 +1080,8 @@ textarea.form-control {
 $(document).ready(function() {
     let itemIndex = 0;
     
-    // Performance Optimization: Data Caching
-    const dataCache = {
-        products: new Map(),
-        variants: new Map(),
-        categories: new Map(),
-        lastFetch: new Map()
-    };
-    
-    // Cache TTL (Time To Live) - 5 minutes
-    const CACHE_TTL = 5 * 60 * 1000;
-    
-    // Check if cached data is still valid
-    function isCacheValid(key) {
-        const lastFetch = dataCache.lastFetch.get(key);
-        return lastFetch && (Date.now() - lastFetch) < CACHE_TTL;
-    }
+    // REMOVED: Cache system to prevent color variant cross-contamination
+    // All API calls will now fetch fresh data
     
     // Show skeleton loader
     function showSkeletonLoader($container, type = 'default') {
@@ -1134,35 +1120,19 @@ $(document).ready(function() {
     }
     
     // Optimized API call with caching
-    function cachedApiCall(url, params, cacheKey) {
+    // REMOVED: cachedApiCall function - using direct API calls instead
+    function directApiCall(url, params) {
         return new Promise((resolve, reject) => {
-            // Check cache first
-            if (dataCache[cacheKey] && isCacheValid(cacheKey)) {
-                console.log(`Using cached data for ${cacheKey}`);
-                performanceMonitor.logCacheHit();
-                resolve(dataCache[cacheKey]);
-                return;
-            }
+            console.log(`Making direct API call to: ${url}`);
             
-            // Show skeleton loader
-            const $target = $(`[data-cache-key="${cacheKey}"]`);
-            if ($target.length) {
-                showSkeletonLoader($target, cacheKey);
-            }
-            
-            // Log API call
-            performanceMonitor.logApiCall();
-            
-            // Make API call
+            // Make direct API call without caching
             $.get(url, params)
                 .done(function(data) {
-                    // Cache the data
-                    dataCache[cacheKey] = data;
-                    dataCache.lastFetch.set(cacheKey, Date.now());
+                    console.log(`API call successful for: ${url}`, data);
                     resolve(data);
                 })
                 .fail(function(xhr) {
-                    console.error(`API call failed for ${cacheKey}:`, xhr);
+                    console.error(`API call failed for ${url}:`, xhr);
                     reject(xhr);
                 });
         });
@@ -1362,7 +1332,7 @@ $(document).ready(function() {
         
         // If in product row, move to next field
         if ($currentElement.closest('.product-row').length) {
-            e.preventDefault();
+                    e.preventDefault();
             const $nextField = $currentElement.closest('td').next('td').find('input, select, textarea');
             if ($nextField.length) {
                 $nextField.focus();
@@ -1434,7 +1404,9 @@ $(document).ready(function() {
         addNewItem();
     });
     
-    function addNewItem() {
+    window.addNewItem = function() {
+        console.log('Adding new item');
+        
         const rowHtml = `
             <tr class="product-row animate__animated animate__fadeIn" data-index="${itemIndex}">
                 <td>
@@ -1543,6 +1515,7 @@ $(document).ready(function() {
         const $productSelect = $row.find('.product-select');
         
         console.log('Category select changed, categoryId:', categoryId);
+        console.log('Cache key will be:', `products-${categoryId}`);
         
         if (!categoryId) {
             $productSelect.html('<option value="">Select Product</option>').prop('disabled', true);
@@ -1551,10 +1524,9 @@ $(document).ready(function() {
         }
         
         $productSelect.prop('disabled', true);
-        $productSelect.attr('data-cache-key', 'products');
         
-        // Use cached API call
-        cachedApiCall('/api/products/by-category', { category_id: categoryId }, 'products')
+        // Use cached API call with category-specific cache key
+        directApiCall('/api/products/by-category', { category_id: categoryId })
             .then(function(products) {
                 console.log('Products loaded for category:', categoryId, 'products:', products);
                 let options = '<option value="">Select Product</option>';
@@ -1590,8 +1562,10 @@ $(document).ready(function() {
     $(document).on('change', '.product-select', function() {
         const $row = $(this).closest('tr');
         const productId = $(this).val();
+        const rowIndex = $row.data('index');
         
-        console.log('Product select changed, productId:', productId);
+        console.log('Product select changed, productId:', productId, 'for row index:', rowIndex);
+        console.log('Variants cache key will be:', `variants-${productId}`);
         
         if (!productId) {
             clearProductData($row);
@@ -1599,10 +1573,9 @@ $(document).ready(function() {
         }
         
         $row.addClass('loading');
-        $row.find('.colors-container').attr('data-cache-key', 'variants');
         
-        // Use cached API call for variants
-        cachedApiCall(`/api/products/variants/${productId}`, {}, 'variants')
+        // Use direct API call for variants (no caching)
+        directApiCall(`/api/products/variants/${productId}`, {})
             .then(function(data) {
                 console.log('Product variants API response:', data);
                 if (data.variants && data.variants.length > 0) {

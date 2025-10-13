@@ -51,6 +51,25 @@
     box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.25);
 }
 
+.quantity-input.manufacturing-required {
+    border-color: #ffc107;
+    background-color: #fff3cd;
+    box-shadow: 0 0 0 0.2rem rgba(255, 193, 7, 0.25);
+}
+
+.manufacturing-required {
+    position: relative;
+}
+
+.manufacturing-required::after {
+    content: "🔧";
+    position: absolute;
+    right: 5px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 12px;
+}
+
 .stock-info {
     font-size: 0.8rem;
     color: #17a2b8;
@@ -266,6 +285,10 @@
 @endsection
 
 @push('scripts')
+<!-- Select2 CDN for enhanced dropdowns -->
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+
 <script>
 $(document).ready(function() {
     let itemIndex = 0;
@@ -292,12 +315,28 @@ $(document).ready(function() {
         width: '100%'
     });
 
-    // Add initial item row
-    addItem();
+    // Debug: Check if button exists
+    console.log('Add item button exists:', $('#addItem').length > 0);
+    console.log('Add item button element:', $('#addItem')[0]);
 
-    // Add item
-    $('#addItem').click(function() {
+    // Add item - Use event delegation to ensure it works
+    $(document).on('click', '#addItem', function() {
+        console.log('Add item button clicked');
         addItem();
+    });
+
+    // Add initial item row after everything is set up
+    setTimeout(function() {
+        console.log('Adding initial item row');
+        addItem();
+    }, 100);
+
+    // Make functions globally accessible for testing
+    window.addItem = addItem;
+    
+    // Ensure functions are available immediately
+    console.log('Global functions defined:', {
+        addItem: typeof window.addItem
     });
 
     // Remove item
@@ -375,8 +414,9 @@ $(document).ready(function() {
         $row.addClass('loading');
         
         // Load product variants
-        $.get(`/api/products/variants/${productId}`)
+        $.get(`/api/products/${productId}/variants`)
             .done(function(data) {
+                console.log('Product variants loaded:', data);
                 // API Response received
                 if (data && data.variants && data.variants.length > 0) {
                     let html = '';
@@ -436,7 +476,11 @@ $(document).ready(function() {
     });
 
     function addItem() {
-        const rowHtml = `
+        console.log('addItem function called, itemIndex:', itemIndex);
+        console.log('Items tbody exists:', $('#items-tbody').length > 0);
+        
+        try {
+            const rowHtml = `
             <tr class="item-row" data-index="${itemIndex}">
                 <td>
                     <select class="form-control category-select select2" name="items[${itemIndex}][category_id]" required>
@@ -492,10 +536,15 @@ $(document).ready(function() {
         
         // Add animation
         $('.item-row:last').hide().fadeIn(300);
+        
+        } catch (error) {
+            console.error('Error in addItem function:', error);
+            alert('Error adding item: ' + error.message);
+        }
     }
 
 
-    function addVariant(variant, itemRow, container) {
+    function addVariant(variant, itemRow, container, variantIndex) {
         const itemIndex = itemRow.data('index');
         const variantHtml = `
             <div class="variant-item mb-2">
@@ -523,23 +572,32 @@ $(document).ready(function() {
         `;
         
         container.append(variantHtml);
-        variantIndex++;
     }
 
     function validateStockAvailability($input) {
-        // Simplified: No longer prevents order creation based on stock
-        // Just shows informational tooltip
+        // Manufacturing orders: Allow quantities exceeding stock
+        // Just shows informational tooltip for manufacturing planning
         const quantity = parseInt($input.val()) || 0;
         const maxStock = parseInt($input.data('max-stock')) || 0;
         
-        if (quantity > maxStock && maxStock > 0) {
-            $input.attr('title', `Available stock: ${maxStock}, Requested: ${quantity}. Additional quantity will be manufactured as needed.`);
+        if (quantity > maxStock && maxStock >= 0) {
+            const shortage = quantity - maxStock;
+            $input.attr('title', `Available stock: ${maxStock}, Requested: ${quantity}. Manufacturing required: ${shortage} units.`);
+            $input.addClass('manufacturing-required');
         } else {
             $input.removeAttr('title');
+            $input.removeClass('manufacturing-required');
         }
     }
 
+    function showOrderError(message) {
+        console.error('Order Error:', message);
+        // You can implement a toast notification or alert here
+        alert('Error: ' + message);
+    }
+
     function updateSummary() {
+        console.log('updateSummary called');
         let grandTotal = 0;
         let totalItems = 0;
         let totalQuantity = 0;

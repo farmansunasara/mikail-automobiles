@@ -66,10 +66,77 @@ class InvoiceService
             // 7. Update order status if invoice was created from an order
             if (isset($data['order_id']) && $data['order_id']) {
                 $order = Order::find($data['order_id']);
+                Log::info('Order found for GST invoice creation', [
+                    'order_id' => $order ? $order->id : 'NOT_FOUND',
+                    'order_status' => $order ? $order->status : 'N/A',
+                    'invoice_id' => $invoice->id
+                ]);
+                
                 if ($order && $order->status === 'pending') {
-                    $order->update(['status' => 'completed']);
+                    Log::info('Updating order status for GST invoice', [
+                        'order_id' => $order->id,
+                        'current_status' => $order->status,
+                        'new_status' => 'completed',
+                        'invoice_id' => $invoice->id
+                    ]);
                     
-                    Log::info('Order status updated to COMPLETED via GST invoice creation', [
+                    // Update order status and link invoice
+                    $updateResult = $order->update([
+                        'status' => 'completed',
+                        'invoice_id' => $invoice->id
+                    ]);
+                    
+                    Log::info('GST Order update result', [
+                        'order_id' => $order->id,
+                        'update_success' => $updateResult,
+                        'order_status_after' => $order->fresh()->status,
+                        'invoice_id_after' => $order->fresh()->invoice_id
+                    ]);
+                    
+                    // Force refresh and check again
+                    $order->refresh();
+                    Log::info('GST Order after refresh', [
+                        'order_id' => $order->id,
+                        'status' => $order->status,
+                        'invoice_id' => $order->invoice_id
+                    ]);
+                    
+                    // Test direct database update
+                    try {
+                        \DB::table('orders')->where('id', $order->id)->update([
+                            'status' => 'completed',
+                            'invoice_id' => $invoice->id
+                        ]);
+                        Log::info('Direct DB update successful', [
+                            'order_id' => $order->id
+                        ]);
+                    } catch (\Exception $e) {
+                        Log::error('Direct DB update failed', [
+                            'order_id' => $order->id,
+                            'error' => $e->getMessage()
+                        ]);
+                    }
+                    
+                    // Deduct stock for each order item
+                    foreach ($order->items as $orderItem) {
+                        $variant = ProductColorVariant::find($orderItem->color_variant_id);
+                        if ($variant) {
+                            $previousQty = $variant->quantity;
+                            $variant->decrement('quantity', $orderItem->quantity);
+                            
+                            // Log stock movement
+                            $variant->product->stockLogs()->create([
+                                'change_type' => 'outward',
+                                'quantity' => $orderItem->quantity,
+                                'previous_quantity' => $previousQty,
+                                'new_quantity' => $variant->fresh()->quantity,
+                                'color_variant_id' => $variant->id,
+                                'remarks' => "Sale via Invoice #{$invoice->invoice_number}",
+                            ]);
+                        }
+                    }
+                    
+                    Log::info('Order status updated to COMPLETED and stock deducted via GST invoice creation', [
                         'order_id' => $order->id,
                         'order_number' => $order->order_number,
                         'invoice_id' => $invoice->id,
@@ -123,10 +190,61 @@ class InvoiceService
             // Update order status if invoice was created from an order
             if (isset($data['order_id']) && $data['order_id']) {
                 $order = Order::find($data['order_id']);
+                Log::info('Order found for Non-GST invoice creation', [
+                    'order_id' => $order ? $order->id : 'NOT_FOUND',
+                    'order_status' => $order ? $order->status : 'N/A',
+                    'invoice_id' => $invoice->id
+                ]);
+                
                 if ($order && $order->status === 'pending') {
-                    $order->update(['status' => 'completed']);
+                    Log::info('Updating order status for Non-GST invoice', [
+                        'order_id' => $order->id,
+                        'current_status' => $order->status,
+                        'new_status' => 'completed',
+                        'invoice_id' => $invoice->id
+                    ]);
                     
-                    Log::info('Order status updated to COMPLETED via Non-GST invoice creation', [
+                    // Update order status and link invoice
+                    $updateResult = $order->update([
+                        'status' => 'completed',
+                        'invoice_id' => $invoice->id
+                    ]);
+                    
+                    Log::info('Non-GST Order update result', [
+                        'order_id' => $order->id,
+                        'update_success' => $updateResult,
+                        'order_status_after' => $order->fresh()->status,
+                        'invoice_id_after' => $order->fresh()->invoice_id
+                    ]);
+                    
+                    // Force refresh and check again
+                    $order->refresh();
+                    Log::info('Non-GST Order after refresh', [
+                        'order_id' => $order->id,
+                        'status' => $order->status,
+                        'invoice_id' => $order->invoice_id
+                    ]);
+                    
+                    // Deduct stock for each order item
+                    foreach ($order->items as $orderItem) {
+                        $variant = ProductColorVariant::find($orderItem->color_variant_id);
+                        if ($variant) {
+                            $previousQty = $variant->quantity;
+                            $variant->decrement('quantity', $orderItem->quantity);
+                            
+                            // Log stock movement
+                            $variant->product->stockLogs()->create([
+                                'change_type' => 'outward',
+                                'quantity' => $orderItem->quantity,
+                                'previous_quantity' => $previousQty,
+                                'new_quantity' => $variant->fresh()->quantity,
+                                'color_variant_id' => $variant->id,
+                                'remarks' => "Sale via Invoice #{$invoice->invoice_number}",
+                            ]);
+                        }
+                    }
+                    
+                    Log::info('Order status updated to COMPLETED and stock deducted via Non-GST invoice creation', [
                         'order_id' => $order->id,
                         'order_number' => $order->order_number,
                         'invoice_id' => $invoice->id,
@@ -159,6 +277,8 @@ class InvoiceService
 
     /**
      * Prepare and validate items with stock check
+     * FIXED: Removed stock validation to prevent race conditions
+     * Stock validation now happens in updateStock() with proper locking
      */
     private function prepareAndValidateItems(array $items, $colorVariants): array
     {
@@ -177,10 +297,8 @@ class InvoiceService
                         }
                         
                         $colorVariant = $colorVariants[$variantId];
-                        if ($colorVariant->quantity < $quantity) {
-                            throw new \Exception("Insufficient stock for {$colorVariant->product->name} ({$colorVariant->color}). Available: {$colorVariant->quantity}, Required: {$quantity}");
-                        }
                         
+                        // FIXED: Only validate that variant exists, stock check happens in updateStock()
                         $invoiceItems[] = [
                             'color_variant_id' => $variantId,
                             'product_id' => $colorVariant->product_id,
@@ -303,43 +421,79 @@ class InvoiceService
 
     /**
      * Bulk update stock quantities with atomic operations
+     * FIXED: Enhanced with proper error handling and race condition prevention
      * Handles both simple and composite products correctly
      */
     public function updateStock(array $invoiceItems): void
     {
-        // Use database-level locking to prevent race conditions
-        DB::transaction(function () use ($invoiceItems) {
-            foreach ($invoiceItems as $item) {
-                // Lock the color variant row for update to prevent race conditions
-                $colorVariant = ProductColorVariant::lockForUpdate()->find($item['color_variant_id']);
-                
-                if (!$colorVariant) {
-                    throw new \Exception("Color variant not found (ID: {$item['color_variant_id']})");
+        try {
+            // Use database-level locking to prevent race conditions
+            DB::transaction(function () use ($invoiceItems) {
+                foreach ($invoiceItems as $item) {
+                    try {
+                        // Lock the color variant row for update to prevent race conditions
+                        $colorVariant = ProductColorVariant::lockForUpdate()->find($item['color_variant_id']);
+                        
+                        if (!$colorVariant) {
+                            throw new \Exception("Color variant not found (ID: {$item['color_variant_id']})");
+                        }
+                        
+                        // FIXED: Validate stock availability with lock to prevent race conditions
+                        if ($colorVariant->quantity < $item['quantity']) {
+                            throw new \Exception("Insufficient stock for {$colorVariant->product->name} ({$colorVariant->color}). Available: {$colorVariant->quantity}, Required: {$item['quantity']}");
+                        }
+                        
+                        // Handle simple vs composite products differently
+                        if ($colorVariant->product->is_composite) {
+                            // For composite products: Only deduct the composite product stock
+                            // Components were already consumed during assembly
+                            $this->stockService->outwardColorVariantStockSaleOnly(
+                                $colorVariant, 
+                                $item['quantity'], 
+                                "Sale via Invoice (Composite Product - Components already consumed during assembly)"
+                            );
+                        } else {
+                            // For simple products: Deduct stock normally
+                            $this->stockService->outwardColorVariantStockSaleOnly(
+                                $colorVariant, 
+                                $item['quantity'], 
+                                "Sale via Invoice (Simple Product)"
+                            );
+                        }
+                        
+                        // Log successful stock deduction
+                        Log::info('Stock deducted successfully', [
+                            'variant_id' => $colorVariant->id,
+                            'product_name' => $colorVariant->product->name,
+                            'color' => $colorVariant->color,
+                            'quantity_deducted' => $item['quantity'],
+                            'remaining_stock' => $colorVariant->fresh()->quantity
+                        ]);
+                        
+                    } catch (\Exception $e) {
+                        // Log the error with context
+                        Log::error('Stock deduction failed', [
+                            'variant_id' => $item['color_variant_id'],
+                            'quantity_requested' => $item['quantity'],
+                            'error' => $e->getMessage()
+                        ]);
+                        
+                        // Re-throw the exception to rollback the transaction
+                        throw $e;
+                    }
                 }
-                
-                // Validate stock availability with lock
-                if ($colorVariant->quantity < $item['quantity']) {
-                    throw new \Exception("Insufficient stock for {$colorVariant->product->name} ({$colorVariant->color}). Available: {$colorVariant->quantity}, Required: {$item['quantity']}");
-                }
-                
-                // Handle simple vs composite products differently
-                if ($colorVariant->product->is_composite) {
-                    // For composite products: Only deduct the composite product stock
-                    // Components were already consumed during assembly
-                    $this->stockService->outwardColorVariantStockSaleOnly(
-                        $colorVariant, 
-                        $item['quantity'], 
-                        "Sale via Invoice (Composite Product - Components already consumed during assembly)"
-                    );
-                } else {
-                    // For simple products: Deduct stock normally
-                    $this->stockService->outwardColorVariantStockSaleOnly(
-                        $colorVariant, 
-                        $item['quantity'], 
-                        "Sale via Invoice (Simple Product)"
-                    );
-                }
-            }
-        });
+            });
+            
+        } catch (\Exception $e) {
+            // Log the overall error
+            Log::error('Bulk stock update failed', [
+                'items_count' => count($invoiceItems),
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            
+            // Re-throw the exception
+            throw $e;
+        }
     }
 }

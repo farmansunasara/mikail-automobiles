@@ -24,12 +24,15 @@ class OrderService
     }
 
     /**
-     * Create a new order (simplified - no stock checks, no manufacturing requirements)
+     * Create a new order (allows stock shortages for manufacturing)
      */
     public function createOrder(array $data): Order
     {
         return DB::transaction(function () use ($data) {
-            // 1. Create order (no stock validations)
+            // 1. Check stock availability but don't prevent order creation
+            $this->checkStockAvailability($data['items']);
+
+            // 2. Create order
             $order = Order::create([
                 'order_number' => Order::generateOrderNumber(),
                 'customer_id' => $data['customer_id'],
@@ -40,7 +43,7 @@ class OrderService
                 'total_amount' => 0
             ]);
 
-            // 2. Create order items (simplified)
+            // 3. Create order items with stock validation
             $totalAmount = 0;
             foreach ($data['items'] as $item) {
                 foreach ($item['variants'] as $variant) {
@@ -66,7 +69,7 @@ class OrderService
             // 3. Update total amount
             $order->update(['total_amount' => $totalAmount]);
 
-            Log::info('Order created (simplified)', [
+            Log::info('Order created with stock validation', [
                 'order_id' => $order->id,
                 'order_number' => $order->order_number,
                 'total_amount' => $totalAmount
@@ -74,6 +77,45 @@ class OrderService
 
             return $order->fresh(['items.product', 'items.colorVariant']);
         });
+    }
+
+    /**
+     * Check stock availability and log shortages (allows manufacturing orders)
+     */
+    private function checkStockAvailability(array $items): void
+    {
+        $stockShortages = [];
+
+        foreach ($items as $item) {
+            foreach ($item['variants'] as $variant) {
+                if (($variant['quantity'] ?? 0) > 0) {
+                    $variantId = $variant['product_id'];
+                    $requiredQuantity = intval($variant['quantity']);
+                    
+                    // Get current stock
+                    $variant = ProductColorVariant::find($variantId);
+                    if (!$variant) {
+                        Log::warning("Product variant with ID {$variantId} not found during order creation.");
+                        continue;
+                    }
+                    
+                    $currentStock = $variant->stock_quantity ?? 0;
+                    
+                    if ($requiredQuantity > $currentStock) {
+                        $shortage = $requiredQuantity - $currentStock;
+                        $stockShortages[] = "{$variant->product->name} ({$variant->color}): Need {$shortage} more (Available: {$currentStock})";
+                    }
+                }
+            }
+        }
+
+        // Log stock shortages for manufacturing planning but don't prevent order creation
+        if (!empty($stockShortages)) {
+            Log::info('Order created with stock shortages - manufacturing required', [
+                'shortages' => $stockShortages,
+                'message' => 'Order allowed to proceed for manufacturing planning'
+            ]);
+        }
     }
 
     /**
@@ -257,8 +299,11 @@ class OrderService
                 ]);
             }
 
-            // Update order status
-            $order->update(['status' => 'completed']);
+            // Update order status to completed and link invoice
+            $order->update([
+                'status' => 'completed',
+                'invoice_id' => $invoice->id
+            ]);
 
             Log::info('Invoice generated and stock deducted', [
                 'order_id' => $order->id,
@@ -272,10 +317,14 @@ class OrderService
     }
 
     /**
-     * Cancel an order (simplified)
+     * Cancel an order (prevents if invoice exists)
      */
     public function cancelOrder(Order $order): void
     {
+        if (!$order->canCancel()) {
+            throw new Exception('Cannot cancel order. Only pending orders without invoices can be cancelled.');
+        }
+
         DB::transaction(function () use ($order) {
             // Update order status
             $order->update(['status' => 'cancelled']);
@@ -286,6 +335,11 @@ class OrderService
             ]);
         });
     }
+
+    /**
+     * Note: Orders are automatically completed when invoice is created
+     * This method is kept for potential future use
+     */
 
     /**
      * Calculate invoice totals

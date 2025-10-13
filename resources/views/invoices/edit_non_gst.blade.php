@@ -966,7 +966,7 @@ $(document).ready(function() {
         addNewItem();
     });
     
-    function addNewItem() {
+    window.addNewItem = function() {
         const rowHtml = `
             <tr class="product-row animate__animated animate__fadeIn" data-index="${itemIndex}">
                 <td>
@@ -1082,8 +1082,9 @@ $(document).ready(function() {
         
         $productSelect.prop('disabled', true).html('<option value="">Loading...</option>');
         
-        $.get('/api/products/by-category', { category_id: categoryId })
-            .done(function(products) {
+        // Use cached API call with category-specific cache key
+        directApiCall('/api/products/by-category', { category_id: categoryId })
+            .then(function(products) {
                 let options = '<option value="">Select Product</option>';
                 products.forEach(function(product) {
                     const compositeBadge = product.is_composite ? '<span class="composite-badge">Composite</span>' : '';
@@ -1101,9 +1102,9 @@ $(document).ready(function() {
                     console.error('Select2 initialization for product failed:', e);
                 }
             })
-            .fail(function() {
+            .catch(function() {
                 $productSelect.html('<option value="">Error loading products</option>');
-                alert('Error loading products. Please try again.');
+                showError('Error loading products. Please try again.');
             });
     });
     
@@ -1118,8 +1119,9 @@ $(document).ready(function() {
         
         $row.addClass('loading');
         
-        $.get(`/api/products/variants/${productId}`)
-            .done(function(data) {
+        // Use cached API call for variants with product-specific cache key
+        directApiCall(`/api/products/variants/${productId}`, {})
+            .then(function(data) {
                 if (data.variants && data.variants.length > 0) {
                     createColorInputs($row, data.variants);
                     
@@ -1133,14 +1135,12 @@ $(document).ready(function() {
                     $row.find('.price-history').show();
                     
                     makePriceEditable($priceInput);
-                    
-
                 }
             })
-            .fail(function() {
+            .catch(function() {
                 showError('Error loading product variants. Please try again.');
             })
-            .always(function() {
+            .finally(function() {
                 $row.removeClass('loading');
             });
     });
@@ -1278,7 +1278,7 @@ $(document).ready(function() {
         }, 500);
     };
     
-    function calculateTotals() {
+    window.calculateTotals = function() {
         let grandSubtotal = 0;
         
         $('.product-row').each(function() {
@@ -1327,24 +1327,36 @@ $(document).ready(function() {
     }
     
     $('#invoice-form').on('submit', function(e) {
-        let hasItems = false;
-        let hasQuantity = false;
+        console.log('Form submission started');
+        console.log('Form data:', $(this).serialize());
         
-        $('.quantity-input').each(function() {
-            if (parseInt($(this).val()) > 0) {
-                hasItems = true;
-                hasQuantity = true;
-                return false;
-            }
-        });
-        
-        if (!hasItems || !hasQuantity) {
+        // Enhanced validation before submission
+        if (!validateForm()) {
             e.preventDefault();
-            alert('Please add at least one item with quantity greater than 0');
+            console.log('Form validation failed');
+            
+            // Scroll to first error
+            const $firstError = $('.is-invalid').first();
+            if ($firstError.length) {
+                $('html, body').animate({
+                    scrollTop: $firstError.offset().top - 100
+                }, 500);
+                $firstError.focus();
+            }
+            
             return false;
         }
         
-        $('#submit-btn').prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Updating...');
+        console.log('Form validation passed, submitting...');
+        $('#submit-btn').prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Updating Invoice...');
+        
+        // Add timeout protection
+        setTimeout(function() {
+            if ($('#submit-btn').prop('disabled')) {
+                $('#submit-btn').prop('disabled', false).html('<i class="fas fa-edit"></i> Update Invoice');
+                showError('Request timeout. Please try again.');
+            }
+        }, 30000); // 30 second timeout
     });
     
     $('#discount_type, #discount_value, #packaging_fees').on('change keyup', function() {
@@ -1742,33 +1754,23 @@ $(document).ready(function() {
     // Removed duplicate form submission handler
     
     // Performance optimizations
-    const dataCache = new Map();
-    const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
-    
-    // Check if cache is valid
-    function isCacheValid(key) {
-        const cached = dataCache.get(key);
-        if (!cached) return false;
-        return Date.now() - cached.timestamp < CACHE_TTL;
-    }
-    
-    // Cached API call
-    function cachedApiCall(url, cacheKey) {
-        if (isCacheValid(cacheKey)) {
-            console.log(`Cache hit for ${cacheKey}`);
-            return Promise.resolve(dataCache.get(cacheKey).data);
-        }
-        
-        console.log(`Cache miss for ${cacheKey}, fetching from API`);
-        return fetch(url)
-            .then(response => response.json())
-            .then(data => {
-                dataCache.set(cacheKey, {
-                    data: data,
-                    timestamp: Date.now()
+    // REMOVED: Cache system to prevent color variant cross-contamination
+    // Direct API call without caching
+    function directApiCall(url, params) {
+        return new Promise((resolve, reject) => {
+            console.log(`Making direct API call to: ${url}`);
+            
+            // Make direct API call without caching
+            $.get(url, params)
+                .done(function(data) {
+                    console.log(`API call successful for: ${url}`, data);
+                    resolve(data);
+                })
+                .fail(function(xhr) {
+                    console.error(`API call failed for ${url}:`, xhr);
+                    reject(xhr);
                 });
-                return data;
-            });
+        });
     }
     
     // Skeleton loader
@@ -1839,6 +1841,70 @@ $(document).ready(function() {
     // Auto-calculate when inputs change
     $(document).on('input', '.quantity-input, .price-input, #discount_value', calculateTotals);
     $(document).on('change', '#discount_type', calculateTotals);
+    
+    // Setup real-time validation
+    setupRealTimeValidation();
+    
+    // Missing functions for edit form
+    window.showCustomerModal = function() {
+        $('#customerModal').modal('show');
+        $('#customer_name').focus();
+    };
+    
+    window.saveCustomer = function() {
+        const formData = {
+            name: $('#customer_name').val(),
+            mobile: $('#customer_mobile').val(),
+            email: $('#customer_email').val(),
+            address: $('#customer_address').val(),
+            state: $('#customer_state').val(),
+            _token: $('meta[name="csrf-token"]').attr('content') || ''
+        };
+        
+        if (!formData.name) {
+            showError('Please fill name required fields');
+            return;
+        }
+        
+        $.ajax({
+            url: '/customers',
+            type: 'POST',
+            data: formData,
+            success: function(response) {
+                if (response.success) {
+                    const newOption = new Option(
+                        response.customer.name, 
+                        response.customer.id, 
+                        true, 
+                        true
+                    );
+                    
+                    $(newOption).attr('data-address', response.customer.address);
+                    $(newOption).attr('data-mobile', response.customer.mobile);
+                    $(newOption).attr('data-email', response.customer.email);
+                    
+                    $('#customer_id').append(newOption).trigger('change');
+                    
+                    $('#customerModal').modal('hide');
+                    $('#customer-form')[0].reset();
+                    
+                    showSuccess('Customer added successfully!');
+                } else {
+                    showError('Error adding customer: ' + (response.message || 'Unknown error'));
+                }
+            },
+            error: function(xhr) {
+                let errorMessage = 'Error adding customer';
+                if (xhr.responseJSON && xhr.responseJSON.errors) {
+                    const errors = Object.values(xhr.responseJSON.errors).flat();
+                    errorMessage = errors.join(', ');
+                }
+                showError(errorMessage);
+            }
+        });
+    };
+    
+    // REMOVED: Duplicate functions - already defined above
 });
 </script>
 @endpush

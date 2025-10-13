@@ -10,6 +10,8 @@ use App\Models\ProductColorVariant;
 use App\Models\ManufacturingRequirement;
 use App\Services\OrderService;
 use App\Services\StockService;
+use App\Http\Requests\OrderStoreRequest;
+use App\Http\Requests\OrderUpdateRequest;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -86,7 +88,7 @@ class OrderController extends Controller
     /**
      * Store a newly created order (simplified)
      */
-    public function store(Request $request)
+    public function store(OrderStoreRequest $request)
     {
         Log::info('Order store method called', [
             'request_data' => $request->all(),
@@ -131,8 +133,18 @@ class OrderController extends Controller
             ]);
 
             return redirect()->route('orders.show', $order)
-                ->with('success', 'Order created successfully! Check manufacturing requirements for any stock shortages.');
+                ->with('success', 'Order created successfully! Manufacturing requirements have been logged for any stock shortages.');
 
+        } catch (\Illuminate\Database\QueryException $e) {
+            Log::error('Order creation failed - Database error', [
+                'user_id' => auth()->id(),
+                'error' => $e->getMessage(),
+                'sql' => $e->getSql(),
+                'bindings' => $e->getBindings(),
+                'input' => $request->all()
+            ]);
+
+            return back()->withInput()->with('error', 'Database error occurred while creating order. Please try again.');
         } catch (\Exception $e) {
             Log::error('Order creation failed', [
                 'user_id' => auth()->id(),
@@ -140,6 +152,9 @@ class OrderController extends Controller
                 'trace' => $e->getTraceAsString(),
                 'input' => $request->all()
             ]);
+
+            // Note: Stock validation errors are now logged but don't prevent order creation
+            // Orders can exceed stock for manufacturing planning
 
             return back()->withInput()->with('error', 'Error creating order: ' . $e->getMessage());
         }
@@ -207,7 +222,7 @@ class OrderController extends Controller
     /**
      * Update the specified order (simplified)
      */
-    public function update(Request $request, Order $order)
+    public function update(OrderUpdateRequest $request, Order $order)
     {
         Log::info('=== ORDER UPDATE REQUEST RECEIVED ===', [
             'order_id' => $order->id,
@@ -217,13 +232,14 @@ class OrderController extends Controller
             'user_id' => auth()->id()
         ]);
         
-        if (!$order->canCreateInvoice()) {
+        if (!$order->canEdit()) {
             Log::warning('Order cannot be edited', [
                 'order_id' => $order->id,
-                'status' => $order->status
+                'status' => $order->status,
+                'has_invoice' => $order->hasInvoice()
             ]);
             return redirect()->route('orders.show', $order)
-                ->with('error', 'Only pending orders can be edited.');
+                ->with('error', 'Only pending orders without invoices can be edited.');
         }
 
         Log::info('Starting validation for order update');
@@ -328,6 +344,11 @@ class OrderController extends Controller
                 ->with('error', 'Only pending orders can generate invoices.');
         }
 
+        if ($order->hasInvoice()) {
+            return redirect()->route('orders.show', $order)
+                ->with('error', 'Order already has an invoice.');
+        }
+
         try {
             Log::info('Invoice generation from order started', [
                 'order_id' => $order->id,
@@ -363,9 +384,9 @@ class OrderController extends Controller
      */
     public function cancel(Order $order)
     {
-        if (!$order->canCreateInvoice()) {
+        if (!$order->canCancel()) {
             return redirect()->route('orders.show', $order)
-                ->with('error', 'Only pending orders can be cancelled.');
+                ->with('error', 'Only pending orders without invoices can be cancelled.');
         }
 
         try {
@@ -379,6 +400,11 @@ class OrderController extends Controller
                 ->with('error', 'Error cancelling order: ' . $e->getMessage());
         }
     }
+
+    /**
+     * Note: Orders are automatically completed when invoice is created
+     * No separate complete method needed
+     */
 
     /**
      * Get product variants for AJAX requests
