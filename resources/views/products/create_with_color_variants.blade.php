@@ -371,7 +371,7 @@ $(document).ready(function() {
                 displayColorResults(data, term);
             },
             error: function() {
-                console.log('Failed to search colors');
+                // Failed to search colors
                 $('#color-dropdown').html('<div class="no-results">Failed to load colors</div>');
             }
         });
@@ -647,7 +647,7 @@ $(document).ready(function() {
             type: 'GET',
             data: { category_id: categoryId },
             success: function(data) {
-                console.log('Component data received:', data); // Debug log
+                // Component data received
                 var productOptions = '<option value="">Select Component Product</option>';
                 
                 if (data && data.length > 0) {
@@ -658,12 +658,12 @@ $(document).ready(function() {
 
                     productOptions += filteredData.map(p => {
                         // Debug log for each product
-                        console.log('Processing product:', p);
+                        // Processing product
                         
                         // Use the total_stock property that's calculated in the backend
                         const availableQty = parseInt(p.total_stock) || 0;
                         
-                        console.log(`Available quantity for ${p.name}:`, availableQty);
+                        // Available quantity for product
                         return `<option value="${p.id}">${p.name} (Available: ${availableQty})</option>`;
                     }).join('');
                 } else {

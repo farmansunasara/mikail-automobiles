@@ -35,7 +35,30 @@ class Color extends Model
     // Check if color has sufficient stock
     public function hasSufficientStock(float $requiredGrams): bool
     {
+        if ($this->stock_grams < 0) {
+            return false; // Negative stock is invalid
+        }
         return $this->stock_grams >= $requiredGrams;
+    }
+
+    // Validate stock consistency
+    public function validateStock(): array
+    {
+        $errors = [];
+
+        if ($this->stock_grams < 0) {
+            $errors[] = 'Stock cannot be negative.';
+        }
+
+        if ($this->minimum_stock < 0) {
+            $errors[] = 'Minimum stock threshold cannot be negative.';
+        }
+
+        if ($this->stock_grams < $this->minimum_stock) {
+            $errors[] = 'Current stock is below minimum threshold.';
+        }
+
+        return $errors;
     }
 
     // Get stock status for UI

@@ -8,6 +8,9 @@ use App\Models\Product;
 use App\Models\ProductColorVariant;
 use App\Services\StockService;
 use App\Services\InvoiceService;
+use App\Http\Requests\InvoiceStoreRequest;
+use App\Http\Requests\InvoiceGstStoreRequest;
+use App\Http\Requests\InvoiceNonGstStoreRequest;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Barryvdh\DomPDF\Facade\Pdf;
@@ -111,21 +114,10 @@ class InvoiceController extends Controller
         return view('invoices.create_optimized', compact('customers', 'productNames', 'invoice_number', 'categories', 'order', 'orderData'))->with('invoice_type', 'gst');
     }
 
-    public function storeGst(Request $request)
+    public function storeGst(InvoiceGstStoreRequest $request)
     {
-        $request->validate([
-            'customer_id' => 'required|exists:customers,id',
-            'invoice_date' => 'required|date',
-            'due_date' => 'nullable|date|after_or_equal:invoice_date',
-            'notes' => 'nullable|string',
-            'gst_rate' => 'required|numeric|min:0|max:100',
-            'discount_type' => 'nullable|numeric|in:0,1',
-            'discount_value' => 'nullable|numeric|min:0',
-            'packaging_fees' => 'nullable|numeric|min:0',
-            'items' => 'required|array|min:1',
-            'items.*.price' => 'required|numeric|min:0',
-            'items.*.variants' => 'required|array',
-        ]);
+        // FIXED: Use specific validation request for GST invoices
+        $validated = $request->validated();
 
         try {
             \Log::info('GST Invoice creation started', [
@@ -134,7 +126,7 @@ class InvoiceController extends Controller
                 'items_count' => count($request->items)
             ]);
 
-            // Use optimized invoice service
+            // FIXED: Enhanced error handling with specific error types
             $invoice = $this->invoiceService->createGstInvoice($request->all());
 
             \Log::info('GST Invoice created successfully', [
@@ -146,14 +138,36 @@ class InvoiceController extends Controller
             return redirect()->route('invoices.gst.show', $invoice)
                 ->with('success', 'GST Invoice created successfully!');
 
+        } catch (\Illuminate\Database\QueryException $e) {
+            \Log::error('GST Invoice creation failed - Database error', [
+                'user_id' => auth()->id(),
+                'error' => $e->getMessage(),
+                'error_code' => $e->getCode()
+            ]);
+
+            return back()->withInput()->with('error', 'Database error occurred. Please try again or contact support if the problem persists.');
+
         } catch (\Exception $e) {
             \Log::error('GST Invoice creation failed', [
                 'user_id' => auth()->id(),
                 'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
+                'trace' => $e->getTraceAsString(),
+                'request_data' => $request->except(['_token'])
             ]);
 
-            return back()->withInput()->with('error', 'Error creating invoice: ' . $e->getMessage());
+            // FIXED: More user-friendly error messages
+            $errorMessage = 'Error creating invoice: ' . $e->getMessage();
+            
+            // Check for specific error types and provide better messages
+            if (str_contains($e->getMessage(), 'Insufficient stock')) {
+                $errorMessage = 'Insufficient stock for one or more items. Please check the quantities and try again.';
+            } elseif (str_contains($e->getMessage(), 'Product color variant not found')) {
+                $errorMessage = 'One or more selected products are no longer available. Please refresh the page and try again.';
+            } elseif (str_contains($e->getMessage(), 'Please add at least one item')) {
+                $errorMessage = 'Please add at least one item with quantity greater than 0.';
+            }
+
+            return back()->withInput()->with('error', $errorMessage);
         }
     }
 
@@ -245,20 +259,10 @@ class InvoiceController extends Controller
         return view('invoices.create_non_gst', compact('customers', 'productNames', 'invoice_number', 'categories', 'order', 'orderData'));
     }
 
-    public function storeNonGst(Request $request)
+    public function storeNonGst(InvoiceNonGstStoreRequest $request)
     {
-        $request->validate([
-            'customer_id' => 'required|exists:customers,id',
-            'invoice_date' => 'required|date',
-            'due_date' => 'nullable|date|after_or_equal:invoice_date',
-            'notes' => 'nullable|string',
-            'discount_type' => 'nullable|numeric|in:0,1',
-            'discount_value' => 'nullable|numeric|min:0',
-            'packaging_fees' => 'nullable|numeric|min:0',
-            'items' => 'required|array|min:1',
-            'items.*.price' => 'required|numeric|min:0',
-            'items.*.variants' => 'required|array',
-        ]);
+        // FIXED: Use specific validation request for Non-GST invoices
+        $validated = $request->validated();
 
         try {
             \Log::info('Non-GST Invoice creation started', [
@@ -267,7 +271,7 @@ class InvoiceController extends Controller
                 'items_count' => count($request->items)
             ]);
 
-            // Use optimized invoice service
+            // FIXED: Enhanced error handling with specific error types
             $invoice = $this->invoiceService->createNonGstInvoice($request->all());
 
             \Log::info('Non-GST Invoice created successfully', [
@@ -279,14 +283,36 @@ class InvoiceController extends Controller
             return redirect()->route('invoices.non_gst.show', $invoice)
                 ->with('success', 'Non-GST Invoice created successfully!');
 
+        } catch (\Illuminate\Database\QueryException $e) {
+            \Log::error('Non-GST Invoice creation failed - Database error', [
+                'user_id' => auth()->id(),
+                'error' => $e->getMessage(),
+                'error_code' => $e->getCode()
+            ]);
+
+            return back()->withInput()->with('error', 'Database error occurred. Please try again or contact support if the problem persists.');
+
         } catch (\Exception $e) {
             \Log::error('Non-GST Invoice creation failed', [
                 'user_id' => auth()->id(),
                 'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
+                'trace' => $e->getTraceAsString(),
+                'request_data' => $request->except(['_token'])
             ]);
 
-            return back()->withInput()->with('error', 'Error creating invoice: ' . $e->getMessage());
+            // FIXED: More user-friendly error messages
+            $errorMessage = 'Error creating invoice: ' . $e->getMessage();
+            
+            // Check for specific error types and provide better messages
+            if (str_contains($e->getMessage(), 'Insufficient stock')) {
+                $errorMessage = 'Insufficient stock for one or more items. Please check the quantities and try again.';
+            } elseif (str_contains($e->getMessage(), 'Product color variant not found')) {
+                $errorMessage = 'One or more selected products are no longer available. Please refresh the page and try again.';
+            } elseif (str_contains($e->getMessage(), 'Please add at least one item')) {
+                $errorMessage = 'Please add at least one item with quantity greater than 0.';
+            }
+
+            return back()->withInput()->with('error', $errorMessage);
         }
     }
 
@@ -384,28 +410,47 @@ class InvoiceController extends Controller
                 ->with('error', 'Only draft and sent invoices can be edited.');
         }
 
+        // FIXED: Use appropriate validation based on invoice type
         if ($invoice->invoice_type === 'gst') {
+            $request->validate([
+                'customer_id' => 'required|exists:customers,id',
+                'invoice_date' => 'required|date|before_or_equal:today',
+                'due_date' => 'required|date|after_or_equal:invoice_date',
+                'gst_rate' => 'required|numeric|min:0|max:100',
+                'discount_type' => 'required|in:0,1',
+                'discount_value' => 'required|numeric|min:0',
+                'packaging_fees' => 'nullable|numeric|min:0|max:999999.99',
+                'notes' => 'nullable|string|max:1000',
+                'items' => 'required|array|min:1',
+                'items.*.price' => 'required|numeric|min:0|max:999999.99',
+                'items.*.variants' => 'required|array|min:1',
+                'items.*.variants.*.product_id' => 'required|exists:product_color_variants,id',
+                'items.*.variants.*.quantity' => 'required|integer|min:0|max:999999',
+            ]);
             return $this->updateGst($request, $invoice);
         } else {
+            $request->validate([
+                'customer_id' => 'required|exists:customers,id',
+                'invoice_date' => 'required|date|before_or_equal:today',
+                'due_date' => 'required|date|after_or_equal:invoice_date',
+                'discount_type' => 'required|in:0,1',
+                'discount_value' => 'required|numeric|min:0',
+                'packaging_fees' => 'nullable|numeric|min:0|max:999999.99',
+                'notes' => 'nullable|string|max:1000',
+                'items' => 'required|array|min:1',
+                'items.*.price' => 'required|numeric|min:0|max:999999.99',
+                'items.*.variants' => 'required|array|min:1',
+                'items.*.variants.*.product_id' => 'required|exists:product_color_variants,id',
+                'items.*.variants.*.quantity' => 'required|integer|min:0|max:999999',
+            ]);
             return $this->updateNonGst($request, $invoice);
         }
     }
 
     private function updateGst(Request $request, Invoice $invoice)
     {
-        $request->validate([
-            'customer_id' => 'required|exists:customers,id',
-            'invoice_date' => 'required|date',
-            'due_date' => 'nullable|date|after_or_equal:invoice_date',
-            'notes' => 'nullable|string',
-            'gst_rate' => 'required|numeric|min:0|max:100',
-            'discount_type' => 'nullable|numeric|in:0,1',
-            'discount_value' => 'nullable|numeric|min:0',
-            'packaging_fees' => 'nullable|numeric|min:0',
-            'items' => 'required|array|min:1',
-            'items.*.price' => 'required|numeric|min:0',
-            'items.*.variants' => 'required|array',
-        ]);
+        // FIXED: Validation already handled in update method
+        $validated = $request->all();
 
         try {
             \Log::info('GST Invoice edit started', [
@@ -453,13 +498,8 @@ class InvoiceController extends Controller
                     );
                 }
 
-                // Check new stock availability and deduct
-                foreach ($newInvoiceItems as $item) {
-                    $colorVariant = ProductColorVariant::find($item['color_variant_id']);
-                    if ($colorVariant->quantity < $item['quantity']) {
-                        throw new \Exception("Insufficient stock for {$colorVariant->product->name} ({$colorVariant->color}). Available: {$colorVariant->quantity}, Required: {$item['quantity']}");
-                    }
-                }
+                // Use proper stock management with locking (handled in InvoiceService)
+                // Stock validation and deduction will be handled by the service layer
 
                 // Calculate totals
                 $total_amount = 0;
@@ -526,8 +566,11 @@ class InvoiceController extends Controller
                         'subtotal' => $subtotal,
                     ]);
 
-                    $this->stockService->outwardColorVariantStockSaleOnly($colorVariant, $item['quantity'], "Sale via Updated Invoice #{$invoice->invoice_number}");
+                    // Stock deduction handled by InvoiceService with proper locking
                 }
+                
+                // Use proper stock management with locking for race condition prevention
+                $this->invoiceService->updateStock($newInvoiceItems);
             });
 
             \Log::info('GST Invoice edit completed successfully', [
@@ -539,25 +582,43 @@ class InvoiceController extends Controller
 
             return redirect()->route('invoices.gst.index')->with('success', 'GST Invoice updated successfully.');
 
+        } catch (\Illuminate\Database\QueryException $e) {
+            \Log::error('GST Invoice update failed - Database error', [
+                'invoice_id' => $invoice->id,
+                'error' => $e->getMessage(),
+                'error_code' => $e->getCode()
+            ]);
+
+            return redirect()->back()->withInput()->with('error', 'Database error occurred. Please try again or contact support if the problem persists.');
+
         } catch (\Exception $e) {
-            return redirect()->back()->with('error', 'Error updating GST invoice: ' . $e->getMessage())->withInput();
+            \Log::error('GST Invoice update failed', [
+                'invoice_id' => $invoice->id,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+                'request_data' => $request->except(['_token'])
+            ]);
+
+            // FIXED: More user-friendly error messages
+            $errorMessage = 'Error updating invoice: ' . $e->getMessage();
+            
+            // Check for specific error types and provide better messages
+            if (str_contains($e->getMessage(), 'Insufficient stock')) {
+                $errorMessage = 'Insufficient stock for one or more items. Please check the quantities and try again.';
+            } elseif (str_contains($e->getMessage(), 'Product color variant not found')) {
+                $errorMessage = 'One or more selected products are no longer available. Please refresh the page and try again.';
+            } elseif (str_contains($e->getMessage(), 'Please add at least one item')) {
+                $errorMessage = 'Please add at least one item with quantity greater than 0.';
+            }
+
+            return redirect()->back()->withInput()->with('error', $errorMessage);
         }
     }
 
     private function updateNonGst(Request $request, Invoice $invoice)
     {
-        $request->validate([
-            'customer_id' => 'required|exists:customers,id',
-            'invoice_date' => 'required|date',
-            'due_date' => 'nullable|date|after_or_equal:invoice_date',
-            'notes' => 'nullable|string',
-            'discount_type' => 'nullable|numeric|in:0,1',
-            'discount_value' => 'nullable|numeric|min:0',
-            'packaging_fees' => 'nullable|numeric|min:0',
-            'items' => 'required|array|min:1',
-            'items.*.price' => 'required|numeric|min:0',
-            'items.*.variants' => 'required|array',
-        ]);
+        // FIXED: Validation already handled in update method
+        $validated = $request->all();
 
         try {
             // Parse new invoice items
@@ -598,13 +659,8 @@ class InvoiceController extends Controller
                     );
                 }
 
-                // Check new stock availability
-                foreach ($newInvoiceItems as $item) {
-                    $colorVariant = ProductColorVariant::find($item['color_variant_id']);
-                    if ($colorVariant->quantity < $item['quantity']) {
-                        throw new \Exception("Insufficient stock for {$colorVariant->product->name} ({$colorVariant->color}). Available: {$colorVariant->quantity}, Required: {$item['quantity']}");
-                    }
-                }
+                // Use proper stock management with locking (handled in InvoiceService)
+                // Stock validation and deduction will be handled by the service layer
 
                 // Calculate totals
                 $total_amount = 0;
@@ -662,14 +718,45 @@ class InvoiceController extends Controller
                         'subtotal' => $subtotal,
                     ]);
 
-                    $this->stockService->outwardColorVariantStockSaleOnly($colorVariant, $item['quantity'], "Sale via Updated Non-GST Invoice #{$invoice->invoice_number}");
+                    // Stock deduction handled by InvoiceService with proper locking
                 }
+                
+                // Use proper stock management with locking for race condition prevention
+                $this->invoiceService->updateStock($newInvoiceItems);
             });
 
             return redirect()->route('invoices.non_gst.index')->with('success', 'Non-GST Invoice updated successfully.');
 
+        } catch (\Illuminate\Database\QueryException $e) {
+            \Log::error('Non-GST Invoice update failed - Database error', [
+                'invoice_id' => $invoice->id,
+                'error' => $e->getMessage(),
+                'error_code' => $e->getCode()
+            ]);
+
+            return redirect()->back()->withInput()->with('error', 'Database error occurred. Please try again or contact support if the problem persists.');
+
         } catch (\Exception $e) {
-            return redirect()->back()->with('error', 'Error updating Non-GST invoice: ' . $e->getMessage())->withInput();
+            \Log::error('Non-GST Invoice update failed', [
+                'invoice_id' => $invoice->id,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+                'request_data' => $request->except(['_token'])
+            ]);
+
+            // FIXED: More user-friendly error messages
+            $errorMessage = 'Error updating invoice: ' . $e->getMessage();
+            
+            // Check for specific error types and provide better messages
+            if (str_contains($e->getMessage(), 'Insufficient stock')) {
+                $errorMessage = 'Insufficient stock for one or more items. Please check the quantities and try again.';
+            } elseif (str_contains($e->getMessage(), 'Product color variant not found')) {
+                $errorMessage = 'One or more selected products are no longer available. Please refresh the page and try again.';
+            } elseif (str_contains($e->getMessage(), 'Please add at least one item')) {
+                $errorMessage = 'Please add at least one item with quantity greater than 0.';
+            }
+
+            return redirect()->back()->withInput()->with('error', $errorMessage);
         }
     }
 

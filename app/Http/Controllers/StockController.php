@@ -6,6 +6,7 @@ use App\Models\Product;
 use App\Models\ProductColorVariant;
 use App\Models\StockLog;
 use Illuminate\Http\Request;
+use App\Http\Requests\StockUpdateRequest;
 use Illuminate\Support\Facades\DB;
 use App\Services\StockService;
 
@@ -81,7 +82,7 @@ class StockController extends Controller
     /**
      * Update stock for a product color variant.
      */
-      public function update(Request $request)
+      public function update(StockUpdateRequest $request)
     {
         \Log::channel('stock')->info('STARTING STOCK UPDATE', [
             'request_data' => $request->all(),
@@ -89,14 +90,8 @@ class StockController extends Controller
             'user' => auth()->user()->id ?? null
         ]);
 
-        $validated = $request->validate([
-            'product_id' => 'required|exists:products,id',
-            'color_variant_id' => 'required|exists:product_color_variants,id',
-            'change_type' => 'required|in:inward,outward',
-            'quantity' => 'required|integer|min:1',
-            'notes' => 'nullable|string',
-            'redirect' => 'nullable|url'
-        ]);
+        // StockUpdateRequest already handles validation
+        $validated = $request->validated();
 
         try {
             \Log::channel('stock')->info('VALIDATION PASSED', $validated);
@@ -116,6 +111,10 @@ class StockController extends Controller
             if ($request->change_type === 'inward') {
                 $this->stockService->inwardColorVariantStock($colorVariant, $request->quantity, $request->notes);
             } else {
+                // Validate sufficient stock for outward movement
+                if ($colorVariant->quantity < $request->quantity) {
+                    throw new \Exception("Insufficient stock. Available: {$colorVariant->quantity}, Required: {$request->quantity}");
+                }
                 $this->stockService->outwardColorVariantStock($colorVariant, $request->quantity, $request->notes);
             }
 

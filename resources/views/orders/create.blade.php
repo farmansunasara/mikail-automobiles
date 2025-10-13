@@ -51,6 +51,25 @@
     box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.25);
 }
 
+.quantity-input.manufacturing-required {
+    border-color: #ffc107;
+    background-color: #fff3cd;
+    box-shadow: 0 0 0 0.2rem rgba(255, 193, 7, 0.25);
+}
+
+.manufacturing-required {
+    position: relative;
+}
+
+.manufacturing-required::after {
+    content: "🔧";
+    position: absolute;
+    right: 5px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 12px;
+}
+
 .stock-info {
     font-size: 0.8rem;
     color: #17a2b8;
@@ -64,6 +83,39 @@
 .badge-warning {
     background-color: #ffc107;
     color: #212529;
+}
+
+/* Select2 styling improvements */
+.select2-container--default .select2-selection--single {
+    height: 38px;
+    border: 1px solid #ced4da;
+    border-radius: 0.25rem;
+}
+
+.select2-container--default .select2-selection--single .select2-selection__rendered {
+    line-height: 36px;
+    padding-left: 12px;
+    padding-right: 20px;
+}
+
+.select2-container--default .select2-selection--single .select2-selection__arrow {
+    height: 36px;
+    right: 8px;
+}
+
+.select2-container--default.select2-container--focus .select2-selection--single {
+    border-color: #80bdff;
+    box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+}
+
+.select2-dropdown {
+    border: 1px solid #ced4da;
+    border-radius: 0.25rem;
+}
+
+.select2-container--default .select2-results__option--highlighted[aria-selected] {
+    background-color: #007bff;
+    color: white;
 }
 </style>
 @endpush
@@ -89,12 +141,14 @@
                             <div class="col-md-3">
                                 <div class="form-group">
                                     <label for="customer_id">Customer <span class="text-danger">*</span></label>
-                                    <select class="form-control @error('customer_id') is-invalid @enderror" 
+                                    <select class="form-control select2 @error('customer_id') is-invalid @enderror" 
                                             id="customer_id" name="customer_id" required>
                                         <option value="">Select Customer</option>
                                         @foreach($customers as $customer)
                                             <option value="{{ $customer->id }}" 
-                                                    {{ old('customer_id') == $customer->id ? 'selected' : '' }}>
+                                                    {{ old('customer_id') == $customer->id ? 'selected' : '' }}
+                                                    data-mobile="{{ $customer->mobile }}"
+                                                    data-address="{{ $customer->address }}">
                                                 {{ $customer->name }}
                                             </option>
                                         @endforeach
@@ -231,17 +285,58 @@
 @endsection
 
 @push('scripts')
+<!-- Select2 CDN for enhanced dropdowns -->
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+
 <script>
 $(document).ready(function() {
     let itemIndex = 0;
     let variantIndex = 0;
 
-    // Add initial item row
-    addItem();
+    // Initialize Select2 for searchable dropdowns
+    $('#customer_id').select2({
+        placeholder: 'Search and select customer...',
+        allowClear: true,
+        width: '100%'
+    });
 
-    // Add item
-    $('#addItem').click(function() {
+    // Initialize Select2 for category dropdowns
+    $('.category-select').select2({
+        placeholder: 'Search and select category...',
+        allowClear: true,
+        width: '100%'
+    });
+
+    // Initialize Select2 for product dropdowns
+    $('.product-select').select2({
+        placeholder: 'Search and select product...',
+        allowClear: true,
+        width: '100%'
+    });
+
+    // Debug: Check if button exists
+    console.log('Add item button exists:', $('#addItem').length > 0);
+    console.log('Add item button element:', $('#addItem')[0]);
+
+    // Add item - Use event delegation to ensure it works
+    $(document).on('click', '#addItem', function() {
+        console.log('Add item button clicked');
         addItem();
+    });
+
+    // Add initial item row after everything is set up
+    setTimeout(function() {
+        console.log('Adding initial item row');
+        addItem();
+    }, 100);
+
+    // Make functions globally accessible for testing
+    window.addItem = addItem;
+    
+    // Ensure functions are available immediately
+    console.log('Global functions defined:', {
+        addItem: typeof window.addItem
     });
 
     // Remove item
@@ -286,6 +381,13 @@ $(document).ready(function() {
                     options += `<option value="${product.id}">${product.name}</option>`;
                 });
                 $productSelect.html(options).prop('disabled', false);
+                
+                // Reinitialize Select2 for the product dropdown
+                $productSelect.select2({
+                    placeholder: 'Search and select product...',
+                    allowClear: true,
+                    width: '100%'
+                });
             })
             .fail(function() {
                 $productSelect.html('<option value="">Error loading products</option>');
@@ -312,9 +414,10 @@ $(document).ready(function() {
         $row.addClass('loading');
         
         // Load product variants
-        $.get(`/api/products/variants/${productId}`)
+        $.get(`/api/products/${productId}/variants`)
             .done(function(data) {
-                console.log('API Response:', data); // Debug log
+                console.log('Product variants loaded:', data);
+                // API Response received
                 if (data && data.variants && data.variants.length > 0) {
                     let html = '';
                     data.variants.forEach(function(variant, variantIndex) {
@@ -373,10 +476,14 @@ $(document).ready(function() {
     });
 
     function addItem() {
-        const rowHtml = `
+        console.log('addItem function called, itemIndex:', itemIndex);
+        console.log('Items tbody exists:', $('#items-tbody').length > 0);
+        
+        try {
+            const rowHtml = `
             <tr class="item-row" data-index="${itemIndex}">
                 <td>
-                    <select class="form-control category-select" name="items[${itemIndex}][category_id]" required>
+                    <select class="form-control category-select select2" name="items[${itemIndex}][category_id]" required>
                         <option value="">Select Category</option>
                         @foreach($categories as $category)
                             <option value="{{ $category->id }}">{{ $category->name }}</option>
@@ -385,7 +492,7 @@ $(document).ready(function() {
                     <div class="invalid-feedback"></div>
                 </td>
                 <td>
-                    <select class="form-control product-select" name="items[${itemIndex}][product_id]" required disabled>
+                    <select class="form-control product-select select2" name="items[${itemIndex}][product_id]" required disabled>
                         <option value="">Select Product</option>
                     </select>
                     <div class="invalid-feedback"></div>
@@ -414,12 +521,30 @@ $(document).ready(function() {
         itemIndex++;
         updateSummary();
         
+        // Initialize Select2 for the newly added dropdowns
+        $('.item-row:last .category-select').select2({
+            placeholder: 'Search and select category...',
+            allowClear: true,
+            width: '100%'
+        });
+        
+        $('.item-row:last .product-select').select2({
+            placeholder: 'Search and select product...',
+            allowClear: true,
+            width: '100%'
+        });
+        
         // Add animation
         $('.item-row:last').hide().fadeIn(300);
+        
+        } catch (error) {
+            console.error('Error in addItem function:', error);
+            alert('Error adding item: ' + error.message);
+        }
     }
 
 
-    function addVariant(variant, itemRow, container) {
+    function addVariant(variant, itemRow, container, variantIndex) {
         const itemIndex = itemRow.data('index');
         const variantHtml = `
             <div class="variant-item mb-2">
@@ -447,23 +572,32 @@ $(document).ready(function() {
         `;
         
         container.append(variantHtml);
-        variantIndex++;
     }
 
     function validateStockAvailability($input) {
-        // Simplified: No longer prevents order creation based on stock
-        // Just shows informational tooltip
+        // Manufacturing orders: Allow quantities exceeding stock
+        // Just shows informational tooltip for manufacturing planning
         const quantity = parseInt($input.val()) || 0;
         const maxStock = parseInt($input.data('max-stock')) || 0;
         
-        if (quantity > maxStock && maxStock > 0) {
-            $input.attr('title', `Available stock: ${maxStock}, Requested: ${quantity}. Additional quantity will be manufactured as needed.`);
+        if (quantity > maxStock && maxStock >= 0) {
+            const shortage = quantity - maxStock;
+            $input.attr('title', `Available stock: ${maxStock}, Requested: ${quantity}. Manufacturing required: ${shortage} units.`);
+            $input.addClass('manufacturing-required');
         } else {
             $input.removeAttr('title');
+            $input.removeClass('manufacturing-required');
         }
     }
 
+    function showOrderError(message) {
+        console.error('Order Error:', message);
+        // You can implement a toast notification or alert here
+        alert('Error: ' + message);
+    }
+
     function updateSummary() {
+        console.log('updateSummary called');
         let grandTotal = 0;
         let totalItems = 0;
         let totalQuantity = 0;
@@ -557,7 +691,7 @@ $(document).ready(function() {
             let isValid = true;
             let errors = [];
             
-            console.log('Starting form validation...');
+            // Starting form validation
             
             // Clear previous validation errors
             $('.is-invalid').removeClass('is-invalid');
@@ -568,17 +702,17 @@ $(document).ready(function() {
                 $('#customer_id').addClass('is-invalid');
                 errors.push('Please select a customer');
                 isValid = false;
-                console.log('Customer validation failed');
+                // Customer validation failed
             }
             
             // Check if at least one item is added
             if ($('.item-row').length === 0) {
                 errors.push('Please add at least one item');
                 isValid = false;
-                console.log('No items found');
+                // No items found
             }
             
-            console.log('Number of items found:', $('.item-row').length);
+            // Number of items found
             
             // Check if at least one item has valid quantities
             let hasValidItems = false;
@@ -591,11 +725,7 @@ $(document).ready(function() {
                 const price = parseFloat($row.find('.price-input').val()) || 0;
                 let hasValidQuantity = false;
                 
-                console.log(`Validating item ${index}:`, {
-                    categoryId: categoryId,
-                    productId: productId,
-                    price: price
-                });
+                // Validating item
                 
                 // Check category selection
                 if (!categoryId) {
@@ -624,13 +754,13 @@ $(document).ready(function() {
                 // Check quantities
                 $row.find('.quantity-input').each(function() {
                     const qty = parseInt($(this).val()) || 0;
-                    console.log(`Quantity found: ${qty}`);
+                    // Quantity found
                     if (qty > 0) {
                         hasValidQuantity = true;
                     }
                 });
                 
-                console.log(`Item ${index} has valid quantity:`, hasValidQuantity);
+                // Item has valid quantity
                 
                 if (!hasValidQuantity) {
                     errors.push(`Item ${index + 1}: Please enter quantity greater than 0 for at least one variant`);
@@ -640,7 +770,7 @@ $(document).ready(function() {
                 }
             });
             
-            console.log('Has valid items:', hasValidItems);
+            // Has valid items
             
             if (!hasValidItems && $('.item-row').length > 0) {
                 errors.push('Please add at least one item with valid quantities');
@@ -660,16 +790,16 @@ $(document).ready(function() {
             });
             
             if (stockWarnings.length > 0) {
-                console.log('Stock warnings found:', stockWarnings);
-                console.log('Proceeding with order creation (simplified system allows stock shortages)');
+                // Stock warnings found
+                // Proceeding with order creation (simplified system allows stock shortages)
                 // Note: In simplified system, we proceed anyway and generate manufacturing requirements
             }
             
             if (!isValid) {
-                console.log('Validation failed with errors:', errors);
+                // Validation failed with errors
                 showValidationErrors(errors);
             } else {
-                console.log('Validation passed successfully');
+                // Validation passed successfully
             }
             
             return isValid;
@@ -681,33 +811,25 @@ $(document).ready(function() {
         }
     }    // Form submission
     $('#orderForm').submit(function(e) {
-        console.log('Form submission started');
+        // Form submission started
         e.preventDefault(); // Stop the default submission first
         
-        console.log('Number of item rows:', $('.item-row').length);
+        // Number of item rows
         
         // Log all form elements for debugging
-        console.log('Customer ID:', $('#customer_id').val());
-        console.log('Order Date:', $('#order_date').val());
         
         // Check each item row
         $('.item-row').each(function(index) {
             const $row = $(this);
-            console.log(`Item ${index}:`, {
-                category: $row.find('.category-select').val(),
-                product: $row.find('.product-select').val(),
-                price: $row.find('.price-input').val(),
-                quantities: $row.find('.quantity-input').map(function() { return $(this).val(); }).get()
-            });
+            // Item data
         });
         
         if (!validateOrderForm()) {
-            console.log('Form validation failed');
+            // Form validation failed
             return false;
         }
         
         // Filter out zero-quantity variants before submission
-        console.log('=== FILTERING ZERO QUANTITIES ===');
         $('.item-row').each(function() {
             const $row = $(this);
             $row.find('.quantity-input').each(function() {
@@ -716,7 +838,7 @@ $(document).ready(function() {
                 if (qty === 0) {
                     // Remove the input from form submission by disabling it
                     $input.prop('disabled', true);
-                    console.log('Disabled zero quantity input:', $input.attr('name'));
+                    // Disabled zero quantity input
                 }
             });
         });
@@ -731,31 +853,30 @@ $(document).ready(function() {
                 if (quantityName) {
                     const productIdName = quantityName.replace('[quantity]', '[product_id]');
                     $row.find(`input[name="${productIdName}"]`).prop('disabled', true);
-                    console.log('Disabled corresponding product_id:', productIdName);
+                    // Disabled corresponding product_id
                 }
             });
         });
         
         // Debug: Log filtered form data
         const formData = new FormData(this);
-        console.log('Filtered form data being submitted:');
+        // Filtered form data being submitted
         for (let [key, value] of formData.entries()) {
-            console.log(key, value);
+            // Log form data
         }
         
-        console.log('Form validation passed, submitting filtered data...');
+        // Form validation passed, submitting filtered data
         
         // Track the actual HTTP request
         const form = this;
-        console.log('Form action:', form.action);
-        console.log('Form method:', form.method);
+        // Form action and method
         
         // Now submit the form with filtered data
         this.submit();
         
         // Let the form submit naturally but track if it fails
         setTimeout(function() {
-            console.log('Form should have submitted by now. If you see this message and the page refreshed without success, there\'s a server-side issue.');
+            // Form should have submitted by now
         }, 1000);
     });
 });

@@ -84,16 +84,32 @@ class ColorController extends Controller
     public function update(Request $request, Color $color)
     {
         $request->validate([
-            'name' => 'required|string|max:100', // removed unique rule to allow duplicates
+            'name' => 'required|string|max:100',
             'hex_code' => 'nullable|string|regex:/^#[0-9A-Fa-f]{6}$/',
             'minimum_stock' => 'required|numeric|min:0',
             'description' => 'nullable|string|max:1000',
             'is_active' => 'boolean'
         ]);
 
-        $color->update($request->except('stock_grams')); // Don't allow direct stock updates
+        try {
+            DB::transaction(function () use ($request, $color) {
+                $color->update($request->except('stock_grams'));
+                
+                // Validate stock consistency
+                if ($color->stock_grams < 0) {
+                    throw new \Exception('Stock cannot be negative.');
+                }
+                
+                // Note: We don't log threshold updates as they are not stock movements
+                // Only actual stock changes (inward/outward) are logged
+            });
 
-        return redirect()->route('colors.index')->with('success', 'Color updated successfully.');
+            return redirect()->route('colors.index')->with('success', 'Color updated successfully.');
+        } catch (\Exception $e) {
+            return redirect()->back()
+                ->withInput()
+                ->with('error', 'Failed to update color: ' . $e->getMessage());
+        }
     }
 
     public function destroy(Color $color)

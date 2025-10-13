@@ -195,5 +195,34 @@ $('#stockModal').on('hidden.bs.modal', function () {
     $(this).find('.modal-title i').remove();
     $(this).find('form')[0].reset();
 });
+
+// Add error handling for stock updates
+$('#stockForm').on('submit', function(e) {
+    e.preventDefault();
+    
+    var form = $(this);
+    var formData = form.serialize();
+    var action = form.attr('action');
+    
+    $.ajax({
+        url: action,
+        type: 'POST',
+        data: formData,
+        success: function(response) {
+            $('#stockModal').modal('hide');
+            location.reload(); // Refresh to show updated stock
+        },
+        error: function(xhr) {
+            var errors = xhr.responseJSON?.errors || {};
+            var errorMessage = 'Failed to update stock.';
+            
+            if (xhr.responseJSON?.message) {
+                errorMessage = xhr.responseJSON.message;
+            }
+            
+            alert(errorMessage);
+        }
+    });
+});
 </script>
 @endpush

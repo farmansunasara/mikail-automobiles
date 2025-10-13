@@ -50,7 +50,7 @@ class Order extends Model
     {
         return $this->delivery_date && 
                $this->delivery_date->isPast() && 
-               $this->status === 'PENDING';
+               $this->status === 'pending';
     }
 
     public function isCompleted(): bool
@@ -71,6 +71,29 @@ class Order extends Model
     public function canCreateInvoice(): bool
     {
         return $this->status === 'pending';
+    }
+
+    public function hasInvoice(): bool
+    {
+        return $this->invoice_id !== null;
+    }
+
+    public function canChangeStatus(): bool
+    {
+        // Cannot change status if order has an invoice
+        return !$this->hasInvoice();
+    }
+
+    public function canEdit(): bool
+    {
+        // Can only edit pending orders without invoices
+        return $this->status === 'pending' && !$this->hasInvoice();
+    }
+
+    public function canCancel(): bool
+    {
+        // Can only cancel pending orders without invoices
+        return $this->status === 'pending' && !$this->hasInvoice();
     }
 
     public function getStatusBadgeClassAttribute(): string

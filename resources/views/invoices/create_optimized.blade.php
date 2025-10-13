@@ -6,11 +6,161 @@
 <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
 <link href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css" rel="stylesheet" />
 <style>
-/* General Styling */
+/* Compact Spacing - Reduced Form Spacing */
 .invoice-form {
     max-width: 1200px;
     margin: 0 auto;
-    padding: 20px;
+    padding: 15px;
+}
+
+/* Reduce card spacing */
+.card {
+    margin-bottom: 1rem !important;
+}
+
+.card-body {
+    padding: 1rem !important;
+}
+
+.card-header {
+    padding: 0.75rem 1rem !important;
+}
+
+/* Reduce form group spacing */
+.form-group {
+    margin-bottom: 0.75rem !important;
+}
+
+/* Reduce row spacing */
+.row {
+    margin-bottom: 0.5rem !important;
+}
+
+/* Reduce table spacing */
+.table td {
+    padding: 0.5rem !important;
+    vertical-align: middle;
+}
+
+.table th {
+    padding: 0.5rem !important;
+}
+
+/* Reduce input group spacing */
+.input-group {
+    margin-bottom: 0.25rem !important;
+}
+
+.input-group-append {
+    margin-left: 0 !important;
+}
+
+/* Reduce button spacing */
+.btn {
+    padding: 0.375rem 0.75rem !important;
+    margin: 0.125rem !important;
+}
+
+/* Reduce alert spacing */
+.alert {
+    padding: 0.5rem 0.75rem !important;
+    margin-bottom: 0.5rem !important;
+}
+
+/* Reduce label spacing */
+label {
+    margin-bottom: 0.25rem !important;
+    font-size: 0.875rem;
+}
+
+/* Reduce small text spacing */
+.form-text {
+    margin-top: 0.125rem !important;
+    margin-bottom: 0.25rem !important;
+}
+
+/* Reduce invalid feedback spacing */
+.invalid-feedback {
+    margin-top: 0.125rem !important;
+}
+
+/* Compact customer details */
+#customer-details .alert {
+    margin-bottom: 0.5rem !important;
+    padding: 0.5rem !important;
+}
+
+/* Reduce section spacing */
+.form-step {
+    margin-bottom: 1rem !important;
+}
+
+/* Compact totals section */
+.totals-section {
+    padding: 0.75rem !important;
+}
+
+/* Reduce breadcrumb spacing */
+.breadcrumb {
+    margin-bottom: 0.5rem !important;
+    padding: 0.25rem 0 !important;
+}
+
+/* Additional compact spacing for specific elements */
+.col-md-3, .col-md-6, .col-sm-6 {
+    padding-left: 0.5rem !important;
+    padding-right: 0.5rem !important;
+}
+
+/* Compact form controls */
+.form-control {
+    padding: 0.375rem 0.5rem !important;
+    font-size: 0.875rem;
+}
+
+/* Compact select2 */
+.select2-container--default .select2-selection--single {
+    height: 2.25rem !important;
+    padding: 0.375rem 0.5rem !important;
+}
+
+/* Compact textarea */
+textarea.form-control {
+    padding: 0.375rem 0.5rem !important;
+    font-size: 0.875rem;
+}
+
+/* Compact table rows */
+.product-row td {
+    padding: 0.375rem 0.5rem !important;
+}
+
+/* Compact mobile navigation */
+.mobile-nav {
+    padding: 0.5rem !important;
+}
+
+.mobile-nav .btn {
+    margin: 0.125rem !important;
+    padding: 0.25rem 0.5rem !important;
+    font-size: 0.75rem;
+}
+
+/* Compact totals display */
+.totals-row {
+    padding: 0.25rem 0 !important;
+}
+
+.totals-row td {
+    padding: 0.25rem 0.5rem !important;
+    font-size: 0.875rem;
+}
+
+/* Compact action buttons */
+.action-buttons .btn {
+    margin: 0.125rem !important;
+    padding: 0.25rem 0.5rem !important;
+    font-size: 0.75rem;
 }
 
 /* Card Styling */
@@ -40,14 +190,6 @@
     gap: 10px;
 }
 
-/* Progress Bar */
-.progress-bar-custom {
-    height: 6px;
-    background: linear-gradient(90deg, #28a745, #17a2b8);
-    border-radius: 3px;
-    margin-bottom: 25px;
-    transition: width 0.4s ease;
-}
 
 /* Form Controls */
 .form-control, .select2-container--default .select2-selection--single {
@@ -195,6 +337,7 @@
 .price-input {
     border-radius: 6px;
     border: 1px solid #ced4da;
+    transition: all 0.3s ease;
 }
 
 .price-input:focus {
@@ -204,16 +347,45 @@
 
 .price-input.editable {
     background: #fff3cd;
+    border-color: #ffc107;
 }
 
 .price-input.is-invalid {
     border-color: #dc3545;
     box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.25);
+    animation: shake 0.5s ease-in-out;
 }
 
 .price-input.is-invalid:focus {
     border-color: #dc3545;
     box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.25);
+}
+
+.price-input:valid {
+    border-color: #28a745;
+    background: #d4edda;
+}
+
+/* Price container styling */
+.price-container {
+    position: relative;
+}
+
+.price-history {
+    display: block !important;
+    margin-top: 0.25rem;
+    font-size: 0.75rem;
+}
+
+.price-history i {
+    margin-right: 0.25rem;
+}
+
+/* Shake animation for invalid price */
+@keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-5px); }
+    75% { transform: translateX(5px); }
 }
 
 /* Stock Information */
@@ -270,24 +442,6 @@
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
 
-/* Auto-save Indicator */
-.auto-save-indicator {
-    position: fixed;
-    top: 15px;
-    right: 15px;
-    background: #28a745;
-    color: white;
-    padding: 8px 16px;
-    border-radius: 20px;
-    font-size: 0.85rem;
-    opacity: 0;
-    transition: opacity 0.3s ease;
-    z-index: 1000;
-}
-
-.auto-save-indicator.show {
-    opacity: 1;
-}
 
 /* Modal Styling */
 .modal-content {
@@ -311,36 +465,138 @@
     color: #dc3545;
 }
 
-/* Responsive Design */
+/* Enhanced Mobile Responsive Design */
 @media (max-width: 768px) {
     .invoice-form {
-        padding: 15px;
+        padding: 10px;
     }
 
     .quick-actions {
         right: 10px;
         gap: 8px;
+        bottom: 20px;
+        top: auto;
+        transform: none;
+        flex-direction: row;
+        flex-wrap: wrap;
+        max-width: calc(100vw - 20px);
     }
 
     .quick-action-btn {
-        width: 40px;
-        height: 40px;
-        font-size: 1rem;
+        width: 44px;
+        height: 44px;
+        font-size: 1.1rem;
+        min-width: 44px; /* Touch-friendly minimum size */
     }
 
     .table-responsive {
         margin-bottom: 20px;
+        font-size: 0.9rem;
     }
 
     .color-item {
         flex-direction: column;
         align-items: flex-start;
         gap: 8px;
+        padding: 8px;
+        border: 1px solid #e9ecef;
+        border-radius: 6px;
+        margin-bottom: 8px;
     }
 
     .quantity-input {
         width: 100%;
-        max-width: 100px;
+        max-width: 120px;
+        min-height: 44px; /* Touch-friendly */
+    }
+
+    .form-control, .select2-container--default .select2-selection--single {
+        min-height: 44px; /* Touch-friendly */
+        font-size: 16px; /* Prevents zoom on iOS */
+    }
+
+    .btn {
+        min-height: 44px;
+        padding: 12px 16px;
+    }
+
+    .card-header h4 {
+        font-size: 1.1rem;
+    }
+
+    .table th, .table td {
+        padding: 8px 4px;
+        font-size: 0.85rem;
+    }
+
+    .modal-dialog {
+        margin: 10px;
+        max-width: calc(100vw - 20px);
+    }
+
+    .modal-content {
+        border-radius: 8px;
+    }
+
+    /* Mobile-specific improvements */
+    .mobile-stack {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .mobile-full-width {
+        width: 100% !important;
+        max-width: none !important;
+    }
+
+    /* Touch gestures */
+    .swipeable {
+        touch-action: pan-x;
+    }
+
+    /* Mobile navigation */
+    .mobile-nav {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        background: white;
+        border-top: 1px solid #dee2e6;
+        padding: 10px;
+        z-index: 1000;
+        display: flex;
+        gap: 10px;
+    }
+
+    .mobile-nav .btn {
+        flex: 1;
+        min-height: 48px;
+    }
+}
+
+/* Tablet optimizations */
+@media (min-width: 769px) and (max-width: 1024px) {
+    .invoice-form {
+        padding: 20px;
+    }
+
+    .quick-actions {
+        right: 15px;
+        gap: 10px;
+    }
+
+    .quick-action-btn {
+        width: 42px;
+        height: 42px;
+    }
+}
+
+/* Large screen optimizations */
+@media (min-width: 1200px) {
+    .invoice-form {
+        max-width: 1400px;
+        margin: 0 auto;
     }
 }
 
@@ -368,6 +624,137 @@
     0% { transform: rotate(0deg); }
     100% { transform: rotate(360deg); }
 }
+
+/* Skeleton Loading */
+.skeleton-loader {
+    background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+    background-size: 200% 100%;
+    animation: loading 1.5s infinite;
+    border-radius: 4px;
+}
+
+.skeleton-text {
+    height: 16px;
+    margin: 8px 0;
+}
+
+.skeleton-button {
+    height: 32px;
+    width: 80px;
+    margin: 4px;
+}
+
+.skeleton-input {
+    height: 38px;
+    width: 100%;
+    margin: 4px 0;
+}
+
+.skeleton-color-item {
+    height: 40px;
+    margin: 8px 0;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.skeleton-color-badge {
+    width: 60px;
+    height: 24px;
+    border-radius: 12px;
+}
+
+.skeleton-input-small {
+    width: 80px;
+    height: 32px;
+}
+
+@keyframes loading {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+}
+
+/* Performance Optimizations */
+.cached-data {
+    opacity: 0.8;
+    position: relative;
+}
+
+.cached-data::after {
+    content: '📋';
+    position: absolute;
+    top: -5px;
+    right: -5px;
+    font-size: 12px;
+    background: #28a745;
+    color: white;
+    border-radius: 50%;
+    width: 16px;
+    height: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Duplicate Product Styling */
+.duplicate-product {
+    background-color: #fff3cd !important;
+    border-left: 4px solid #ffc107 !important;
+    animation: duplicateWarning 0.5s ease-in-out;
+}
+
+.duplicate-product .product-select {
+    border-color: #ffc107 !important;
+    box-shadow: 0 0 0 0.2rem rgba(255, 193, 7, 0.25) !important;
+}
+
+.duplicate-product .invalid-feedback {
+    color: #856404 !important;
+    font-weight: 500;
+}
+
+@keyframes duplicateWarning {
+    0% { transform: translateX(-5px); }
+    25% { transform: translateX(5px); }
+    50% { transform: translateX(-5px); }
+    75% { transform: translateX(5px); }
+    100% { transform: translateX(0); }
+}
+
+/* Duplicate Product Indicator */
+.duplicate-indicator {
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    background: #ffc107;
+    color: #856404;
+    border-radius: 50%;
+    width: 20px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: bold;
+    z-index: 10;
+}
+
+.duplicate-indicator::before {
+    content: '⚠';
+}
+
+/* Highlight existing product */
+.highlight-existing {
+    background-color: #d4edda !important;
+    border-left: 4px solid #28a745 !important;
+    animation: highlightPulse 1s ease-in-out;
+}
+
+@keyframes highlightPulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.02); }
+    100% { transform: scale(1); }
+}
 </style>
 @endpush
 
@@ -381,13 +768,6 @@
 <!-- CSRF Token -->
 <meta name="csrf-token" content="{{ csrf_token() }}">
 
-<!-- Auto-save Indicator -->
-<div class="auto-save-indicator" id="auto-save-indicator">
-    <i class="fas fa-save"></i> Draft Saved
-</div>
-
-<!-- Progress Bar -->
-<div class="progress-bar-custom" id="progress-bar" style="width: 25%;"></div>
 
 <!-- Quick Actions -->
 <div class="quick-actions">
@@ -396,9 +776,6 @@
     </button>
     <button type="button" class="quick-action-btn bg-success" onclick="showCustomerModal()" title="Add Customer (Ctrl+U)">
         <i class="fas fa-user-plus"></i>
-    </button>
-    <button type="button" class="quick-action-btn bg-info" onclick="saveDraft()" title="Save Draft (Ctrl+S)">
-        <i class="fas fa-save"></i>
     </button>
 </div>
 
@@ -416,7 +793,6 @@
             <div class="card-header">
                 <h4>
                     <i class="fas fa-file-invoice"></i> Invoice Details
-                    <span class="badge badge-light ml-2" id="step-indicator-1">Step 1 of 3</span>
                 </h4>
             </div>
             <div class="card-body">
@@ -445,7 +821,10 @@
                         <div class="form-group">
                             <label for="customer_id">Customer *</label>
                             <div class="input-group">
-                                <select name="customer_id" id="customer_id" class="form-control" required>
+                                <select name="customer_id" id="customer_id" class="form-control" required
+                                        aria-label="Select customer for invoice" 
+                                        aria-describedby="customer-error customer-help"
+                                        role="combobox">
                                     <option value="">Select Customer</option>
                                     @foreach($customers as $customer)
                                         <option value="{{ $customer->id }}" 
@@ -459,12 +838,15 @@
                                     @endforeach
                                 </select>
                                 <div class="input-group-append">
-                                    <button type="button" class="btn btn-outline-success" onclick="showCustomerModal()" title="Add New Customer">
+                                    <button type="button" class="btn btn-outline-success" onclick="showCustomerModal()" 
+                                            aria-label="Add new customer"
+                                            title="Add New Customer">
                                         <i class="fas fa-plus"></i>
                                     </button>
                                 </div>
                             </div>
-                            <div class="invalid-feedback" id="customer-error"></div>
+                            <small id="customer-help" class="form-text text-muted">Choose the customer for this invoice</small>
+                            <div class="invalid-feedback" id="customer-error" role="alert"></div>
                         </div>
                     </div>
                 </div>
@@ -505,7 +887,6 @@
             <div class="card-header bg-success">
                 <h4>
                     <i class="fas fa-shopping-cart"></i> Invoice Items
-                    <span class="badge badge-light ml-2" id="step-indicator-2">Step 2 of 3</span>
                     <span class="float-right">
                         <small id="items-count">0 items</small>
                     </span>
@@ -552,7 +933,6 @@
                     <div class="card-header bg-info">
                         <h4>
                             <i class="fas fa-calculator"></i> Invoice Summary
-                            <span class="badge badge-light ml-2" id="step-indicator-3">Step 3 of 3</span>
                         </h4>
                     </div>
                     <div class="card-body">
@@ -601,12 +981,7 @@
                         </table>
                         
                         <div class="row mt-3">
-                            <div class="col-md-6">
-                                <button type="button" class="btn btn-outline-secondary btn-block" onclick="saveDraft()">
-                                    <i class="fas fa-save"></i> Save Draft
-                                </button>
-                            </div>
-                            <div class="col-md-6">
+                            <div class="col-md-12">
                                 <button type="submit" class="btn btn-success btn-block btn-lg" id="submit-btn">
                                     <i class="fas fa-file-invoice"></i> Create Invoice
                                 </button>
@@ -696,10 +1071,129 @@
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.0/dist/js/bootstrap.bundle.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/admin-lte@3.2.0/dist/js/adminlte.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+<!-- Modular JavaScript -->
+<script src="{{ asset('js/invoice-validation.js') }}"></script>
+<script src="{{ asset('js/invoice-performance.js') }}"></script>
+<script src="{{ asset('js/invoice-accessibility.js') }}"></script>
+<script src="{{ asset('js/invoice-main.js') }}"></script>
 <script>
 $(document).ready(function() {
     let itemIndex = 0;
-    let draftTimer;
+    
+    // REMOVED: Cache system to prevent color variant cross-contamination
+    // All API calls will now fetch fresh data
+    
+    // Show skeleton loader
+    function showSkeletonLoader($container, type = 'default') {
+        let skeletonHtml = '';
+        
+        switch(type) {
+            case 'products':
+                skeletonHtml = `
+                    <div class="skeleton-loader skeleton-text"></div>
+                    <div class="skeleton-loader skeleton-text" style="width: 80%;"></div>
+                    <div class="skeleton-loader skeleton-text" style="width: 60%;"></div>
+                `;
+                break;
+            case 'variants':
+                skeletonHtml = `
+                    <div class="skeleton-color-item">
+                        <div class="skeleton-loader skeleton-color-badge"></div>
+                        <div class="skeleton-loader skeleton-input-small"></div>
+                        <div class="skeleton-loader skeleton-text" style="width: 50px;"></div>
+                    </div>
+                    <div class="skeleton-color-item">
+                        <div class="skeleton-loader skeleton-color-badge"></div>
+                        <div class="skeleton-loader skeleton-input-small"></div>
+                        <div class="skeleton-loader skeleton-text" style="width: 50px;"></div>
+                    </div>
+                `;
+                break;
+            default:
+                skeletonHtml = `
+                    <div class="skeleton-loader skeleton-text"></div>
+                    <div class="skeleton-loader skeleton-text" style="width: 70%;"></div>
+                `;
+        }
+        
+        $container.html(skeletonHtml);
+    }
+    
+    // Optimized API call with caching
+    // REMOVED: cachedApiCall function - using direct API calls instead
+    function directApiCall(url, params) {
+        return new Promise((resolve, reject) => {
+            console.log(`Making direct API call to: ${url}`);
+            
+            // Make direct API call without caching
+            $.get(url, params)
+                .done(function(data) {
+                    console.log(`API call successful for: ${url}`, data);
+                    resolve(data);
+                })
+                .fail(function(xhr) {
+                    console.error(`API call failed for ${url}:`, xhr);
+                    reject(xhr);
+                });
+        });
+    }
+    
+    // Lazy loading for non-critical features
+    const lazyLoadFeatures = {
+        customerModal: false,
+        advancedValidation: false,
+        keyboardShortcuts: false
+    };
+    
+    // Initialize lazy features when needed
+    function initializeLazyFeature(feature) {
+        if (lazyLoadFeatures[feature]) return;
+        
+        switch(feature) {
+            case 'customerModal':
+                // Load customer modal functionality only when first accessed
+                console.log('Loading customer modal functionality...');
+                lazyLoadFeatures.customerModal = true;
+                break;
+                
+            case 'advancedValidation':
+                // Load advanced validation only when form is being submitted
+                console.log('Loading advanced validation...');
+                lazyLoadFeatures.advancedValidation = true;
+                break;
+                
+            case 'keyboardShortcuts':
+                // Load keyboard shortcuts only when user starts typing
+                console.log('Loading keyboard shortcuts...');
+                lazyLoadFeatures.keyboardShortcuts = true;
+                break;
+        }
+    }
+    
+    // Performance monitoring
+    const performanceMonitor = {
+        startTime: Date.now(),
+        apiCalls: 0,
+        cacheHits: 0,
+        
+        logApiCall: function() {
+            this.apiCalls++;
+        },
+        
+        logCacheHit: function() {
+            this.cacheHits++;
+        },
+        
+        getStats: function() {
+            const totalTime = Date.now() - this.startTime;
+            return {
+                totalTime: totalTime,
+                apiCalls: this.apiCalls,
+                cacheHits: this.cacheHits,
+                cacheHitRate: this.cacheHits / (this.apiCalls + this.cacheHits) * 100
+            };
+        }
+    };
 
     // Initialize Select2 with error handling
     try {
@@ -737,138 +1231,182 @@ $(document).ready(function() {
             $('#cust-address').text(selected.data('address') || '');
             $('#cust-gstin').text(selected.data('gstin') || '');
             $('#customer-details').show();
-            updateProgress();
-            saveDraftData();
         } else {
             $('#customer-details').hide();
         }
     });
     
-    // Progress tracking
-    function updateProgress() {
-        let progress = 25;
-        if ($('#customer_id').val()) progress += 25;
-        if ($('#items-tbody tr').length > 0) progress += 25;
-        
-        let grandTotal = 0;
-        $('.product-row').each(function() {
-            const $row = $(this);
-            const price = parseFloat($row.find('.price-input').val()) || 0;
-            $row.find('.quantity-input').each(function() {
-                const qty = parseInt($(this).val()) || 0;
-                grandTotal += qty * price;
-            });
-        });
-        
-        if (grandTotal > 0) progress += 25;
-        
-        $('#progress-bar').css('width', progress + '%');
-        
-        if (progress >= 50) $('#step-1').addClass('completed');
-        if (progress >= 75) $('#step-2').addClass('completed');
-        if (progress >= 100) $('#step-3').addClass('completed');
-    }
     
-    // Auto-save functionality
-    function saveDraftData() {
-        clearTimeout(draftTimer);
-        draftTimer = setTimeout(function() {
-            const formData = {
-                customer_id: $('#customer_id').val(),
-                invoice_date: $('input[name="invoice_date"]').val(),
-                due_date: $('input[name="due_date"]').val(),
-                gst_rate: $('#gst_rate').val(),
-                discount_type: $('#discount_type').val(),
-                discount_value: $('#discount_value').val(),
-                notes: $('textarea[name="notes"]').val(),
-                items: []
-            };
-            
-            $('.product-row').each(function() {
-                const $row = $(this);
-                const itemData = {
-                    category_id: $row.find('.category-select').val(),
-                    product_id: $row.find('.product-select').val(),
-                    price: $row.find('.price-input').val(),
-                    variants: []
-                };
-                
-                $row.find('.quantity-input').each(function() {
-                    if ($(this).val() > 0) {
-                        itemData.variants.push({
-                            product_id: $(this).siblings('input[type="hidden"]').val(),
-                            quantity: $(this).val()
-                        });
-                    }
-                });
-                
-                if (itemData.variants.length > 0) {
-                    formData.items.push(itemData);
-                }
-            });
-            
-            localStorage.setItem('invoice_draft', JSON.stringify(formData));
-            showAutoSaveIndicator();
-        }, 2000);
-    }
     
-    function showAutoSaveIndicator() {
-        $('#auto-save-indicator').addClass('show');
-        setTimeout(function() {
-            $('#auto-save-indicator').removeClass('show');
-        }, 2000);
-    }
-    
-    // Load draft data
-    function loadDraftData() {
-        const draft = localStorage.getItem('invoice_draft');
-        if (draft) {
-            try {
-                const data = JSON.parse(draft);
-                if (confirm('Found a saved draft. Would you like to restore it?')) {
-                    if (data.customer_id) $('#customer_id').val(data.customer_id).trigger('change');
-                    if (data.invoice_date) $('input[name="invoice_date"]').val(data.invoice_date);
-                    if (data.due_date) $('input[name="due_date"]').val(data.due_date);
-                    if (data.gst_rate) $('#gst_rate').val(data.gst_rate);
-                    if (data.discount_type) $('#discount_type').val(data.discount_type);
-                    if (data.discount_value) $('#discount_value').val(data.discount_value);
-                    if (data.notes) $('textarea[name="notes"]').val(data.notes);
-                }
-            } catch (e) {
-                console.error('Error loading draft:', e);
-            }
-        }
-    }
-    
-    // Keyboard shortcuts
+    // Enhanced keyboard shortcuts with lazy loading
     $(document).on('keydown', function(e) {
+        initializeLazyFeature('keyboardShortcuts');
+        
+        // Global shortcuts
         if (e.ctrlKey) {
             switch(e.key) {
                 case 'i':
                 case 'I':
                     e.preventDefault();
                     addNewItem();
+                    announceToScreenReader('New item row added');
                     break;
                 case 'u':
                 case 'U':
                     e.preventDefault();
                     showCustomerModal();
+                    announceToScreenReader('Customer modal opened');
                     break;
                 case 's':
                 case 'S':
                     e.preventDefault();
-                    saveDraft();
+                    $('#invoice-form').submit();
+                    announceToScreenReader('Form submitted');
+                    break;
+                case 'r':
+                case 'R':
+                    e.preventDefault();
+                    resetForm();
+                    announceToScreenReader('Form reset');
                     break;
             }
         }
+        
+        // Tab navigation enhancement
+        if (e.key === 'Tab') {
+            handleTabNavigation(e);
+        }
+        
+        // Enter key handling for form elements
+        if (e.key === 'Enter' && $(e.target).is('input, select, textarea')) {
+            handleEnterKey(e);
+        }
+        
+        // Escape key handling
+        if (e.key === 'Escape') {
+            handleEscapeKey(e);
+        }
     });
+    
+    // Screen reader announcements
+    function announceToScreenReader(message) {
+        const announcement = document.createElement('div');
+        announcement.setAttribute('aria-live', 'polite');
+        announcement.setAttribute('aria-atomic', 'true');
+        announcement.className = 'sr-only';
+        announcement.textContent = message;
+        document.body.appendChild(announcement);
+        
+        setTimeout(() => {
+            document.body.removeChild(announcement);
+        }, 1000);
+    }
+    
+    // Enhanced tab navigation
+    function handleTabNavigation(e) {
+        const $currentElement = $(e.target);
+        const $form = $('#invoice-form');
+        
+        // Skip to next section if at end of current section
+        if ($currentElement.is('.section-end')) {
+            e.preventDefault();
+            const $nextSection = $currentElement.closest('.card').next('.card');
+            if ($nextSection.length) {
+                $nextSection.find('input, select, textarea').first().focus();
+            }
+        }
+        
+        // Skip to previous section if at beginning of current section
+        if ($currentElement.is('.section-start')) {
+            e.preventDefault();
+            const $prevSection = $currentElement.closest('.card').prev('.card');
+            if ($prevSection.length) {
+                $prevSection.find('input, select, textarea').last().focus();
+            }
+        }
+    }
+    
+    // Handle Enter key in form elements
+    function handleEnterKey(e) {
+        const $currentElement = $(e.target);
+        
+        // If in product row, move to next field
+        if ($currentElement.closest('.product-row').length) {
+                    e.preventDefault();
+            const $nextField = $currentElement.closest('td').next('td').find('input, select, textarea');
+            if ($nextField.length) {
+                $nextField.focus();
+            } else {
+                // Move to next row or add new row
+                const $nextRow = $currentElement.closest('tr').next('tr');
+                if ($nextRow.length) {
+                    $nextRow.find('input, select, textarea').first().focus();
+                } else {
+                    addNewItem();
+                    setTimeout(() => {
+                        $('.product-row').last().find('input, select, textarea').first().focus();
+                    }, 100);
+                }
+            }
+        }
+    }
+    
+    // Handle Escape key
+    function handleEscapeKey(e) {
+        const $currentElement = $(e.target);
+        
+        // Close any open modals
+        if ($('.modal').hasClass('show')) {
+            $('.modal').modal('hide');
+            announceToScreenReader('Modal closed');
+        }
+        
+        // Clear current field if in input
+        if ($currentElement.is('input, textarea')) {
+            $currentElement.val('').trigger('change');
+            announceToScreenReader('Field cleared');
+        }
+    }
+    
+    // Focus management for modals
+    function setupModalFocusManagement() {
+        $('.modal').on('shown.bs.modal', function() {
+            const $modal = $(this);
+            const $firstInput = $modal.find('input, select, textarea').first();
+            if ($firstInput.length) {
+                $firstInput.focus();
+            }
+        });
+        
+        $('.modal').on('hidden.bs.modal', function() {
+            const $trigger = $('[data-target="#' + $(this).attr('id') + '"]');
+            if ($trigger.length) {
+                $trigger.focus();
+            }
+        });
+    }
+    
+    // Form reset function
+    function resetForm() {
+        if (confirm('Are you sure you want to reset the form? All data will be lost.')) {
+            $('#invoice-form')[0].reset();
+            $('.product-row').not(':first').remove();
+            $('.is-invalid').removeClass('is-invalid');
+            $('.invalid-feedback').hide();
+            addedProducts.clear();
+            updateProductTracking();
+            announceToScreenReader('Form reset successfully');
+        }
+    }
     
     // Add item handlers
     $('#add-item-btn, #add-first-item').on('click', function() {
         addNewItem();
     });
     
-    function addNewItem() {
+    window.addNewItem = function() {
+        console.log('Adding new item');
+        
         const rowHtml = `
             <tr class="product-row animate__animated animate__fadeIn" data-index="${itemIndex}">
                 <td>
@@ -892,10 +1430,10 @@ $(document).ready(function() {
                 <td>
                     <div class="price-container">
                         <input type="number" name="items[${itemIndex}][price]" class="form-control price-input" 
-                               step="0.01" min="0.01" readonly data-original-price="0">
+                               step="0.01" min="0.01" placeholder="Enter price" value="" data-original-price="">
                         <div class="invalid-feedback">Price must be greater than zero</div>
                         <small class="price-history text-muted" style="display: none;">
-                            Original: ₹<span class="original-price">0.00</span>
+                            <i class="fas fa-history"></i> Original: ₹<span class="original-price">0.00</span>
                         </small>
                     </div>
                 </td>
@@ -925,8 +1463,6 @@ $(document).ready(function() {
         }
         
         updateItemsCount();
-        updateProgress();
-        saveDraftData();
         itemIndex++;
     }
     
@@ -979,6 +1515,7 @@ $(document).ready(function() {
         const $productSelect = $row.find('.product-select');
         
         console.log('Category select changed, categoryId:', categoryId);
+        console.log('Cache key will be:', `products-${categoryId}`);
         
         if (!categoryId) {
             $productSelect.html('<option value="">Select Product</option>').prop('disabled', true);
@@ -986,10 +1523,11 @@ $(document).ready(function() {
             return;
         }
         
-        $productSelect.prop('disabled', true).html('<option value="">Loading...</option>');
+        $productSelect.prop('disabled', true);
         
-        $.get('/api/products/by-category', { category_id: categoryId })
-            .done(function(products) {
+        // Use cached API call with category-specific cache key
+        directApiCall('/api/products/by-category', { category_id: categoryId })
+            .then(function(products) {
                 console.log('Products loaded for category:', categoryId, 'products:', products);
                 let options = '<option value="">Select Product</option>';
                 products.forEach(function(product) {
@@ -1009,17 +1547,25 @@ $(document).ready(function() {
                     console.error('Select2 initialization for product failed:', e);
                 }
             })
-            .fail(function() {
-                $productSelect.html('<option value="">Error loading products</option>');
-                alert('Error loading products. Please try again.');
+            .catch(function(xhr) {
+                console.error('Error loading products for category:', categoryId, xhr);
+                let errorMessage = 'Error loading products';
+                if (xhr.responseJSON && xhr.responseJSON.message) {
+                    errorMessage = xhr.responseJSON.message;
+                }
+                $productSelect.html(`<option value="">${errorMessage}</option>`).prop('disabled', true);
+                clearProductData($row);
+                showError(errorMessage);
             });
     });
     
     $(document).on('change', '.product-select', function() {
         const $row = $(this).closest('tr');
         const productId = $(this).val();
+        const rowIndex = $row.data('index');
         
-        console.log('Product select changed, productId:', productId);
+        console.log('Product select changed, productId:', productId, 'for row index:', rowIndex);
+        console.log('Variants cache key will be:', `variants-${productId}`);
         
         if (!productId) {
             clearProductData($row);
@@ -1028,8 +1574,9 @@ $(document).ready(function() {
         
         $row.addClass('loading');
         
-        $.get(`/api/products/variants/${productId}`)
-            .done(function(data) {
+        // Use direct API call for variants (no caching)
+        directApiCall(`/api/products/variants/${productId}`, {})
+            .then(function(data) {
                 console.log('Product variants API response:', data);
                 if (data.variants && data.variants.length > 0) {
                     console.log('Creating color inputs for variants:', data.variants);
@@ -1046,32 +1593,44 @@ $(document).ready(function() {
                     
                     makePriceEditable($priceInput);
                     
-                    updateProgress();
-                    saveDraftData();
                 } else {
                     console.log('No variants found for product:', productId);
                 }
             })
-            .fail(function() {
+            .catch(function() {
                 console.log('Error loading product variants for product:', productId);
                 showError('Error loading product variants. Please try again.');
             })
-            .always(function() {
+            .finally(function() {
                 $row.removeClass('loading');
             });
     });
     
-    // Price validation function
+    // Enhanced price validation function
     function validatePriceInput($priceInput) {
         const price = parseFloat($priceInput.val()) || 0;
+        const $row = $priceInput.closest('tr');
+        const productId = $row.find('.product-select').val();
+        
+        // Only validate if a product is selected
+        if (!productId) {
+            $priceInput.removeClass('is-invalid');
+            $priceInput.siblings('.invalid-feedback').hide();
+            return true;
+        }
         
         if (price <= 0) {
             $priceInput.addClass('is-invalid');
-            $priceInput.siblings('.invalid-feedback').show();
+            $priceInput.siblings('.invalid-feedback').text('Price must be greater than zero').show();
+            return false;
+        } else if (price > 999999) {
+            $priceInput.addClass('is-invalid');
+            $priceInput.siblings('.invalid-feedback').text('Price seems too high. Please check the value.').show();
             return false;
         } else {
             $priceInput.removeClass('is-invalid');
             $priceInput.siblings('.invalid-feedback').hide();
+            $priceInput.addClass('is-valid');
             return true;
         }
     }
@@ -1079,7 +1638,17 @@ $(document).ready(function() {
     function makePriceEditable($priceInput) {
         $priceInput.removeClass('readonly').prop('readonly', false).addClass('editable');
         
+        // Clear the field if it has default 0 value
+        const currentValue = parseFloat($priceInput.val()) || 0;
+        if (currentValue === 0) {
+            $priceInput.val('');
+        }
+        
         $priceInput.on('click', function() {
+            // Clear field if it's 0 or empty
+            if (parseFloat($(this).val()) === 0 || $(this).val() === '') {
+                $(this).val('');
+            }
             $(this).select();
         });
         
@@ -1090,42 +1659,70 @@ $(document).ready(function() {
             // Validate price
             validatePriceInput($(this));
             
-            if (currentPrice !== originalPrice) {
+            if (currentPrice !== originalPrice && currentPrice > 0) {
                 $(this).addClass('editable');
                 $(this).closest('tr').find('.price-history').addClass('text-warning');
+            } else if (currentPrice === 0) {
+                // Hide history if price is cleared
+                $(this).closest('tr').find('.price-history').hide();
             } else {
                 $(this).removeClass('editable');
                 $(this).closest('tr').find('.price-history').removeClass('text-warning');
             }
             
             updateTotals();
-            saveDraftData();
         });
     }
     
-    function showError(message) {
+    function showError(message, type = 'error', duration = 5000) {
+        const alertClass = type === 'error' ? 'alert-danger' : type === 'warning' ? 'alert-warning' : 'alert-info';
+        const icon = type === 'error' ? 'fas fa-exclamation-triangle' : type === 'warning' ? 'fas fa-exclamation-circle' : 'fas fa-info-circle';
+        
         const errorHtml = `
-            <div class="alert alert-danger alert-dismissible fade show position-fixed" 
+            <div class="alert ${alertClass} alert-dismissible fade show position-fixed" 
                  style="top: 20px; right: 20px; z-index: 9999; min-width: 300px;">
-                <strong>Error!</strong> ${message}
+                <i class="${icon}"></i> <strong>${type === 'error' ? 'Error!' : type === 'warning' ? 'Warning!' : 'Info!'}</strong> ${message}
                 <button type="button" class="close" data-dismiss="alert">
                     <span>&times;</span>
                 </button>
             </div>
         `;
         
+        // Remove existing alerts of same type
+        $(`.alert-${type === 'error' ? 'danger' : type === 'warning' ? 'warning' : 'info'}`).remove();
+        
         $('body').append(errorHtml);
         
+        // Auto-hide after duration
         setTimeout(function() {
-            $('.alert').alert('close');
-        }, 5000);
+            $(`.alert-${type === 'error' ? 'danger' : type === 'warning' ? 'warning' : 'info'}`).alert('close');
+        }, duration);
+        
+        // Scroll to top if error
+        if (type === 'error') {
+            $('html, body').animate({ scrollTop: 0 }, 300);
+        }
     }
+    
+    // Update variant prices when user changes item price
+    $(document).on('input change', '.price-input', function() {
+        const $row = $(this).closest('tr');
+        const newPrice = $(this).val() || 0;
+        
+        // Update all hidden price fields for this item's variants
+        $row.find('input[name*="[price]"]').val(newPrice);
+        
+        console.log('Updated variant prices to:', newPrice);
+    });
     
     function createColorInputs($row, variants) {
         const index = $row.data('index');
+        const itemPrice = $row.find('.price-input').val() || 0;
+        const gstRate = $('#gst_rate').val() || 0;
         let html = '';
         
         console.log('Creating color inputs for row index:', index, 'variants:', variants);
+        console.log('Item price:', itemPrice, 'GST rate:', gstRate);
         
         variants.forEach(function(variant, variantIndex) {
             const colorName = variant.color || 'Default';
@@ -1149,30 +1746,15 @@ $(document).ready(function() {
                            onchange="updateTotals()"
                            data-is-composite="${isComposite}">
                     <input type="hidden" name="items[${index}][variants][${variantIndex}][product_id]" value="${variant.id}">
+                    <input type="hidden" name="items[${index}][variants][${variantIndex}][price]" value="${itemPrice}">
+                    <input type="hidden" name="items[${index}][variants][${variantIndex}][gst_rate]" value="${gstRate}">
                     <div class="stock-info ${stockClass}">Stock: ${variant.quantity}</div>
                 </div>
             `;
             
-            if (isComposite && variant.components && variant.components.length > 0) {
-                html += `
-                    <div class="component-info">
-                        <strong>Components:</strong>
-                        <div class="mt-1">
-                `;
-                variant.components.forEach(function(component) {
-                    const componentStockClass = getStockClass(component.component_product.quantity);
-                    html += `
-                        <div class="component-item">
-                            <span>${component.component_product.name} (${component.quantity_needed} pcs each)</span>
-                            <span class="stock-info ${componentStockClass}">Stock: ${component.component_product.quantity}</span>
-                        </div>
-                    `;
-                });
-                html += `
-                        </div>
-                    </div>
-                `;
-            }
+            // ✅ REMOVED: Component information is not needed for invoice creation
+            // Components are already consumed during assembly
+            // Users only need to see composite product stock
         });
         
         console.log('Setting HTML for colors container:', html);
@@ -1221,8 +1803,6 @@ $(document).ready(function() {
             }
             updateItemsCount();
             updateTotals();
-            updateProgress();
-            saveDraftData();
         }, 500);
     };
     
@@ -1283,39 +1863,56 @@ $(document).ready(function() {
         $('#grand_total').text('₹' + grand_total.toFixed(2));
         
         setTimeout(function() {
-            updateProgress();
         }, 10);
         
         return grand_total;
     };
     
     $('#invoice-form').on('submit', function(e) {
-        let hasItems = false;
-        let hasQuantity = false;
+        initializeLazyFeature('advancedValidation');
         
-        $('.quantity-input').each(function() {
-            if (parseInt($(this).val()) > 0) {
-                hasItems = true;
-                hasQuantity = true;
-                return false;
-            }
-        });
+        console.log('Form submission started');
+        console.log('Form data:', $(this).serialize());
         
-        if (!hasItems || !hasQuantity) {
+        // Log performance stats before submission
+        const perfStats = performanceMonitor.getStats();
+        console.log('Performance Stats:', perfStats);
+        
+        // Enhanced validation before submission
+        if (!validateForm()) {
             e.preventDefault();
-            alert('Please add at least one item with quantity greater than 0');
+            console.log('Form validation failed');
+            
+            // Scroll to first error
+            const $firstError = $('.is-invalid').first();
+            if ($firstError.length) {
+                $('html, body').animate({
+                    scrollTop: $firstError.offset().top - 100
+                }, 500);
+                $firstError.focus();
+            }
+            
             return false;
         }
         
-        $('#submit-btn').prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Creating...');
+        console.log('Form validation passed, submitting...');
+        $('#submit-btn').prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Creating Invoice...');
+        
+        // Add timeout protection
+        setTimeout(function() {
+            if ($('#submit-btn').prop('disabled')) {
+                $('#submit-btn').prop('disabled', false).html('<i class="fas fa-file-invoice"></i> Create Invoice');
+                showError('Request timeout. Please try again.');
+            }
+        }, 30000); // 30 second timeout
     });
     
     $('#discount_type, #discount_value, #gst_rate, #packaging_fees').on('change keyup', function() {
         updateTotals();
-        saveDraftData();
     });
     
     window.showCustomerModal = function() {
+        initializeLazyFeature('customerModal');
         $('#customerModal').modal('show');
         $('#customer_name').focus();
     };
@@ -1393,94 +1990,633 @@ $(document).ready(function() {
         }, 3000);
     }
     
-    window.saveDraft = function() {
-        saveDraftData();
-        showAutoSaveIndicator();
-        showSuccess('Draft saved successfully!');
-    };
     
+    // Enhanced validation with real-time feedback
     function validateForm() {
         let isValid = true;
+        let errorCount = 0;
         
         $('.is-invalid').removeClass('is-invalid');
-        $('.invalid-feedback').text('');
+        $('.invalid-feedback').text('').hide();
         
+        // Customer validation
         if (!$('#customer_id').val()) {
             $('#customer_id').addClass('is-invalid');
-            $('#customer-error').text('Please select a customer');
+            $('#customer-error').text('Please select a customer').show();
             isValid = false;
+            errorCount++;
+        } else {
+            $('#customer_id').removeClass('is-invalid');
+            $('#customer-error').hide();
         }
         
+        // Date validation
+        const invoiceDate = $('input[name="invoice_date"]').val();
+        const dueDate = $('input[name="due_date"]').val();
+        
+        if (!invoiceDate) {
+            $('input[name="invoice_date"]').addClass('is-invalid');
+            showError('Invoice date is required');
+            isValid = false;
+            errorCount++;
+        }
+        
+        if (dueDate && new Date(dueDate) < new Date(invoiceDate)) {
+            $('input[name="due_date"]').addClass('is-invalid');
+            showError('Due date cannot be before invoice date');
+            isValid = false;
+            errorCount++;
+        }
+        
+        // Items validation
         let hasValidItems = false;
+        let totalItems = 0;
+        let validItems = 0;
+        
         $('.product-row').each(function() {
             const $row = $(this);
             const categoryId = $row.find('.category-select').val();
             const productId = $row.find('.product-select').val();
             const price = parseFloat($row.find('.price-input').val()) || 0;
             let hasQuantity = false;
+            let totalQuantity = 0;
             
+            // Count total items
+            totalItems++;
+            
+            // Check quantities
             $row.find('.quantity-input').each(function() {
-                if (parseInt($(this).val()) > 0) {
+                const qty = parseInt($(this).val()) || 0;
+                if (qty > 0) {
                     hasQuantity = true;
+                    totalQuantity += qty;
                 }
             });
             
+            // Category validation
             if (!categoryId) {
                 $row.find('.category-select').addClass('is-invalid');
-                $row.find('.category-select').siblings('.invalid-feedback').text('Please select a category');
+                $row.find('.category-select').siblings('.invalid-feedback').text('Please select a category').show();
                 isValid = false;
+                errorCount++;
+            } else {
+                $row.find('.category-select').removeClass('is-invalid');
+                $row.find('.category-select').siblings('.invalid-feedback').hide();
             }
             
+            // Product validation
             if (!productId && categoryId) {
                 $row.find('.product-select').addClass('is-invalid');
-                $row.find('.product-select').siblings('.invalid-feedback').text('Please select a product');
+                $row.find('.product-select').siblings('.invalid-feedback').text('Please select a product').show();
                 isValid = false;
+                errorCount++;
+            } else if (productId && categoryId) {
+                // Check for duplicate products (same category + product combination)
+                if (checkDuplicateProduct(productId, $row)) {
+                    $row.find('.product-select').addClass('is-invalid');
+                    $row.find('.product-select').siblings('.invalid-feedback').text('This product from this category is already added to the invoice').show();
+                    isValid = false;
+                    errorCount++;
+                } else {
+                    $row.find('.product-select').removeClass('is-invalid');
+                    $row.find('.product-select').siblings('.invalid-feedback').hide();
+                }
             }
             
+            // Price validation
             if (price <= 0 && productId) {
                 $row.find('.price-input').addClass('is-invalid');
                 $row.find('.price-input').siblings('.invalid-feedback').show().text('Price must be greater than zero');
                 isValid = false;
-            } else {
+                errorCount++;
+            } else if (price > 0) {
                 $row.find('.price-input').removeClass('is-invalid');
                 $row.find('.price-input').siblings('.invalid-feedback').hide();
             }
             
+            // Quantity validation
+            if (productId && price > 0 && !hasQuantity) {
+                $row.find('.quantity-input').first().addClass('is-invalid');
+                $row.find('.quantity-input').first().siblings('.invalid-feedback').text('Please enter quantity').show();
+                isValid = false;
+                errorCount++;
+            } else {
+                $row.find('.quantity-input').removeClass('is-invalid');
+                $row.find('.quantity-input').siblings('.invalid-feedback').hide();
+            }
+            
+            // Stock validation
+            if (productId && hasQuantity) {
+                $row.find('.quantity-input').each(function() {
+                    const qty = parseInt($(this).val()) || 0;
+                    const stock = parseInt($(this).data('stock')) || 0;
+                    if (qty > stock && stock > 0) {
+                        $(this).addClass('is-invalid');
+                        $(this).siblings('.invalid-feedback').text(`Only ${stock} items available in stock`).show();
+                        isValid = false;
+                        errorCount++;
+                    }
+                });
+            }
+            
+            // Valid item check
             if (hasQuantity && categoryId && productId && price > 0) {
                 hasValidItems = true;
+                validItems++;
             }
         });
         
-        if (!hasValidItems) {
-            showError('Please add at least one item with valid quantity');
+        // Items summary validation
+        if (totalItems === 0) {
+            showError('Please add at least one item to the invoice');
             isValid = false;
+            errorCount++;
+        } else if (!hasValidItems) {
+            showError(`Please complete ${totalItems - validItems} incomplete item(s) with valid quantity`);
+            isValid = false;
+            errorCount++;
+        }
+        
+        // Show validation summary
+        if (!isValid && errorCount > 0) {
+            showError(`Please fix ${errorCount} error(s) before submitting`);
         }
         
         return isValid;
     }
     
-    $('#invoice-form').on('submit', function(e) {
-        e.preventDefault();
+    // Track added products to prevent duplicates
+    const addedProducts = new Set();
+    
+    // Real-time validation
+    function setupRealTimeValidation() {
+        // Customer validation
+        $('#customer_id').on('change', function() {
+            if ($(this).val()) {
+                $(this).removeClass('is-invalid');
+                $('#customer-error').hide();
+            } else {
+                $(this).addClass('is-invalid');
+                $('#customer-error').text('Please select a customer').show();
+            }
+        });
         
-        if (!validateForm()) {
-            return false;
+        // Date validation
+        $('input[name="invoice_date"], input[name="due_date"]').on('change', function() {
+            const invoiceDate = $('input[name="invoice_date"]').val();
+            const dueDate = $('input[name="due_date"]').val();
+            
+            if (dueDate && invoiceDate && new Date(dueDate) < new Date(invoiceDate)) {
+                $('input[name="due_date"]').addClass('is-invalid');
+                showError('Due date cannot be before invoice date');
+            } else {
+                $('input[name="due_date"]').removeClass('is-invalid');
+            }
+        });
+        
+        // Product validation with duplicate check
+        $(document).on('change', '.category-select, .product-select', function() {
+            const $row = $(this).closest('tr');
+            const categoryId = $row.find('.category-select').val();
+            const productId = $row.find('.product-select').val();
+            
+            if (categoryId) {
+                $row.find('.category-select').removeClass('is-invalid');
+                $row.find('.category-select').siblings('.invalid-feedback').hide();
+            }
+            
+            if (productId && categoryId) {
+                // Check for duplicate products (same category + product combination)
+                if (checkDuplicateProduct(productId, $row)) {
+                    $row.find('.product-select').addClass('is-invalid');
+                    $row.find('.product-select').siblings('.invalid-feedback').text('This product from this category is already added to the invoice').show();
+                    showError('Product from this category already exists in the invoice. Please select a different product or category.', 'warning');
+                } else {
+                    $row.find('.product-select').removeClass('is-invalid');
+                    $row.find('.product-select').siblings('.invalid-feedback').hide();
+                    // Add to tracking set with category + product combination
+                    const uniqueKey = `${categoryId}-${productId}`;
+                    addedProducts.add(uniqueKey);
+                }
+            }
+        });
+        
+        // Enhanced price validation and formatting
+        $(document).on('input change blur', '.price-input', function() {
+            const $input = $(this);
+            const price = parseFloat($input.val()) || 0;
+            const $row = $input.closest('tr');
+            const productId = $row.find('.product-select').val();
+            
+            // Format price on blur (when user finishes typing)
+            if ($input.is(':focus') === false && price > 0) {
+                $input.val(price.toFixed(2));
+            }
+            
+            // Validate price
+            validatePriceInput($input);
+            
+            // Update totals if price is valid
+            if (price > 0 && productId) {
+                updateTotals();
+            }
+        });
+        
+        // Enhanced price input behavior
+        $(document).on('focus', '.price-input', function() {
+            const $input = $(this);
+            const currentValue = parseFloat($input.val()) || 0;
+            
+            // If price is 0 or empty, clear the field for new input
+            if (currentValue === 0 || $input.val() === '') {
+                $input.val('');
+            }
+            
+            // Select all text for easy editing
+            setTimeout(() => {
+                $input.select();
+            }, 10);
+        });
+        
+        // Clear price when user starts typing if it's 0
+        $(document).on('input', '.price-input', function() {
+            const $input = $(this);
+            const value = $input.val();
+            
+            // If user types and current value is 0, clear it
+            if (value === '0' || value === '0.0' || value === '0.00') {
+                $input.val('');
+            }
+        });
+        
+        // Double-click to clear price field completely
+        $(document).on('dblclick', '.price-input', function() {
+            $(this).val('').focus();
+        });
+        
+        // Add clear button functionality
+        $(document).on('keydown', '.price-input', function(e) {
+            // Clear field with Escape key
+            if (e.key === 'Escape') {
+                $(this).val('').blur();
+            }
+        });
+        
+        // Quantity validation
+        $(document).on('input change', '.quantity-input', function() {
+            const qty = parseInt($(this).val()) || 0;
+            const stock = parseInt($(this).data('stock')) || 0;
+            
+            if (qty > stock && stock > 0) {
+                $(this).addClass('is-invalid');
+                $(this).siblings('.invalid-feedback').text(`Only ${stock} items available in stock`).show();
+            } else if (qty < 0) {
+                $(this).addClass('is-invalid');
+                $(this).siblings('.invalid-feedback').text('Quantity cannot be negative').show();
+            } else {
+                $(this).removeClass('is-invalid');
+                $(this).siblings('.invalid-feedback').hide();
+            }
+        });
+    }
+    
+    // Check for duplicate products
+    function checkDuplicateProduct(productId, currentRow) {
+        if (!productId) return false;
+        
+        const currentCategoryId = currentRow.find('.category-select').val();
+        if (!currentCategoryId) return false; // Can't check duplicate without category
+        
+        let isDuplicate = false;
+        $('.product-row').each(function() {
+            const $row = $(this);
+            const rowProductId = $row.find('.product-select').val();
+            const rowCategoryId = $row.find('.category-select').val();
+            
+            // Skip current row and check others
+            // Check for duplicate only if both category AND product are the same
+            if ($row[0] !== currentRow[0] && 
+                rowProductId === productId && 
+                rowCategoryId === currentCategoryId) {
+                isDuplicate = true;
+                return false; // Break the loop
+            }
+        });
+        
+        return isDuplicate;
+    }
+    
+    // Update product tracking when rows are removed
+    function updateProductTracking() {
+        addedProducts.clear();
+        $('.product-row').each(function() {
+            const productId = $(this).find('.product-select').val();
+            const categoryId = $(this).find('.category-select').val();
+            if (productId && categoryId) {
+                // Use category + product combination as unique key
+                const uniqueKey = `${categoryId}-${productId}`;
+                addedProducts.add(uniqueKey);
+            }
+        });
+    }
+    
+    // Enhanced addNewItem function with duplicate prevention
+    function addNewItemWithValidation() {
+        // Check if we can add more items (optional limit)
+        const maxItems = 50; // Set a reasonable limit
+        const currentItems = $('.product-row').length;
+        
+        if (currentItems >= maxItems) {
+            showError(`Maximum ${maxItems} items allowed per invoice`, 'warning');
+            return;
         }
         
-        $('#submit-btn').prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Creating Invoice...');
-        
-        localStorage.removeItem('invoice_draft');
-        
-        this.submit();
-    });
+        addNewItem();
+    }
     
-    loadDraftData();
+    // Show duplicate product suggestions
+    function showDuplicateSuggestions(productId, productName) {
+        const suggestions = `
+            <div class="duplicate-suggestions" style="position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; border: 1px solid #ccc; border-radius: 8px; padding: 20px; z-index: 9999; box-shadow: 0 4px 12px rgba(0,0,0,0.15); max-width: 400px;">
+                <h5><i class="fas fa-exclamation-triangle text-warning"></i> Duplicate Product Detected</h5>
+                <p>The product "<strong>${productName}</strong>" is already added to this invoice.</p>
+                <div class="mt-3">
+                    <button class="btn btn-warning btn-sm mr-2" onclick="mergeDuplicateProduct('${productId}')">
+                        <i class="fas fa-plus"></i> Merge Quantities
+                    </button>
+                    <button class="btn btn-secondary btn-sm mr-2" onclick="closeDuplicateSuggestions()">
+                        <i class="fas fa-times"></i> Cancel
+                    </button>
+                </div>
+            </div>
+        `;
+        
+        $('body').append(suggestions);
+        
+        // Close on outside click
+        setTimeout(() => {
+            $(document).on('click', closeDuplicateSuggestions);
+        }, 100);
+    }
+    
+    function closeDuplicateSuggestions() {
+        $('.duplicate-suggestions').remove();
+        $(document).off('click', closeDuplicateSuggestions);
+    }
+    
+    function mergeDuplicateProduct(productId) {
+        // Find existing row with this product
+        let existingRow = null;
+        $('.product-row').each(function() {
+            if ($(this).find('.product-select').val() === productId) {
+                existingRow = $(this);
+                return false;
+            }
+        });
+        
+        if (existingRow) {
+            // Focus on the existing row
+            existingRow[0].scrollIntoView({ behavior: 'smooth', block: 'center' });
+            existingRow.addClass('highlight-existing');
+            setTimeout(() => {
+                existingRow.removeClass('highlight-existing');
+            }, 2000);
+            
+            showError('Please update the quantity in the existing row instead of adding duplicates', 'info', 3000);
+        }
+        
+        closeDuplicateSuggestions();
+    }
+    
+    // Setup duplicate product prevention
+    function setupDuplicatePrevention() {
+        // Update tracking when rows are removed
+        $(document).on('click', '.remove-item', function() {
+            setTimeout(() => {
+                updateProductTracking();
+            }, 100);
+        });
+        
+        // Update tracking when product selection changes
+        $(document).on('change', '.product-select', function() {
+            setTimeout(() => {
+                updateProductTracking();
+            }, 100);
+        });
+        
+        // Add visual indicator for duplicate products
+        $(document).on('change', '.product-select', function() {
+            const $row = $(this).closest('tr');
+            const productId = $(this).val();
+            const categoryId = $row.find('.category-select').val();
+            
+            if (productId && categoryId && checkDuplicateProduct(productId, $row)) {
+                $row.addClass('duplicate-product');
+                $row.find('.product-select').addClass('is-invalid');
+            } else {
+                $row.removeClass('duplicate-product');
+            }
+        });
+        
+        // Also check for duplicates when category changes
+        $(document).on('change', '.category-select', function() {
+            const $row = $(this).closest('tr');
+            const productId = $row.find('.product-select').val();
+            const categoryId = $(this).val();
+            
+            if (productId && categoryId && checkDuplicateProduct(productId, $row)) {
+                $row.addClass('duplicate-product');
+                $row.find('.product-select').addClass('is-invalid');
+                $row.find('.product-select').siblings('.invalid-feedback').text('This product from this category is already added to the invoice').show();
+            } else {
+                $row.removeClass('duplicate-product');
+                $row.find('.product-select').removeClass('is-invalid');
+                $row.find('.product-select').siblings('.invalid-feedback').hide();
+            }
+        });
+    }
+    
+    // Mobile optimizations
+    function setupMobileOptimizations() {
+        // Detect mobile device
+        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || window.innerWidth <= 768;
+        
+        if (isMobile) {
+            // Add mobile navigation
+            addMobileNavigation();
+            
+            // Setup touch gestures
+            setupTouchGestures();
+            
+            // Optimize form inputs for mobile
+            optimizeMobileInputs();
+            
+            // Add mobile-specific event handlers
+            setupMobileEventHandlers();
+        }
+    }
+    
+    function addMobileNavigation() {
+        const mobileNav = `
+            <div class="mobile-nav d-md-none">
+                <button type="button" class="btn btn-primary" onclick="addNewItem()">
+                    <i class="fas fa-plus"></i> Add Item
+                </button>
+                <button type="button" class="btn btn-success" onclick="showCustomerModal()">
+                    <i class="fas fa-user-plus"></i> Customer
+                </button>
+                <button type="submit" class="btn btn-warning" form="invoice-form">
+                    <i class="fas fa-file-invoice"></i> Create
+                </button>
+            </div>
+        `;
+        
+        $('body').append(mobileNav);
+        
+        // Adjust body padding for mobile nav
+        $('body').css('padding-bottom', '80px');
+    }
+    
+    function setupTouchGestures() {
+        let startX, startY, endX, endY;
+        
+        // Swipe to delete items
+        $('.product-row').on('touchstart', function(e) {
+            startX = e.originalEvent.touches[0].clientX;
+            startY = e.originalEvent.touches[0].clientY;
+        });
+        
+        $('.product-row').on('touchend', function(e) {
+            endX = e.originalEvent.changedTouches[0].clientX;
+            endY = e.originalEvent.changedTouches[0].clientY;
+            
+            const diffX = startX - endX;
+            const diffY = startY - endY;
+            
+            // Swipe left to delete
+            if (Math.abs(diffX) > Math.abs(diffY) && diffX > 50) {
+                if (confirm('Delete this item?')) {
+                    $(this).remove();
+                    updateItemsCount();
+                    updateTotals();
+                }
+            }
+        });
+        
+        // Long press for context menu
+        let longPressTimer;
+        $('.product-row').on('touchstart', function() {
+            longPressTimer = setTimeout(() => {
+                showMobileContextMenu($(this));
+            }, 500);
+        });
+        
+        $('.product-row').on('touchend touchmove', function() {
+            clearTimeout(longPressTimer);
+        });
+    }
+    
+    function optimizeMobileInputs() {
+        // Prevent zoom on input focus (iOS)
+        $('input, select, textarea').attr('autocomplete', 'off');
+        
+        // Add mobile-friendly input types
+        $('input[type="number"]').attr('inputmode', 'numeric');
+        $('input[type="tel"]').attr('inputmode', 'tel');
+        $('input[type="email"]').attr('inputmode', 'email');
+        
+        // Optimize Select2 for mobile
+        $('.select2-container').addClass('mobile-optimized');
+    }
+    
+    function setupMobileEventHandlers() {
+        // Double tap to add item
+        let lastTap = 0;
+        $('.quick-action-btn').on('touchend', function(e) {
+            const currentTime = new Date().getTime();
+            const tapLength = currentTime - lastTap;
+            
+            if (tapLength < 500 && tapLength > 0) {
+                // Double tap detected
+                addNewItem();
+            }
+            lastTap = currentTime;
+        });
+        
+        // Pull to refresh
+        let startY = 0;
+        let currentY = 0;
+        let isPulling = false;
+        
+        $(document).on('touchstart', function(e) {
+            if (window.scrollY === 0) {
+                startY = e.originalEvent.touches[0].clientY;
+                isPulling = true;
+            }
+        });
+        
+        $(document).on('touchmove', function(e) {
+            if (isPulling) {
+                currentY = e.originalEvent.touches[0].clientY;
+                const pullDistance = currentY - startY;
+                
+                if (pullDistance > 100) {
+                    // Pull to refresh
+                    location.reload();
+                }
+            }
+        });
+        
+        $(document).on('touchend', function() {
+            isPulling = false;
+        });
+    }
+    
+    function showMobileContextMenu($row) {
+        const contextMenu = `
+            <div class="mobile-context-menu" style="position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; border: 1px solid #ccc; border-radius: 8px; padding: 10px; z-index: 9999; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">
+                <button class="btn btn-sm btn-danger btn-block mb-2" onclick="deleteRow(${Date.now()})">
+                    <i class="fas fa-trash"></i> Delete Item
+                </button>
+                <button class="btn btn-sm btn-secondary btn-block" onclick="closeContextMenu()">
+                    Cancel
+                </button>
+            </div>
+        `;
+        
+        $('body').append(contextMenu);
+        
+        // Close on outside click
+        setTimeout(() => {
+            $(document).on('click', closeContextMenu);
+        }, 100);
+    }
+    
+    function closeContextMenu() {
+        $('.mobile-context-menu').remove();
+        $(document).off('click', closeContextMenu);
+    }
+    
+    // ✅ REMOVED: Duplicate form submission handler
+    // The first handler (lines 1281-1300) already handles form submission properly
+    
     loadOrderData();
-    updateProgress();
     
     addNewItem();
     
+    // Initialize real-time validation
+    setupRealTimeValidation();
+    
+    // Setup duplicate product prevention
+    setupDuplicatePrevention();
+    
+    // Mobile optimizations
+    setupMobileOptimizations();
+    
+    // Accessibility features
+    setupModalFocusManagement();
+    
     $('input, select, textarea').on('change keyup', function() {
-        saveDraftData();
     });
     
     // Load order data if available

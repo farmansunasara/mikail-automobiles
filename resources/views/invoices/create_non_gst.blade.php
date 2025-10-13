@@ -6,11 +6,95 @@
 <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
 <link href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css" rel="stylesheet" />
 <style>
-/* General Styling */
+/* Compact Spacing - Reduced Form Spacing */
 .invoice-form {
     max-width: 1200px;
     margin: 0 auto;
-    padding: 20px;
+    padding: 15px;
+}
+
+/* Reduce card spacing */
+.card {
+    margin-bottom: 1rem !important;
+}
+
+.card-body {
+    padding: 1rem !important;
+}
+
+.card-header {
+    padding: 0.75rem 1rem !important;
+}
+
+/* Reduce form group spacing */
+.form-group {
+    margin-bottom: 0.75rem !important;
+}
+
+/* Reduce row spacing */
+.row {
+    margin-bottom: 0.5rem !important;
+}
+
+/* Reduce table spacing */
+.table td {
+    padding: 0.5rem !important;
+    vertical-align: middle;
+}
+
+.table th {
+    padding: 0.5rem !important;
+}
+
+/* Reduce input group spacing */
+.input-group {
+    margin-bottom: 0.25rem !important;
+}
+
+/* Reduce button spacing */
+.btn {
+    padding: 0.375rem 0.75rem !important;
+    margin: 0.125rem !important;
+}
+
+/* Reduce alert spacing */
+.alert {
+    padding: 0.5rem 0.75rem !important;
+    margin-bottom: 0.5rem !important;
+}
+
+/* Reduce label spacing */
+label {
+    margin-bottom: 0.25rem !important;
+    font-size: 0.875rem;
+}
+
+/* Reduce small text spacing */
+.form-text {
+    margin-top: 0.125rem !important;
+    margin-bottom: 0.25rem !important;
+}
+
+/* Reduce invalid feedback spacing */
+.invalid-feedback {
+    margin-top: 0.125rem !important;
+}
+
+/* Compact form controls */
+.form-control {
+    padding: 0.375rem 0.5rem !important;
+    font-size: 0.875rem;
+}
+
+/* Compact select2 */
+.select2-container--default .select2-selection--single {
+    height: 2.25rem !important;
+    padding: 0.375rem 0.5rem !important;
+}
+
+/* Compact table rows */
+.product-row td {
+    padding: 0.375rem 0.5rem !important;
 }
 
 /* Card Styling */
@@ -40,14 +124,6 @@
     gap: 10px;
 }
 
-/* Progress Bar */
-.progress-bar-custom {
-    height: 6px;
-    background: linear-gradient(90deg, #28a745, #17a2b8);
-    border-radius: 3px;
-    margin-bottom: 25px;
-    transition: width 0.4s ease;
-}
 
 /* Form Controls */
 .form-control, .select2-container--default .select2-selection--single {
@@ -270,24 +346,6 @@
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
 
-/* Auto-save Indicator */
-.auto-save-indicator {
-    position: fixed;
-    top: 15px;
-    right: 15px;
-    background: #28a745;
-    color: white;
-    padding: 8px 16px;
-    border-radius: 20px;
-    font-size: 0.85rem;
-    opacity: 0;
-    transition: opacity 0.3s ease;
-    z-index: 1000;
-}
-
-.auto-save-indicator.show {
-    opacity: 1;
-}
 
 /* Modal Styling */
 .modal-content {
@@ -368,6 +426,137 @@
     0% { transform: rotate(0deg); }
     100% { transform: rotate(360deg); }
 }
+
+/* Skeleton Loading */
+.skeleton-loader {
+    background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+    background-size: 200% 100%;
+    animation: loading 1.5s infinite;
+    border-radius: 4px;
+}
+
+.skeleton-text {
+    height: 16px;
+    margin: 8px 0;
+}
+
+.skeleton-button {
+    height: 32px;
+    width: 80px;
+    margin: 4px;
+}
+
+.skeleton-input {
+    height: 38px;
+    width: 100%;
+    margin: 4px 0;
+}
+
+.skeleton-color-item {
+    height: 40px;
+    margin: 8px 0;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.skeleton-color-badge {
+    width: 60px;
+    height: 24px;
+    border-radius: 12px;
+}
+
+.skeleton-input-small {
+    width: 80px;
+    height: 32px;
+}
+
+@keyframes loading {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+}
+
+/* Performance Optimizations */
+.cached-data {
+    opacity: 0.8;
+    position: relative;
+}
+
+.cached-data::after {
+    content: '📋';
+    position: absolute;
+    top: -5px;
+    right: -5px;
+    font-size: 12px;
+    background: #28a745;
+    color: white;
+    border-radius: 50%;
+    width: 16px;
+    height: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Duplicate Product Styling */
+.duplicate-product {
+    background-color: #fff3cd !important;
+    border-left: 4px solid #ffc107 !important;
+    animation: duplicateWarning 0.5s ease-in-out;
+}
+
+.duplicate-product .product-select {
+    border-color: #ffc107 !important;
+    box-shadow: 0 0 0 0.2rem rgba(255, 193, 7, 0.25) !important;
+}
+
+.duplicate-product .invalid-feedback {
+    color: #856404 !important;
+    font-weight: 500;
+}
+
+@keyframes duplicateWarning {
+    0% { transform: translateX(-5px); }
+    25% { transform: translateX(5px); }
+    50% { transform: translateX(-5px); }
+    75% { transform: translateX(5px); }
+    100% { transform: translateX(0); }
+}
+
+/* Duplicate Product Indicator */
+.duplicate-indicator {
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    background: #ffc107;
+    color: #856404;
+    border-radius: 50%;
+    width: 20px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: bold;
+    z-index: 10;
+}
+
+.duplicate-indicator::before {
+    content: '⚠';
+}
+
+/* Highlight existing product */
+.highlight-existing {
+    background-color: #d4edda !important;
+    border-left: 4px solid #28a745 !important;
+    animation: highlightPulse 1s ease-in-out;
+}
+
+@keyframes highlightPulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.02); }
+    100% { transform: scale(1); }
+}
 </style>
 @endpush
 
@@ -381,13 +570,6 @@
 <!-- CSRF Token -->
 <meta name="csrf-token" content="{{ csrf_token() }}">
 
-<!-- Auto-save Indicator -->
-<div class="auto-save-indicator" id="auto-save-indicator">
-    <i class="fas fa-save"></i> Draft Saved
-</div>
-
-<!-- Progress Bar -->
-<div class="progress-bar-custom" id="progress-bar" style="width: 25%;"></div>
 
 <!-- Quick Actions -->
 <div class="quick-actions">
@@ -397,21 +579,25 @@
     <button type="button" class="quick-action-btn bg-success" onclick="showCustomerModal()" title="Add Customer (Ctrl+U)">
         <i class="fas fa-user-plus"></i>
     </button>
-    <button type="button" class="quick-action-btn bg-info" onclick="saveDraft()" title="Save Draft (Ctrl+S)">
-        <i class="fas fa-save"></i>
-    </button>
 </div>
 
 <div class="invoice-form">
     <form action="{{ route('invoices.non_gst.store') }}" method="POST" id="invoice-form">
         @csrf
         
+        <!-- Hidden GST rate field for Non-GST invoices (always 0) -->
+        <input type="hidden" name="gst_rate" value="0">
+        
+        <!-- Hidden field to track order_id if invoice is created from an order -->
+        @if(isset($order) && $order)
+            <input type="hidden" name="order_id" value="{{ $order->id }}">
+        @endif
+        
         <!-- Invoice Header -->
         <div class="card mb-4 form-step" id="step-1">
             <div class="card-header">
                 <h4>
                     <i class="fas fa-file-invoice"></i> Non-GST Invoice Details
-                    <span class="badge badge-light ml-2" id="step-indicator-1">Step 1 of 3</span>
                 </h4>
             </div>
             <div class="card-body">
@@ -487,7 +673,6 @@
             <div class="card-header bg-success">
                 <h4>
                     <i class="fas fa-shopping-cart"></i> Invoice Items
-                    <span class="badge badge-light ml-2" id="step-indicator-2">Step 2 of 3</span>
                     <span class="float-right">
                         <small id="items-count">0 items</small>
                     </span>
@@ -534,7 +719,6 @@
                     <div class="card-header bg-info">
                         <h4>
                             <i class="fas fa-calculator"></i> Invoice Summary
-                            <span class="badge badge-light ml-2" id="step-indicator-3">Step 3 of 3</span>
                         </h4>
                     </div>
                     <div class="card-body">
@@ -571,12 +755,7 @@
                         </table>
                         
                         <div class="row mt-3">
-                            <div class="col-md-6">
-                                <button type="button" class="btn btn-outline-secondary btn-block" onclick="saveDraft()">
-                                    <i class="fas fa-save"></i> Save Draft
-                                </button>
-                            </div>
-                            <div class="col-md-6">
+                            <div class="col-md-12">
                                 <button type="submit" class="btn btn-success btn-block btn-lg" id="submit-btn">
                                     <i class="fas fa-file-invoice"></i> Create Invoice
                                 </button>
@@ -667,7 +846,89 @@
 <script>
 $(document).ready(function() {
     let itemIndex = 0;
-    let draftTimer;
+    
+    // REMOVED: Cache system to prevent color variant cross-contamination
+    // All API calls will now fetch fresh data
+    
+    // Show skeleton loader
+    function showSkeletonLoader($container, type = 'default') {
+        let skeletonHtml = '';
+        
+        switch(type) {
+            case 'products':
+                skeletonHtml = `
+                    <div class="skeleton-loader skeleton-text"></div>
+                    <div class="skeleton-loader skeleton-text" style="width: 80%;"></div>
+                    <div class="skeleton-loader skeleton-text" style="width: 60%;"></div>
+                `;
+                break;
+            case 'variants':
+                skeletonHtml = `
+                    <div class="skeleton-color-item">
+                        <div class="skeleton-loader skeleton-color-badge"></div>
+                        <div class="skeleton-loader skeleton-input-small"></div>
+                        <div class="skeleton-loader skeleton-text" style="width: 50px;"></div>
+                    </div>
+                    <div class="skeleton-color-item">
+                        <div class="skeleton-loader skeleton-color-badge"></div>
+                        <div class="skeleton-loader skeleton-input-small"></div>
+                        <div class="skeleton-loader skeleton-text" style="width: 50px;"></div>
+                    </div>
+                `;
+                break;
+            default:
+                skeletonHtml = `
+                    <div class="skeleton-loader skeleton-text"></div>
+                    <div class="skeleton-loader skeleton-text" style="width: 70%;"></div>
+                `;
+        }
+        
+        $container.html(skeletonHtml);
+    }
+    
+    // Optimized API call with caching
+    // REMOVED: cachedApiCall function - using direct API calls instead
+    function directApiCall(url, params) {
+        return new Promise((resolve, reject) => {
+            console.log(`Making direct API call to: ${url}`);
+            
+            // Make direct API call without caching
+            $.get(url, params)
+                .done(function(data) {
+                    console.log(`API call successful for: ${url}`, data);
+                    resolve(data);
+                })
+                .fail(function(xhr) {
+                    console.error(`API call failed for ${url}:`, xhr);
+                    reject(xhr);
+                });
+        });
+    }
+    
+    // Performance monitoring
+    const performanceMonitor = {
+        startTime: Date.now(),
+        apiCalls: 0,
+        cacheHits: 0,
+        
+        logApiCall: function() {
+            this.apiCalls++;
+        },
+        
+        logCacheHit: function() {
+            this.cacheHits++;
+        },
+        
+        getStats: function() {
+            const totalTime = Date.now() - this.startTime;
+            return {
+                totalTime: totalTime,
+                apiCalls: this.apiCalls,
+                cacheHits: this.cacheHits,
+                cacheHitRate: this.cacheHits / (this.apiCalls + this.cacheHits) * 100
+            };
+        }
+    };
 
     // Initialize Select2 with error handling
     try {
@@ -705,106 +966,12 @@ $(document).ready(function() {
             $('#cust-address').text(selected.data('address') || '');
             $('#cust-mobile').text(selected.data('mobile') || '');
             $('#customer-details').show();
-            updateProgress();
-            saveDraftData();
         } else {
             $('#customer-details').hide();
         }
     });
     
-    // Progress tracking
-    function updateProgress() {
-        let progress = 25;
-        if ($('#customer_id').val()) progress += 25;
-        if ($('#items-tbody tr').length > 0) progress += 25;
-        
-        let grandTotal = 0;
-        $('.product-row').each(function() {
-            const $row = $(this);
-            const price = parseFloat($row.find('.price-input').val()) || 0;
-            $row.find('.quantity-input').each(function() {
-                const qty = parseInt($(this).val()) || 0;
-                grandTotal += qty * price;
-            });
-        });
-        
-        if (grandTotal > 0) progress += 25;
-        
-        $('#progress-bar').css('width', progress + '%');
-        
-        if (progress >= 50) $('#step-1').addClass('completed');
-        if (progress >= 75) $('#step-2').addClass('completed');
-        if (progress >= 100) $('#step-3').addClass('completed');
-    }
     
-    // Auto-save functionality
-    function saveDraftData() {
-        clearTimeout(draftTimer);
-        draftTimer = setTimeout(function() {
-            const formData = {
-                customer_id: $('#customer_id').val(),
-                invoice_date: $('input[name="invoice_date"]').val(),
-                due_date: $('input[name="due_date"]').val(),
-                discount_type: $('#discount_type').val(),
-                discount_value: $('#discount_value').val(),
-                notes: $('textarea[name="notes"]').val(),
-                items: []
-            };
-            
-            $('.product-row').each(function() {
-                const $row = $(this);
-                const itemData = {
-                    category_id: $row.find('.category-select').val(),
-                    product_id: $row.find('.product-select').val(),
-                    price: $row.find('.price-input').val(),
-                    variants: []
-                };
-                
-                $row.find('.quantity-input').each(function() {
-                    if ($(this).val() > 0) {
-                        itemData.variants.push({
-                            product_id: $(this).siblings('input[type="hidden"]').val(),
-                            quantity: $(this).val()
-                        });
-                    }
-                });
-                
-                if (itemData.variants.length > 0) {
-                    formData.items.push(itemData);
-                }
-            });
-            
-            localStorage.setItem('non_gst_invoice_draft', JSON.stringify(formData));
-            showAutoSaveIndicator();
-        }, 2000);
-    }
-    
-    function showAutoSaveIndicator() {
-        $('#auto-save-indicator').addClass('show');
-        setTimeout(function() {
-            $('#auto-save-indicator').removeClass('show');
-        }, 2000);
-    }
-    
-    // Load draft data
-    function loadDraftData() {
-        const draft = localStorage.getItem('non_gst_invoice_draft');
-        if (draft) {
-            try {
-                const data = JSON.parse(draft);
-                if (confirm('Found a saved draft. Would you like to restore it?')) {
-                    if (data.customer_id) $('#customer_id').val(data.customer_id).trigger('change');
-                    if (data.invoice_date) $('input[name="invoice_date"]').val(data.invoice_date);
-                    if (data.due_date) $('input[name="due_date"]').val(data.due_date);
-                    if (data.discount_type) $('#discount_type').val(data.discount_type);
-                    if (data.discount_value) $('#discount_value').val(data.discount_value);
-                    if (data.notes) $('textarea[name="notes"]').val(data.notes);
-                }
-            } catch (e) {
-                console.error('Error loading draft:', e);
-            }
-        }
-    }
     
     // Keyboard shortcuts
     $(document).on('keydown', function(e) {
@@ -820,11 +987,6 @@ $(document).ready(function() {
                     e.preventDefault();
                     showCustomerModal();
                     break;
-                case 's':
-                case 'S':
-                    e.preventDefault();
-                    saveDraft();
-                    break;
             }
         }
     });
@@ -834,7 +996,9 @@ $(document).ready(function() {
         addNewItem();
     });
     
-    function addNewItem() {
+    window.addNewItem = function() {
+        console.log('Adding new item');
+        
         const rowHtml = `
             <tr class="product-row animate__animated animate__fadeIn" data-index="${itemIndex}">
                 <td>
@@ -858,7 +1022,7 @@ $(document).ready(function() {
                 <td>
                     <div class="price-container">
                         <input type="number" name="items[${itemIndex}][price]" class="form-control price-input" 
-                               step="0.01" min="0.01" readonly data-original-price="0">
+                               step="0.01" min="0.01" placeholder="Enter price" value="" data-original-price="">
                         <div class="invalid-feedback">Price must be greater than zero</div>
                         <small class="price-history text-muted" style="display: none;">
                             Original: ₹<span class="original-price">0.00</span>
@@ -891,8 +1055,6 @@ $(document).ready(function() {
         }
         
         updateItemsCount();
-        updateProgress();
-        saveDraftData();
         itemIndex++;
     }
     
@@ -944,16 +1106,20 @@ $(document).ready(function() {
         const categoryId = $(this).val();
         const $productSelect = $row.find('.product-select');
         
+        console.log('Category select changed, categoryId:', categoryId);
+        console.log('Cache key will be:', `products-${categoryId}`);
+        
         if (!categoryId) {
             $productSelect.html('<option value="">Select Product</option>').prop('disabled', true);
             clearProductData($row);
             return;
         }
         
-        $productSelect.prop('disabled', true).html('<option value="">Loading...</option>');
+        $productSelect.prop('disabled', true);
         
-        $.get('/api/products/by-category', { category_id: categoryId })
-            .done(function(products) {
+        // Use cached API call with category-specific cache key
+        directApiCall('/api/products/by-category', { category_id: categoryId })
+            .then(function(products) {
                 let options = '<option value="">Select Product</option>';
                 products.forEach(function(product) {
                     const compositeBadge = product.is_composite ? '<span class="composite-badge">Composite</span>' : '';
@@ -971,7 +1137,7 @@ $(document).ready(function() {
                     console.error('Select2 initialization for product failed:', e);
                 }
             })
-            .fail(function() {
+            .catch(function() {
                 $productSelect.html('<option value="">Error loading products</option>');
                 showError('Error loading products. Please try again.');
             });
@@ -980,6 +1146,10 @@ $(document).ready(function() {
     $(document).on('change', '.product-select', function() {
         const $row = $(this).closest('tr');
         const productId = $(this).val();
+        const rowIndex = $row.data('index');
+        
+        console.log('Product select changed, productId:', productId, 'for row index:', rowIndex);
+        console.log('Variants cache key will be:', `variants-${productId}`);
         
         if (!productId) {
             clearProductData($row);
@@ -988,8 +1158,9 @@ $(document).ready(function() {
         
         $row.addClass('loading');
         
-        $.get(`/api/products/variants/${productId}`)
-            .done(function(data) {
+        // Use direct API call for variants (no caching)
+        directApiCall(`/api/products/variants/${productId}`, {})
+            .then(function(data) {
                 if (data.variants && data.variants.length > 0) {
                     createColorInputs($row, data.variants);
                     
@@ -1004,16 +1175,25 @@ $(document).ready(function() {
                     
                     makePriceEditable($priceInput);
                     
-                    updateProgress();
-                    saveDraftData();
                 }
             })
-            .fail(function() {
+            .catch(function() {
                 showError('Error loading product variants. Please try again.');
             })
-            .always(function() {
+            .finally(function() {
                 $row.removeClass('loading');
             });
+    });
+    
+    // Update variant prices when user changes item price
+    $(document).on('input change', '.price-input', function() {
+        const $row = $(this).closest('tr');
+        const newPrice = $(this).val() || 0;
+        
+        // Update all hidden price fields for this item's variants
+        $row.find('input[name*="[price]"]').val(newPrice);
+        
+        console.log('Updated variant prices to:', newPrice);
     });
     
     // Price validation function
@@ -1034,7 +1214,17 @@ $(document).ready(function() {
     function makePriceEditable($priceInput) {
         $priceInput.removeClass('readonly').prop('readonly', false).addClass('editable');
         
+        // Clear the field if it has default 0 value
+        const currentValue = parseFloat($priceInput.val()) || 0;
+        if (currentValue === 0) {
+            $priceInput.val('');
+        }
+        
         $priceInput.on('click', function() {
+            // Clear field if it's 0 or empty
+            if (parseFloat($(this).val()) === 0 || $(this).val() === '') {
+                $(this).val('');
+            }
             $(this).select();
         });
         
@@ -1045,18 +1235,59 @@ $(document).ready(function() {
             // Validate price
             validatePriceInput($(this));
             
-            if (currentPrice !== originalPrice) {
+            if (currentPrice !== originalPrice && currentPrice > 0) {
                 $(this).addClass('editable');
                 $(this).closest('tr').find('.price-history').addClass('text-warning');
+            } else if (currentPrice === 0) {
+                // Hide history if price is cleared
+                $(this).closest('tr').find('.price-history').hide();
             } else {
                 $(this).removeClass('editable');
                 $(this).closest('tr').find('.price-history').removeClass('text-warning');
             }
             
             updateTotals();
-            saveDraftData();
         });
     }
+    
+    // Enhanced price input behavior
+    $(document).on('focus', '.price-input', function() {
+        const $input = $(this);
+        const currentValue = parseFloat($input.val()) || 0;
+        
+        // If price is 0 or empty, clear the field for new input
+        if (currentValue === 0 || $input.val() === '') {
+            $input.val('');
+        }
+        
+        // Select all text for easy editing
+        setTimeout(() => {
+            $input.select();
+        }, 10);
+    });
+    
+    // Clear price when user starts typing if it's 0
+    $(document).on('input', '.price-input', function() {
+        const $input = $(this);
+        const value = $input.val();
+        
+        // If user types and current value is 0, clear it
+        if (value === '0' || value === '0.0' || value === '0.00') {
+            $input.val('');
+        }
+    });
+    
+    // Double-click to clear price field completely
+    $(document).on('dblclick', '.price-input', function() {
+        $(this).val('').focus();
+    });
+    
+    // Clear field with Escape key
+    $(document).on('keydown', '.price-input', function(e) {
+        if (e.key === 'Escape') {
+            $(this).val('').blur();
+        }
+    });
     
     function showError(message) {
         const errorHtml = `
@@ -1078,6 +1309,7 @@ $(document).ready(function() {
     
     function createColorInputs($row, variants) {
         const index = $row.data('index');
+        const itemPrice = $row.find('.price-input').val() || 0;
         let html = '';
         
         variants.forEach(function(variant, variantIndex) {
@@ -1100,30 +1332,15 @@ $(document).ready(function() {
                            onchange="updateTotals()"
                            data-is-composite="${isComposite}">
                     <input type="hidden" name="items[${index}][variants][${variantIndex}][product_id]" value="${variant.id}">
+                    <input type="hidden" name="items[${index}][variants][${variantIndex}][price]" value="${itemPrice}">
+                    <input type="hidden" name="items[${index}][variants][${variantIndex}][gst_rate]" value="0">
                     <div class="stock-info ${stockClass}">Stock: ${variant.quantity}</div>
                 </div>
             `;
             
-            if (isComposite && variant.components && variant.components.length > 0) {
-                html += `
-                    <div class="component-info">
-                        <strong>Components:</strong>
-                        <div class="mt-1">
-                `;
-                variant.components.forEach(function(component) {
-                    const componentStockClass = getStockClass(component.component_product.quantity);
-                    html += `
-                        <div class="component-item">
-                            <span>${component.component_product.name} (${component.quantity_needed} pcs each)</span>
-                            <span class="stock-info ${componentStockClass}">Stock: ${component.component_product.quantity}</span>
-                        </div>
-                    `;
-                });
-                html += `
-                        </div>
-                    </div>
-                `;
-            }
+            // ✅ REMOVED: Component information is not needed for invoice creation
+            // Components are already consumed during assembly
+            // Users only need to see composite product stock
         });
         
         $row.find('.colors-container').html(html);
@@ -1169,8 +1386,6 @@ $(document).ready(function() {
             }
             updateItemsCount();
             updateTotals();
-            updateProgress();
-            saveDraftData();
         }, 500);
     };
     
@@ -1217,7 +1432,6 @@ $(document).ready(function() {
         $('#grand_total').text('₹' + grandTotal.toFixed(2));
         
         setTimeout(function() {
-            updateProgress();
         }, 10);
         
         return grandTotal;
@@ -1225,7 +1439,6 @@ $(document).ready(function() {
     
     $('#discount_type, #discount_value, #packaging_fees').on('change keyup', function() {
         updateTotals();
-        saveDraftData();
     });
     
     window.showCustomerModal = function() {
@@ -1304,11 +1517,6 @@ $(document).ready(function() {
         }, 3000);
     }
     
-    window.saveDraft = function() {
-        saveDraftData();
-        showAutoSaveIndicator();
-        showSuccess('Draft saved successfully!');
-    };
     
     function validateForm() {
         let isValid = true;
@@ -1371,27 +1579,122 @@ $(document).ready(function() {
     }
     
     $('#invoice-form').on('submit', function(e) {
-        e.preventDefault();
+        console.log('Non-GST Form submission started');
+        console.log('Form data:', $(this).serialize());
         
+        // Enhanced validation before submission
         if (!validateForm()) {
+            e.preventDefault();
+            console.log('Form validation failed');
+            
+            // Scroll to first error
+            const $firstError = $('.is-invalid').first();
+            if ($firstError.length) {
+                $('html, body').animate({
+                    scrollTop: $firstError.offset().top - 100
+                }, 500);
+                $firstError.focus();
+            }
+            
             return false;
         }
         
+        console.log('Form validation passed, submitting...');
         $('#submit-btn').prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Creating Invoice...');
         
-        localStorage.removeItem('non_gst_invoice_draft');
-        
-        this.submit();
+        // Add timeout protection
+        setTimeout(function() {
+            if ($('#submit-btn').prop('disabled')) {
+                $('#submit-btn').prop('disabled', false).html('<i class="fas fa-file-invoice"></i> Create Invoice');
+                showError('Request timeout. Please try again.');
+            }
+        }, 30000); // 30 second timeout
     });
     
-    loadDraftData();
     loadOrderData();
-    updateProgress();
     
     addNewItem();
     
+    // Track added products to prevent duplicates
+    const addedProducts = new Set();
+    
+    // Check for duplicate products
+    function checkDuplicateProduct(productId, currentRow) {
+        if (!productId) return false;
+        
+        const currentCategoryId = currentRow.find('.category-select').val();
+        if (!currentCategoryId) return false; // Can't check duplicate without category
+        
+        let isDuplicate = false;
+        $('.product-row').each(function() {
+            const $row = $(this);
+            const rowProductId = $row.find('.product-select').val();
+            const rowCategoryId = $row.find('.category-select').val();
+            
+            // Skip current row and check others
+            // Check for duplicate only if both category AND product are the same
+            if ($row[0] !== currentRow[0] && 
+                rowProductId === productId && 
+                rowCategoryId === currentCategoryId) {
+                isDuplicate = true;
+                return false; // Break the loop
+            }
+        });
+        
+        return isDuplicate;
+    }
+    
+    // Update product tracking when rows are removed
+    function updateProductTracking() {
+        addedProducts.clear();
+        $('.product-row').each(function() {
+            const productId = $(this).find('.product-select').val();
+            const categoryId = $(this).find('.category-select').val();
+            if (productId && categoryId) {
+                // Use category + product combination as unique key
+                const uniqueKey = `${categoryId}-${productId}`;
+                addedProducts.add(uniqueKey);
+            }
+        });
+    }
+    
+    // Setup duplicate product prevention
+    function setupDuplicatePrevention() {
+        // Update tracking when rows are removed
+        $(document).on('click', '.remove-item', function() {
+            setTimeout(() => {
+                updateProductTracking();
+            }, 100);
+        });
+        
+        // Update tracking when product selection changes
+        $(document).on('change', '.product-select', function() {
+            setTimeout(() => {
+                updateProductTracking();
+            }, 100);
+        });
+        
+        // Add visual indicator for duplicate products
+        $(document).on('change', '.product-select', function() {
+            const $row = $(this).closest('tr');
+            const productId = $(this).val();
+            
+            if (productId && checkDuplicateProduct(productId, $row)) {
+                $row.addClass('duplicate-product');
+                $row.find('.product-select').addClass('is-invalid');
+                $row.find('.product-select').siblings('.invalid-feedback').text('This product from this category is already added to the invoice').show();
+                showError('Product from this category already exists in the invoice. Please select a different product or category.', 'warning');
+            } else {
+                $row.removeClass('duplicate-product');
+                $row.find('.product-select').removeClass('is-invalid');
+                $row.find('.product-select').siblings('.invalid-feedback').hide();
+            }
+        });
+    }
+    
+    setupDuplicatePrevention();
+    
     $('input, select, textarea').on('change keyup', function() {
-        saveDraftData();
     });
     
     // Load order data if available
