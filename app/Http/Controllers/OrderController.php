@@ -16,6 +16,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
+use Barryvdh\DomPDF\Facade\Pdf;
 
 class OrderController extends Controller
 {
@@ -153,6 +154,16 @@ class OrderController extends Controller
         ]);
 
         return view('orders.show', compact('order'));
+    }
+
+    /**
+     * Download an order as PDF (new feature). Does not alter existing functionality.
+     */
+    public function downloadPdf(Order $order)
+    {
+        $order->load(['customer', 'items.product.category', 'items.colorVariant']);
+        $pdf = Pdf::loadView('orders.pdf', compact('order'));
+        return $pdf->download('order-' . $order->order_number . '.pdf');
     }
 
     /**

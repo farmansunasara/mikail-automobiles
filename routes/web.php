@@ -95,6 +95,8 @@ Route::middleware('auth')->group(function () {
     
     // Orders Management
     Route::resource('orders', \App\Http\Controllers\OrderController::class);
+    // Download PDF for an order (new feature - does not alter existing functionality)
+    Route::get('/orders/{order}/download', [\App\Http\Controllers\OrderController::class, 'downloadPdf'])->name('orders.download');
     Route::get('/orders/{order}/generate-invoice', [\App\Http\Controllers\OrderController::class, 'generateInvoice'])->name('orders.generate-invoice');
     Route::delete('/orders/{order}/cancel', [\App\Http\Controllers\OrderController::class, 'cancel'])->name('orders.cancel');
     Route::get('/api/orders/product-variants', [\App\Http\Controllers\OrderController::class, 'getProductVariants'])->name('orders.product-variants');
