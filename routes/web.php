@@ -109,6 +109,11 @@ Route::middleware('auth')->group(function () {
     Route::get('/api/manufacturing/assembly-preview', [\App\Http\Controllers\ManufacturingRequirementController::class, 'getAssemblyPreview'])->name('manufacturing.assembly-preview');
     Route::get('/api/manufacturing/component-colors', [\App\Http\Controllers\ManufacturingRequirementController::class, 'getComponentColors'])->name('manufacturing.component-colors');
     
+    // Enhanced Product-Specific Manufacturing Requirements
+    Route::get('/api/manufacturing/product-requirements', [\App\Http\Controllers\ManufacturingRequirementController::class, 'getProductRequirements'])->name('manufacturing.product-requirements');
+    Route::get('/api/manufacturing/product-aggregated', [\App\Http\Controllers\ManufacturingRequirementController::class, 'getProductAggregatedRequirements'])->name('manufacturing.product-aggregated');
+    Route::get('/api/manufacturing/requirements-by-product', [\App\Http\Controllers\ManufacturingRequirementController::class, 'getRequirementsByProduct'])->name('manufacturing.requirements-by-product');
+    
     // Reports
     Route::get('/reports', [ReportController::class, 'index'])->name('reports.index');
     Route::get('/reports/low-stock', [ReportController::class, 'lowStock'])->name('reports.low-stock');

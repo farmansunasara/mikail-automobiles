@@ -117,30 +117,16 @@ class InvoiceService
                         ]);
                     }
                     
-                    // Deduct stock for each order item
-                    foreach ($order->items as $orderItem) {
-                        $variant = ProductColorVariant::find($orderItem->color_variant_id);
-                        if ($variant) {
-                            $previousQty = $variant->quantity;
-                            $variant->decrement('quantity', $orderItem->quantity);
-                            
-                            // Log stock movement
-                            $variant->product->stockLogs()->create([
-                                'change_type' => 'outward',
-                                'quantity' => $orderItem->quantity,
-                                'previous_quantity' => $previousQty,
-                                'new_quantity' => $variant->fresh()->quantity,
-                                'color_variant_id' => $variant->id,
-                                'remarks' => "Sale via Invoice #{$invoice->invoice_number}",
-                            ]);
-                        }
-                    }
+                    // ✅ FIXED: Removed duplicate manual stock deduction here
+                    // Stock deduction now happens ONLY in updateStock() method below (line ~150)
+                    // This prevents double deduction (one from manual loop, one from updateStock)
                     
-                    Log::info('Order status updated to COMPLETED and stock deducted via GST invoice creation', [
+                    Log::info('Order status updated to COMPLETED via GST invoice creation', [
                         'order_id' => $order->id,
                         'order_number' => $order->order_number,
                         'invoice_id' => $invoice->id,
-                        'invoice_number' => $invoice->invoice_number
+                        'invoice_number' => $invoice->invoice_number,
+                        'note' => 'Stock will be deducted in updateStock() method to prevent double deduction'
                     ]);
                 }
             }
@@ -225,30 +211,16 @@ class InvoiceService
                         'invoice_id' => $order->invoice_id
                     ]);
                     
-                    // Deduct stock for each order item
-                    foreach ($order->items as $orderItem) {
-                        $variant = ProductColorVariant::find($orderItem->color_variant_id);
-                        if ($variant) {
-                            $previousQty = $variant->quantity;
-                            $variant->decrement('quantity', $orderItem->quantity);
-                            
-                            // Log stock movement
-                            $variant->product->stockLogs()->create([
-                                'change_type' => 'outward',
-                                'quantity' => $orderItem->quantity,
-                                'previous_quantity' => $previousQty,
-                                'new_quantity' => $variant->fresh()->quantity,
-                                'color_variant_id' => $variant->id,
-                                'remarks' => "Sale via Invoice #{$invoice->invoice_number}",
-                            ]);
-                        }
-                    }
+                    // ✅ FIXED: Removed duplicate manual stock deduction here
+                    // Stock deduction now happens ONLY in updateStock() method (called at line ~253)
+                    // This prevents double deduction (one from manual loop, one from updateStock)
                     
-                    Log::info('Order status updated to COMPLETED and stock deducted via Non-GST invoice creation', [
+                    Log::info('Order status updated to COMPLETED via Non-GST invoice creation', [
                         'order_id' => $order->id,
                         'order_number' => $order->order_number,
                         'invoice_id' => $invoice->id,
-                        'invoice_number' => $invoice->invoice_number
+                        'invoice_number' => $invoice->invoice_number,
+                        'note' => 'Stock will be deducted in updateStock() method to prevent double deduction'
                     ]);
                 }
             }

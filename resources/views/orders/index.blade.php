@@ -215,57 +215,72 @@
                                             <td>
                                                 @if($order->status === 'pending')
                                                     @php
-                                                        // Enhanced stock availability check with proper composite handling
-                                                        $canManufacture = true;
-                                                        $shortageCount = 0;
-                                                        $debugInfo = [];
+                                                        // Check if there are any open or in_production MRs for this order
+                                                        $hasOpenMr = \App\Models\ManufacturingRequirement::where('order_id', $order->id)
+                                                            ->whereIn('status', ['open', 'in_production'])
+                                                            ->exists();
                                                         
-                                                        foreach($order->items as $item) {
-                                                            if($item->colorVariant) {
-                                                                $needed = $item->quantity;
-                                                                $available = $item->colorVariant->quantity ?? 0;
-                                                                $product = $item->colorVariant->product;
-                                                                
-                                                                // If quantity is null, treat as unlimited stock for now
-                                                                if($item->colorVariant->quantity === null) {
-                                                                    $debugInfo[] = "Stock not tracked for {$item->colorVariant->color}";
-                                                                    // Consider null as sufficient stock (untracked inventory)
-                                                                } else {
-                                                                    if($product->is_composite) {
-                                                                        // For composite products: check assembly capability
-                                                                        $hasFinishedStock = $available >= $needed;
-                                                                        if($hasFinishedStock) {
-                                                                            $debugInfo[] = "Composite {$item->colorVariant->color}: {$available} finished available (need {$needed})";
-                                                                        } else {
-                                                                            $shortfall = $needed - $available;
-                                                                            $canAssemble = $product->canAssemble($shortfall);
-                                                                            if($canAssemble) {
-                                                                                $debugInfo[] = "Composite {$item->colorVariant->color}: {$available} finished + {$shortfall} can assemble";
+                                                        // If there are open MRs, mark as NOT ready regardless of stock
+                                                        if($hasOpenMr) {
+                                                            $canManufacture = false;
+                                                            $debugInfo = ["Manufacturing requirement in progress"];
+                                                        } else {
+                                                            // Enhanced stock availability check with proper composite handling
+                                                            $canManufacture = true;
+                                                            $shortageCount = 0;
+                                                            $debugInfo = [];
+                                                            
+                                                            foreach($order->items as $item) {
+                                                                if($item->colorVariant) {
+                                                                    $needed = $item->quantity;
+                                                                    $available = $item->colorVariant->quantity ?? 0;
+                                                                    $product = $item->colorVariant->product;
+                                                                    
+                                                                    // If quantity is null, treat as unlimited stock for now
+                                                                    if($item->colorVariant->quantity === null) {
+                                                                        $debugInfo[] = "Stock not tracked for {$item->colorVariant->color}";
+                                                                        // Consider null as sufficient stock (untracked inventory)
+                                                                    } else {
+                                                                        if($product->is_composite) {
+                                                                            // For composite products: check assembly capability
+                                                                            $hasFinishedStock = $available >= $needed;
+                                                                            if($hasFinishedStock) {
+                                                                                $debugInfo[] = "Composite {$item->colorVariant->color}: {$available} finished available (need {$needed})";
                                                                             } else {
+                                                                                $shortfall = $needed - $available;
+                                                                                $canAssemble = $product->canAssemble($shortfall);
+                                                                                if($canAssemble) {
+                                                                                    $debugInfo[] = "Composite {$item->colorVariant->color}: {$available} finished + {$shortfall} can assemble";
+                                                                                } else {
+                                                                                    $canManufacture = false;
+                                                                                    $shortageCount++;
+                                                                                    $debugInfo[] = "Composite {$item->colorVariant->color}: Cannot assemble {$shortfall} units - component shortage";
+                                                                                }
+                                                                            }
+                                                                        } else {
+                                                                            // For simple products: direct stock check
+                                                                            $debugInfo[] = "Simple {$item->colorVariant->color}: Need: {$needed}, Available: {$available}";
+                                                                            if($needed > $available) {
                                                                                 $canManufacture = false;
                                                                                 $shortageCount++;
-                                                                                $debugInfo[] = "Composite {$item->colorVariant->color}: Cannot assemble {$shortfall} units - component shortage";
                                                                             }
                                                                         }
-                                                                    } else {
-                                                                        // For simple products: direct stock check
-                                                                        $debugInfo[] = "Simple {$item->colorVariant->color}: Need: {$needed}, Available: {$available}";
-                                                                        if($needed > $available) {
-                                                                            $canManufacture = false;
-                                                                            $shortageCount++;
-                                                                        }
                                                                     }
+                                                                } else {
+                                                                    $canManufacture = false;
+                                                                    $shortageCount++;
+                                                                    $debugInfo[] = "No color variant found";
                                                                 }
-                                                            } else {
-                                                                $canManufacture = false;
-                                                                $shortageCount++;
-                                                                $debugInfo[] = "No color variant found";
                                                             }
                                                         }
                                                     @endphp
-                                                    @if($canManufacture)
+                                                    @if($canManufacture && !$hasOpenMr)
                                                         <span class="badge badge-success" title="Stock Status: {{ implode(', ', $debugInfo) }}">
                                                             <i class="fas fa-check"></i> Ready
+                                                        </span>
+                                                    @elseif($hasOpenMr)
+                                                        <span class="badge badge-info" title="{{ implode(', ', $debugInfo) }}">
+                                                            <i class="fas fa-spinner"></i> MR In Progress
                                                         </span>
                                                     @else
                                                         <span class="badge badge-warning" title="Stock Issues: {{ implode(', ', $debugInfo) }}">
@@ -299,46 +314,59 @@
                                                         </a>
                                                         
                                         @php
-                                            // Check if order is ready for invoice generation
-                                            $isReadyForInvoice = true;
-                                            foreach($order->items as $item) {
-                                                if($item->colorVariant) {
-                                                    $needed = $item->quantity;
-                                                    $available = $item->colorVariant->quantity ?? 0;
-                                                    $product = $item->colorVariant->product;
-                                                    
-                                                    // Enhanced logic for composite vs simple products
-                                                    if($item->colorVariant->quantity === null) {
-                                                        // Untracked inventory - cannot proceed
-                                                        $isReadyForInvoice = false;
-                                                        break;
-                                                    } elseif($product->is_composite) {
-                                                        // For composite products: check if can be assembled OR already have finished stock
-                                                        $hasFinishedStock = $available >= $needed;
-                                                        $canAssemble = $hasFinishedStock ? true : $product->canAssemble($needed - $available);
+                                            // Check if there are any open or in_production MRs for this order
+                                            $hasOpenMrForInvoice = \App\Models\ManufacturingRequirement::where('order_id', $order->id)
+                                                ->whereIn('status', ['open', 'in_production'])
+                                                ->exists();
+                                            
+                                            // If there are open MRs, order is NOT ready for invoice
+                                            $isReadyForInvoice = !$hasOpenMrForInvoice;
+                                            
+                                            if($isReadyForInvoice) {
+                                                // Also check stock availability if no open MRs
+                                                foreach($order->items as $item) {
+                                                    if($item->colorVariant) {
+                                                        $needed = $item->quantity;
+                                                        $available = $item->colorVariant->quantity ?? 0;
+                                                        $product = $item->colorVariant->product;
                                                         
-                                                        if (!$hasFinishedStock && !$canAssemble) {
+                                                        // Enhanced logic for composite vs simple products
+                                                        if($item->colorVariant->quantity === null) {
+                                                            // Untracked inventory - cannot proceed
                                                             $isReadyForInvoice = false;
                                                             break;
+                                                        } elseif($product->is_composite) {
+                                                            // For composite products: check if can be assembled OR already have finished stock
+                                                            $hasFinishedStock = $available >= $needed;
+                                                            $canAssemble = $hasFinishedStock ? true : $product->canAssemble($needed - $available);
+                                                            
+                                                            if (!$hasFinishedStock && !$canAssemble) {
+                                                                $isReadyForInvoice = false;
+                                                                break;
+                                                            }
+                                                        } else {
+                                                            // For simple products: check direct stock availability
+                                                            if($needed > $available) {
+                                                                $isReadyForInvoice = false;
+                                                                break;
+                                                            }
                                                         }
                                                     } else {
-                                                        // For simple products: check direct stock availability
-                                                        if($needed > $available) {
-                                                            $isReadyForInvoice = false;
-                                                            break;
-                                                        }
+                                                        $isReadyForInvoice = false;
+                                                        break;
                                                     }
-                                                } else {
-                                                    $isReadyForInvoice = false;
-                                                    break;
                                                 }
                                             }
-                                        @endphp                                                        @if($isReadyForInvoice)
+                                        @endphp                                                        @if($isReadyForInvoice && !$hasOpenMrForInvoice)
                                                             <button type="button" class="btn btn-success btn-sm" 
                                                                     title="Generate Invoice - All items ready (finished stock or can be assembled)"
                                                                     onclick="showInvoiceTypeModal({{ $order->id }})">
                                                                 <i class="fas fa-file-invoice"></i>
                                                             </button>
+                                                        @elseif($hasOpenMrForInvoice)
+                                                            <span class="btn btn-success btn-sm disabled" title="Cannot generate invoice - manufacturing requirements in progress">
+                                                                <i class="fas fa-file-invoice text-muted"></i>
+                                                            </span>
                                                         @else
                                                             <span class="btn btn-success btn-sm disabled" title="Cannot generate invoice - insufficient stock and cannot manufacture required quantities">
                                                                 <i class="fas fa-file-invoice text-muted"></i>

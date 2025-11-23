@@ -37,6 +37,41 @@ class OrderUpdateRequest extends FormRequest
     }
 
     /**
+     * Prepare the data for validation.
+     *
+     * This filters out incomplete items and variants (e.g. zero-quantity variants)
+     * so the validation rules (which require items.*.*.* fields) don't fail
+     * for partially filled JS-driven forms. The controller also does a similar
+     * filtering but FormRequest validation runs before the controller method,
+     * so we must sanitize here.
+     */
+    protected function prepareForValidation(): void
+    {
+        $items = $this->input('items', []);
+        $filteredItems = [];
+
+        foreach ($items as $item) {
+            if (!isset($item['product_id']) || !isset($item['price']) || !isset($item['variants']) || empty($item['variants'])) {
+                continue;
+            }
+
+            $filteredVariants = [];
+            foreach ($item['variants'] as $variant) {
+                if (isset($variant['product_id']) && isset($variant['quantity']) && intval($variant['quantity']) > 0) {
+                    $filteredVariants[] = $variant;
+                }
+            }
+
+            if (!empty($filteredVariants)) {
+                $item['variants'] = $filteredVariants;
+                $filteredItems[] = $item;
+            }
+        }
+
+        $this->merge(['items' => $filteredItems]);
+    }
+
+    /**
      * Get custom error messages for validation rules.
      */
     public function messages(): array

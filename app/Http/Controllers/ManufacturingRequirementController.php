@@ -242,4 +242,78 @@ class ManufacturingRequirementController extends Controller
             ], 500);
         }
     }
+
+    /**
+     * Get manufacturing requirements for a specific product
+     */
+    public function getProductRequirements(Request $request)
+    {
+        $request->validate([
+            'product_id' => 'required|exists:products,id',
+            'color' => 'nullable|string|max:50'
+        ]);
+
+        try {
+            $requirements = $this->requirementService->getProductRequirements(
+                $request->product_id,
+                $request->color
+            );
+
+            return response()->json([
+                'success' => true,
+                'requirements' => $requirements
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Get aggregated requirements for a product (all colors)
+     */
+    public function getProductAggregatedRequirements(Request $request)
+    {
+        $request->validate([
+            'product_id' => 'required|exists:products,id'
+        ]);
+
+        try {
+            $requirements = $this->requirementService->getProductAggregatedRequirements(
+                $request->product_id
+            );
+
+            return response()->json([
+                'success' => true,
+                'requirements' => $requirements
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Get requirements grouped by product
+     */
+    public function getRequirementsByProduct()
+    {
+        try {
+            $requirements = $this->requirementService->getRequirementsByProduct();
+
+            return response()->json([
+                'success' => true,
+                'requirements' => $requirements
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
 }
