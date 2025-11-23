@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\Order;
 use App\Models\ProductColorVariant;
+use App\Models\ManufacturingRequirement;
 use App\Services\StockService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -255,22 +256,38 @@ class RequirementService
             ->get();
         
         foreach ($pendingOrders as $order) {
-            $canFulfill = true;
+            // If there are any outstanding manufacturing requirements for this order,
+            // consider it not ready regardless of current stock calculations.
+            $hasOpenMrForOrder = ManufacturingRequirement::where('order_id', $order->id)
+                ->whereIn('status', ['open', 'in_production'])
+                ->exists();
+
+            $canFulfill = !$hasOpenMrForOrder;
             $stockIssues = [];
             
             foreach ($order->items as $item) {
                 $available = $item->colorVariant->quantity;
                 $required = $item->quantity;
-                
-                if ($available < $required) {
-                    $canFulfill = false;
+
+                // Also consider any open manufacturing requirements for this variant.
+                $openMrShortage = ManufacturingRequirement::where('status', 'open')
+                    ->where('color_variant_id', $item->color_variant_id)
+                    ->sum('shortage_quantity');
+
+                // Effective available stock is current stock minus outstanding open MR shortage
+                $effectiveAvailable = $available - $openMrShortage;
+
+                if ($effectiveAvailable < $required) {
                     $stockIssues[] = [
                         'product' => $item->product->name,
                         'color' => $item->colorVariant->color,
                         'needed' => $required,
                         'available' => $available,
-                        'shortage' => $required - $available
+                        'outstanding_mr_shortage' => $openMrShortage,
+                        'shortage' => $required - $effectiveAvailable
                     ];
+                    // Ensure order-level flag remains false
+                    $canFulfill = false;
                 }
             }
             

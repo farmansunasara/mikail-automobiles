@@ -15,6 +15,37 @@ class OrderStoreRequest extends FormRequest
     }
 
     /**
+     * Prepare the data for validation by filtering out incomplete items/variants.
+     * This mirrors the behavior used in OrderUpdateRequest to avoid premature
+     * FormRequest validation failures from partially filled JS forms.
+     */
+    protected function prepareForValidation(): void
+    {
+        $items = $this->input('items', []);
+        $filteredItems = [];
+
+        foreach ($items as $item) {
+            if (!isset($item['product_id']) || !isset($item['price']) || !isset($item['variants']) || empty($item['variants'])) {
+                continue;
+            }
+
+            $filteredVariants = [];
+            foreach ($item['variants'] as $variant) {
+                if (isset($variant['product_id']) && isset($variant['quantity']) && intval($variant['quantity']) > 0) {
+                    $filteredVariants[] = $variant;
+                }
+            }
+
+            if (!empty($filteredVariants)) {
+                $item['variants'] = $filteredVariants;
+                $filteredItems[] = $item;
+            }
+        }
+
+        $this->merge(['items' => $filteredItems]);
+    }
+
+    /**
      * Get the validation rules that apply to the request.
      *
      * @return array<string, \Illuminate\Contracts\Validation\ValidationRule|array<mixed>|string>

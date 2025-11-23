@@ -30,7 +30,8 @@ class OrderService
     {
         return DB::transaction(function () use ($data) {
             // 1. Check stock availability but don't prevent order creation
-            $this->checkStockAvailability($data['items']);
+            //    collect shortages so we can create manufacturing requirements after order is created
+            $shortages = $this->checkStockAvailability($data['items']);
 
             // 2. Create order
             $order = Order::create([
@@ -75,6 +76,11 @@ class OrderService
                 'total_amount' => $totalAmount
             ]);
 
+            // 4. Create manufacturing requirements for any shortages found earlier
+            if (!empty($shortages)) {
+                $this->createManufacturingRequirements($order, $shortages);
+            }
+
             return $order->fresh(['items.product', 'items.colorVariant']);
         });
     }
@@ -82,7 +88,7 @@ class OrderService
     /**
      * Check stock availability and log shortages (allows manufacturing orders)
      */
-    private function checkStockAvailability(array $items): void
+    private function checkStockAvailability(array $items): array
     {
         $stockShortages = [];
 
@@ -91,19 +97,28 @@ class OrderService
                 if (($variant['quantity'] ?? 0) > 0) {
                     $variantId = $variant['product_id'];
                     $requiredQuantity = intval($variant['quantity']);
-                    
+
                     // Get current stock
-                    $variant = ProductColorVariant::find($variantId);
-                    if (!$variant) {
-                        Log::warning("Product variant with ID {$variantId} not found during order creation.");
+                    $variantModel = ProductColorVariant::find($variantId);
+                    if (!$variantModel) {
+                        Log::warning("Product variant with ID {$variantId} not found during order stock check.");
                         continue;
                     }
-                    
-                    $currentStock = $variant->stock_quantity ?? 0;
-                    
+
+                    // ProductColorVariant stores current stock in the `quantity` column.
+                    $currentStock = $variantModel->quantity ?? 0;
+
                     if ($requiredQuantity > $currentStock) {
                         $shortage = $requiredQuantity - $currentStock;
-                        $stockShortages[] = "{$variant->product->name} ({$variant->color}): Need {$shortage} more (Available: {$currentStock})";
+                        $stockShortages[] = [
+                            'product_id' => $variantModel->product_id,
+                            'color_variant_id' => $variantModel->id,
+                            'required_quantity' => $requiredQuantity,
+                            'available_quantity' => $currentStock,
+                            'shortage_quantity' => $shortage,
+                            'product_name' => $variantModel->product->name ?? null,
+                            'variant_color' => $variantModel->color ?? null
+                        ];
                     }
                 }
             }
@@ -111,10 +126,49 @@ class OrderService
 
         // Log stock shortages for manufacturing planning but don't prevent order creation
         if (!empty($stockShortages)) {
-            Log::info('Order created with stock shortages - manufacturing required', [
-                'shortages' => $stockShortages,
+            Log::info('Order contains stock shortages - manufacturing may be required', [
+                'shortages' => array_map(function ($s) {
+                    return "{$s['product_name']} ({$s['variant_color']}): Need {$s['shortage_quantity']} more (Available: {$s['available_quantity']})";
+                }, $stockShortages),
                 'message' => 'Order allowed to proceed for manufacturing planning'
             ]);
+        }
+
+        return $stockShortages;
+    }
+
+    /**
+     * Create ManufacturingRequirement records for given shortages and link them to the order.
+     * This is intentionally permissive: it creates an MR per shortage entry. Deduplication
+     * or merging logic can be added later if desired.
+     *
+     * @param Order $order
+     * @param array $shortages
+     * @return void
+     */
+    private function createManufacturingRequirements(Order $order, array $shortages): void
+    {
+        foreach ($shortages as $s) {
+            try {
+                ManufacturingRequirement::create([
+                    'mr_number' => ManufacturingRequirement::generateMrNumber(),
+                    'order_id' => $order->id,
+                    'product_id' => $s['product_id'],
+                    'color_variant_id' => $s['color_variant_id'],
+                    'required_quantity' => $s['required_quantity'],
+                    'available_quantity' => $s['available_quantity'],
+                    'shortage_quantity' => $s['shortage_quantity'],
+                    'earliest_delivery_date' => $order->delivery_date ?? null,
+                    'status' => 'open',
+                    'notes' => 'Auto-generated from order ' . $order->order_number
+                ]);
+            } catch (\Exception $e) {
+                Log::error('Failed to create ManufacturingRequirement', [
+                    'order_id' => $order->id,
+                    'shortage' => $s,
+                    'error' => $e->getMessage()
+                ]);
+            }
         }
     }
 
@@ -124,6 +178,8 @@ class OrderService
     public function updateOrder(Order $order, array $data): Order
     {
         return DB::transaction(function () use ($order, $data) {
+            // Collect shortages to create manufacturing requirements after update
+            $shortages = $this->checkStockAvailability($data['items']);
             Log::info('Starting order update', [
                 'order_id' => $order->id,
                 'order_number' => $order->order_number,
@@ -213,6 +269,11 @@ class OrderService
                 'items_created' => $itemsCreated,
                 'new_total_amount' => $totalAmount
             ]);
+
+            // Create manufacturing requirements for any shortages detected earlier
+            if (!empty($shortages)) {
+                $this->createManufacturingRequirements($order, $shortages);
+            }
 
             return $order->fresh(['items.product', 'items.colorVariant']);
         });

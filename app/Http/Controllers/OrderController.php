@@ -95,27 +95,7 @@ class OrderController extends Controller
             'user_id' => auth()->id()
         ]);
         
-        $request->validate([
-            'customer_id' => 'required|exists:customers,id',
-            'order_date' => 'required|date',
-            'delivery_date' => 'nullable|date|after_or_equal:order_date',
-            'notes' => 'nullable|string|max:1000',
-            'items' => 'required|array|min:1|max:50',
-            'items.*.product_id' => 'required|exists:products,id',
-            'items.*.price' => 'required|numeric|min:0.01|max:999999.99',
-            'items.*.variants' => 'required|array|min:1',
-            'items.*.variants.*.product_id' => 'required|exists:product_color_variants,id',
-            'items.*.variants.*.quantity' => 'required|integer|min:0|max:9999',
-        ], [
-            'items.required' => 'Please add at least one item to the order',
-            'items.*.product_id.required' => 'Please select a product for each item',
-            'items.*.price.required' => 'Please set a price for each item',
-            'items.*.price.min' => 'Price must be greater than 0',
-            'items.*.variants.required' => 'Please select at least one color variant',
-            'items.*.variants.*.product_id.required' => 'Invalid color variant selected',
-            'items.*.variants.*.quantity.required' => 'Please enter quantity for each variant',
-            'items.*.variants.*.quantity.min' => 'Quantity cannot be negative',
-        ]);
+        // Validation handled by OrderStoreRequest (prepareForValidation + rules)
 
         try {
             Log::info('Order creation started', [
@@ -242,70 +222,9 @@ class OrderController extends Controller
                 ->with('error', 'Only pending orders without invoices can be edited.');
         }
 
-        Log::info('Starting validation for order update');
+        // Validation is handled by the FormRequest which sanitizes incoming items.
 
-        // Filter out incomplete items before validation
-        $filteredItems = [];
-        foreach ($request->input('items', []) as $item) {
-            // Only include items that have all required fields
-            if (isset($item['product_id']) && isset($item['price']) && isset($item['variants']) && !empty($item['variants'])) {
-                // Filter variants to only include complete ones
-                $filteredVariants = [];
-                foreach ($item['variants'] as $variant) {
-                    if (isset($variant['product_id']) && isset($variant['quantity']) && intval($variant['quantity']) > 0) {
-                        $filteredVariants[] = $variant;
-                    }
-                }
-                
-                // Only include the item if it has at least one valid variant
-                if (!empty($filteredVariants)) {
-                    $item['variants'] = $filteredVariants;
-                    $filteredItems[] = $item;
-                }
-            }
-        }
-        
-        // Replace the items in the request with filtered items
-        $request->merge(['items' => $filteredItems]);
-        
-        Log::info('Filtered items for validation', [
-            'original_count' => count($request->input('items', [])),
-            'filtered_count' => count($filteredItems),
-            'filtered_items' => $filteredItems
-        ]);
-
-        try {
-            $request->validate([
-                'customer_id' => 'required|exists:customers,id',
-                'order_date' => 'required|date',
-                'delivery_date' => 'nullable|date|after_or_equal:order_date',
-                'notes' => 'nullable|string|max:1000',
-                'items' => 'required|array|min:1|max:50',
-                'items.*.product_id' => 'required|exists:products,id',
-                'items.*.price' => 'required|numeric|min:0.01|max:999999.99',
-                'items.*.variants' => 'required|array|min:1',
-                'items.*.variants.*.product_id' => 'required|exists:product_color_variants,id',
-                'items.*.variants.*.quantity' => 'required|integer|min:0|max:9999',
-            ], [
-                'items.required' => 'Please add at least one item to the order',
-                'items.*.product_id.required' => 'Please select a product for each item',
-                'items.*.price.required' => 'Please set a price for each item',
-                'items.*.price.min' => 'Price must be greater than 0',
-                'items.*.variants.required' => 'Please select at least one color variant',
-                'items.*.variants.*.product_id.required' => 'Invalid color variant selected',
-                'items.*.variants.*.quantity.required' => 'Please enter quantity for each variant',
-                'items.*.variants.*.quantity.min' => 'Quantity cannot be negative',
-            ]);
-            
-            Log::info('Validation passed for order update');
-
-        } catch (\Illuminate\Validation\ValidationException $e) {
-            Log::error('Validation failed for order update', [
-                'errors' => $e->errors(),
-                'filtered_items' => $filteredItems
-            ]);
-            return back()->withErrors($e->errors())->withInput();
-        }
+        // Validation is performed by the OrderUpdateRequest FormRequest (prepareForValidation + rules).
 
         try {
             Log::info('Order update started', [

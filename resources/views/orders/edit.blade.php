@@ -303,6 +303,9 @@
 $(document).ready(function() {
     let itemIndex = {{ count($productVariants) }};
     let variantIndex = 0;
+    // Flags used to coordinate stock-shortage confirmation and programmatic submit
+    window.orderConfirmedStockShortage = false;
+    window.orderSubmittingFromConfirm = false;
 
     // Add item
     $('#addItem').click(function() {
@@ -622,19 +625,31 @@ $(document).ready(function() {
             }
         });
 
-        if (stockWarnings.length > 0) {
+        // If the user already confirmed a previous stock-shortage prompt, skip showing it again
+        if (stockWarnings.length > 0 && !window.orderConfirmedStockShortage) {
             showStockWarning(stockWarnings, function() {
-                // User confirmed, continue with form submission
+                // User confirmed; trigger filtering and re-submit the form programmatically.
                 if (errors.length > 0) {
+                    console.log('Form validation errors (pre-submit):', errors);
                     showValidationErrors(errors);
                     return false;
                 }
-                return true;
+
+                // Mark that the user confirmed so we don't loop the confirmation modal
+                window.orderConfirmedStockShortage = true;
+
+                // Disable zero-quantity inputs and their hidden product_id partners before submitting
+                filterZeroQuantities();
+
+                // Submit the form programmatically (mark it so our handler allows native submit)
+                window.orderSubmittingFromConfirm = true;
+                $('#orderForm')[0].submit();
             });
             return false; // Prevent form submission until user confirms
         }
 
         if (errors.length > 0) {
+            console.log('Form validation errors (pre-submit):', errors);
             showValidationErrors(errors);
             return false;
         }
@@ -642,17 +657,8 @@ $(document).ready(function() {
         return isValid;
     }
 
-    // Form submission
-    $('#orderForm').submit(function(e) {
-        console.log('Edit form submission started');
-        e.preventDefault(); // Stop the default submission first
-        
-        if (!validateOrderForm()) {
-            console.log('Form validation failed');
-            return false;
-        }
-        
-        // Filter out zero-quantity variants before submission (same as create form)
+    // Disable zero-quantity inputs (and their corresponding hidden product_id inputs)
+    function filterZeroQuantities() {
         console.log('=== FILTERING ZERO QUANTITIES ===');
         $('.item-row').each(function() {
             const $row = $(this);
@@ -663,7 +669,7 @@ $(document).ready(function() {
                     // Remove the input from form submission by disabling it
                     $input.prop('disabled', true);
                     console.log('Disabled zero quantity input:', $input.attr('name'));
-                    
+
                     // Also disable the corresponding hidden product_id input
                     const quantityName = $input.attr('name');
                     if (quantityName) {
@@ -680,6 +686,28 @@ $(document).ready(function() {
                 }
             });
         });
+    }
+
+    // Form submission
+    $('#orderForm').submit(function(e) {
+        console.log('Edit form submission started');
+        // If this submit was triggered programmatically after user confirmed stock shortage,
+        // allow native submission to proceed once (avoid infinite loop).
+        if (window.orderSubmittingFromConfirm) {
+            // clear the flag and allow the form to submit normally
+            window.orderSubmittingFromConfirm = false;
+            return true;
+        }
+
+        e.preventDefault(); // Stop the default submission first
+        
+        if (!validateOrderForm()) {
+            console.log('Form validation failed');
+            return false;
+        }
+        
+        // Filter out zero-quantity variants before submission (same as create form)
+        filterZeroQuantities();
         
         // Debug: Log filtered form data
         const formData = new FormData(this);
@@ -690,8 +718,10 @@ $(document).ready(function() {
         
         console.log('Form validation passed, submitting filtered data...');
         
-        // Now submit the form with filtered data
-        this.submit();
+    // Now submit the form with filtered data. Mark that this submit is coming from our
+    // JS flow so the handler can allow the native submission on the next event.
+    window.orderSubmittingFromConfirm = true;
+    this.submit();
     });
 
     // Initialize summary
