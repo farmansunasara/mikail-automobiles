@@ -307,6 +307,12 @@
                                                        class="btn btn-info btn-sm" title="View">
                                                         <i class="fas fa-eye"></i>
                                                     </a>
+                                                    @if($order->status === 'pending' && (auth()->user()->role === 'admin' || $order->status !== 'cancelled'))
+                                                    <a href="{{ route('orders.download', $order) }}" 
+                                                       class="btn btn-primary btn-sm" title="Download Order" target="_blank">
+                                                        <i class="fas fa-download"></i>
+                                                    </a>
+                                                    @endif
                                                     @if($order->status === 'pending')
                                                         <a href="{{ route('orders.edit', $order) }}" 
                                                            class="btn btn-warning btn-sm" title="Edit">

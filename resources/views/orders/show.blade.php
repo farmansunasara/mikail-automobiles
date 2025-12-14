@@ -22,6 +22,12 @@
                                 <i class="fas fa-edit"></i> Edit Order
                             </a>
                         @endif
+                        <!-- New: Download Order PDF (non-intrusive) -->
+                        @if($order->status === 'pending' && (auth()->user()->role === 'admin' || $order->status !== 'cancelled'))
+                        <a href="{{ route('orders.download', $order) }}" class="btn btn-primary btn-sm" target="_blank">
+                            <i class="fas fa-download"></i> Download Order
+                        </a>
+                        @endif
                         @if($order->status === 'pending')
                             <button type="button" class="btn btn-danger btn-sm" onclick="cancelOrder()">
                                 <i class="fas fa-times"></i> Cancel Order
