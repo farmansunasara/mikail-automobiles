@@ -148,6 +148,9 @@ class OrderController extends Controller
     {
         $order->load([
             'customer',
+            'items' => function($query) {
+                $query->orderBy('id', 'asc');
+            },
             'items.product.category',
             'items.colorVariant',
             'invoice'
@@ -161,7 +164,14 @@ class OrderController extends Controller
      */
     public function downloadPdf(Order $order)
     {
-        $order->load(['customer', 'items.product.category', 'items.colorVariant']);
+        $order->load([
+            'customer',
+            'items' => function($query) {
+                $query->orderBy('id', 'asc');
+            },
+            'items.product.category',
+            'items.colorVariant'
+        ]);
         $pdf = Pdf::loadView('orders.pdf', compact('order'));
         return $pdf->download('order-' . $order->order_number . '.pdf');
     }
@@ -183,15 +193,23 @@ class OrderController extends Controller
             ->orderBy('name')
             ->pluck('name');
 
-        $order->load(['customer', 'items.product.category', 'items.colorVariant']);
+        $order->load([
+            'customer',
+            'items' => function($query) {
+                $query->orderBy('id', 'asc');
+            },
+            'items.product.category',
+            'items.colorVariant'
+        ]);
 
-        // Get all color variants for each product in the order
+        // Get all color variants for each product in the order, maintaining insertion order
         $productVariants = [];
-        $groupedItems = $order->items->groupBy('product_id');
+        $groupedItems = $order->items->sortBy('id')->groupBy('product_id');
         foreach ($groupedItems as $productId => $items) {
             $product = $items->first()->product;
             $allVariants = ProductColorVariant::where('product_id', $productId)
                 ->with(['colorModel'])
+                ->orderBy('id', 'asc')
                 ->get();
             
             $existingQuantities = [];

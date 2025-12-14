@@ -161,41 +161,64 @@
                         <table class="table table-bordered table-striped">
                             <thead>
                                 <tr>
-                                    <th>Product</th>
-                                    <th>Color</th>
-                                    <th>Quantity</th>
-                                    <th>Price</th>
-                                    <th>Subtotal</th>
-                                    <th>Available Stock</th>
-                                    <th>Status</th>
+                                    <th style="width: 5%;">#</th>
+                                    <th style="width: 25%;">Product</th>
+                                    <th style="width: 25%;">Colors & Quantities</th>
+                                    <th style="width: 10%;">Price</th>
+                                    <th style="width: 10%;">Total Qty</th>
+                                    <th style="width: 12%;">Total Amount</th>
+                                    <th style="width: 13%;">Stock Status</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                @foreach($order->items as $item)
+                                @php
+                                    $groupedItems = collect($order->items)->sortBy('id')->groupBy('product_id');
+                                    $rowNumber = 1;
+                                @endphp
+                                @foreach($groupedItems as $productId => $items)
+                                    @php
+                                        $firstItem = $items->first();
+                                        $totalSubtotal = $items->sum('subtotal');
+                                        $totalQuantity = $items->sum('quantity');
+                                        $hasStockIssue = false;
+                                    @endphp
                                     <tr>
+                                        <td class="text-center">{{ $rowNumber++ }}</td>
                                         <td>
-                                            <a href="{{ route('products.show', $item->product) }}" class="text-primary">
-                                                {{ $item->product->name }}
+                                            <a href="{{ route('products.show', $firstItem->product) }}" class="text-primary">
+                                                <strong>{{ $firstItem->product->name }}</strong>
                                             </a>
                                         </td>
-                                        <td>{{ $item->colorVariant?->color ?? 'Default' }}</td>
-                                        <td>{{ $item->quantity }}</td>
-                                        <td>₹{{ number_format($item->price, 2) }}</td>
-                                        <td>₹{{ number_format($item->subtotal, 2) }}</td>
-                                        <td>{{ $item->available_stock }}</td>
                                         <td>
-                                            <span class="badge {{ $item->stock_status_class }}">
-                                                {{ ucfirst($item->stock_status) }}
-                                            </span>
+                                            @foreach($items as $item)
+                                                @php
+                                                    if ($item->stock_status !== 'sufficient') $hasStockIssue = true;
+                                                @endphp
+                                                <div class="mb-1">
+                                                    <span class="badge badge-info">{{ $item->colorVariant?->color ?? 'Default' }}</span>
+                                                    <span class="font-weight-bold">{{ $item->quantity }}</span>
+                                                    <small class="text-muted">(Stock: {{ $item->available_stock }})</small>
+                                                </div>
+                                            @endforeach
+                                        </td>
+                                        <td class="text-right">₹{{ number_format($firstItem->price, 2) }}</td>
+                                        <td class="text-center"><strong>{{ $totalQuantity }}</strong></td>
+                                        <td class="text-right"><strong>₹{{ number_format($totalSubtotal, 2) }}</strong></td>
+                                        <td class="text-center">
+                                            @if($hasStockIssue)
+                                                <span class="badge badge-warning">Stock Issue</span>
+                                            @else
+                                                <span class="badge badge-success">Sufficient</span>
+                                            @endif
                                         </td>
                                     </tr>
                                 @endforeach
                             </tbody>
                             <tfoot>
                                 <tr class="table-primary">
-                                    <th colspan="4">Total</th>
-                                    <th>₹{{ number_format($order->total_amount, 2) }}</th>
-                                    <th colspan="2"></th>
+                                    <th colspan="5" class="text-right">Total Amount:</th>
+                                    <th class="text-right">₹{{ number_format($order->total_amount, 2) }}</th>
+                                    <th></th>
                                 </tr>
                             </tfoot>
                         </table>

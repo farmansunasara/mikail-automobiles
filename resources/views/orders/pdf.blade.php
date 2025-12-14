@@ -66,15 +66,17 @@
             </thead>
             <tbody>
                 @php
-                    $groupedItems = collect($order->items)->groupBy('product.name');
+                    // Sort by id first to maintain insertion order, then group by product_id
+                    $groupedItems = collect($order->items)->sortBy('id')->groupBy('product_id');
                     $rowNumber = 1;
                 @endphp
 
-                @foreach($groupedItems as $productName => $items)
+                @foreach($groupedItems as $productId => $items)
                     @php
                         $firstItem = $items->first();
                         $totalSubtotal = $items->sum('subtotal');
                         $totalQuantity = $items->sum('quantity');
+                        $productName = $firstItem->product->name;
 
                         $colorQuantities = [];
                         foreach ($items as $it) {
