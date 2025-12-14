@@ -1430,10 +1430,13 @@ $(document).ready(function() {
                 <td>
                     <div class="price-container">
                         <input type="number" name="items[${itemIndex}][price]" class="form-control price-input" 
-                               step="0.01" min="0.01" placeholder="Enter price" value="" data-original-price="">
-                        <div class="invalid-feedback">Price must be greater than zero</div>
+                               step="0.01" min="0.01" placeholder="Price will auto-fill" value="" data-original-price="">
+                        <div class="invalid-feedback">Price must be greater than zero. Please enter a valid price.</div>
                         <small class="price-history text-muted" style="display: none;">
                             <i class="fas fa-history"></i> Original: ₹<span class="original-price">0.00</span>
+                        </small>
+                        <small class="text-warning price-zero-warning" style="display: none;">
+                            <i class="fas fa-exclamation-triangle"></i> Price is ₹0. Please enter selling price.
                         </small>
                     </div>
                 </td>
@@ -1585,13 +1588,25 @@ $(document).ready(function() {
                     const firstVariant = data.variants[0];
                     const $priceInput = $row.find('.price-input');
                     
-                    $priceInput.val(firstVariant.price);
-                    $priceInput.attr('data-original-price', firstVariant.price);
+                    // Set price from variant data
+                    const variantPrice = parseFloat(firstVariant.price) || 0;
+                    $priceInput.val(variantPrice);
+                    $priceInput.attr('data-original-price', variantPrice);
                     
-                    $row.find('.original-price').text(parseFloat(firstVariant.price).toFixed(2));
-                    $row.find('.price-history').show();
+                    $row.find('.original-price').text(variantPrice.toFixed(2));
                     
-                    makePriceEditable($priceInput);
+                    // Only show price history if price > 0
+                    if (variantPrice > 0) {
+                        $row.find('.price-history').show();
+                    } else {
+                        // Show warning if price is 0
+                        $row.find('.price-zero-warning').show();
+                        // Add yellow border to price input
+                        $priceInput.css('border-color', '#ffc107');
+                    }
+                    
+                    // Pass flag to indicate price was just loaded from database
+                    makePriceEditable($priceInput, true);
                     
                 } else {
                     console.log('No variants found for product:', productId);
@@ -1635,13 +1650,16 @@ $(document).ready(function() {
         }
     }
 
-    function makePriceEditable($priceInput) {
+    function makePriceEditable($priceInput, isFromDatabase = false) {
         $priceInput.removeClass('readonly').prop('readonly', false).addClass('editable');
         
-        // Clear the field if it has default 0 value
-        const currentValue = parseFloat($priceInput.val()) || 0;
-        if (currentValue === 0) {
-            $priceInput.val('');
+        // Only clear the field if it's 0 AND not just loaded from database
+        // This allows users to manually set price to any value including 0
+        if (!isFromDatabase) {
+            const currentValue = parseFloat($priceInput.val()) || 0;
+            if (currentValue === 0) {
+                $priceInput.val('');
+            }
         }
         
         $priceInput.on('click', function() {
@@ -1658,6 +1676,16 @@ $(document).ready(function() {
             
             // Validate price
             validatePriceInput($(this));
+            
+            // Hide zero warning if user enters a price > 0
+            if (currentPrice > 0) {
+                $(this).closest('tr').find('.price-zero-warning').hide();
+                $(this).css('border-color', '');
+            } else if (currentPrice === 0 && $(this).val() !== '') {
+                // Show warning if user explicitly sets price to 0
+                $(this).closest('tr').find('.price-zero-warning').show();
+                $(this).css('border-color', '#ffc107');
+            }
             
             if (currentPrice !== originalPrice && currentPrice > 0) {
                 $(this).addClass('editable');
