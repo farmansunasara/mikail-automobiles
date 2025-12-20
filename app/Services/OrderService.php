@@ -285,6 +285,17 @@ class OrderService
     public function generateInvoiceFromOrder(Order $order, array $invoiceData = []): Invoice
     {
         return DB::transaction(function () use ($order, $invoiceData) {
+            // Ensure order items are loaded with explicit ordering
+            if (!$order->relationLoaded('items') || $order->items->isEmpty()) {
+                $order->load([
+                    'items' => function($query) {
+                        $query->orderBy('id', 'asc');
+                    },
+                    'items.product',
+                    'items.colorVariant'
+                ]);
+            }
+
             // Check if order can be invoiced
             if ($order->status !== 'pending') {
                 throw new Exception('Only pending orders can generate invoices.');
@@ -373,7 +384,14 @@ class OrderService
                 'invoice_number' => $invoice->invoice_number
             ]);
 
-            return $invoice->fresh(['items.product', 'items.colorVariant']);
+            // Load invoice items with explicit ordering to match display order
+            return $invoice->fresh([
+                'items' => function($query) {
+                    $query->orderBy('id', 'asc');
+                },
+                'items.product',
+                'items.colorVariant'
+            ]);
         });
     }
 

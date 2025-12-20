@@ -304,6 +304,16 @@ class OrderController extends Controller
                 'user_id' => auth()->id()
             ]);
 
+            // Load order items with explicit ordering to maintain consistency
+            $order->load([
+                'items' => function($query) {
+                    $query->orderBy('id', 'asc');
+                },
+                'items.product',
+                'items.colorVariant',
+                'customer'
+            ]);
+
             $invoice = $this->orderService->generateInvoiceFromOrder($order, $request->all());
 
             Log::info('Invoice generated successfully', [

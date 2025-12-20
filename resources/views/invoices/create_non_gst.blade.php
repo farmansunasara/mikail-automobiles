@@ -1170,15 +1170,27 @@ $(document).ready(function() {
                     const firstVariant = data.variants[0];
                     const $priceInput = $row.find('.price-input');
                     
-                    // Set price from variant data
+                    // Prefer prefilled price (from order) if present
+                    const prefillAttr = $priceInput.attr('data-prefill-price');
+                    const hasPrefillPrice = typeof prefillAttr !== 'undefined' && prefillAttr !== '';
+                    const prefillPrice = hasPrefillPrice ? (parseFloat(prefillAttr) || 0) : null;
+                    
+                    // Determine price source
                     const variantPrice = parseFloat(firstVariant.price) || 0;
-                    $priceInput.val(variantPrice);
-                    $priceInput.attr('data-original-price', variantPrice);
+                    const finalPrice = hasPrefillPrice ? prefillPrice : variantPrice;
+                    
+                    // Set price and original price marker
+                    $priceInput.val(finalPrice);
+                    $priceInput.attr('data-original-price', finalPrice);
+                    if (hasPrefillPrice) {
+                        // Clear the prefill marker so user changes work normally
+                        $priceInput.removeAttr('data-prefill-price');
+                    }
                     
                     $row.find('.original-price').text(variantPrice.toFixed(2));
                     
                     // Only show price history if price > 0
-                    if (variantPrice > 0) {
+                    if (finalPrice > 0) {
                         $row.find('.price-history').show();
                     } else {
                         // Show warning if price is 0
@@ -1189,6 +1201,10 @@ $(document).ready(function() {
                     
                     // Pass flag to indicate price was just loaded from database
                     makePriceEditable($priceInput, true);
+                    // Ensure hidden price fields and totals update
+                    $priceInput.trigger('input');
+                    // Signal to prefill that variants and price are ready
+                    $row.trigger('variants-ready');
                     
                 }
             })
@@ -1641,7 +1657,9 @@ $(document).ready(function() {
     
     loadOrderData();
     
+    @if(!(isset($orderData) && $orderData))
     addNewItem();
+    @endif
     
     // Track added products to prevent duplicates
     const addedProducts = new Set();
@@ -1735,6 +1753,49 @@ $(document).ready(function() {
             $('#items-tbody').empty();
             itemIndex = 0;
             
+            // Helper: set product after category loads, with retries
+            function setProductWithRetry($row, productId, attempt = 0) {
+                const $productSelect = $row.find('.product-select');
+                const categoryId = $row.find('.category-select').val();
+                const productExists = $productSelect.find('option[value="' + productId + '"]').length > 0;
+                if (productExists) {
+                    console.log('Product found, setting product:', productId);
+                    $productSelect.val(productId).trigger('change');
+                    return;
+                }
+                if (attempt < 5) {
+                    console.log('Product not available yet, retrying attempt', attempt + 1);
+                    setTimeout(function() { setProductWithRetry($row, productId, attempt + 1); }, 500);
+                    return;
+                }
+                // Fallback: refetch products for category and try again
+                console.log('Refetching products for category', categoryId, 'to set product', productId);
+                directApiCall('/api/products/by-category', { category_id: categoryId })
+                    .then(function(products) {
+                        let options = '<option value="">Select Product</option>';
+                        products.forEach(function(product) {
+                            const compositeBadge = product.is_composite ? '<span class="composite-badge">Composite</span>' : '';
+                            options += `<option value="${product.id}" data-is-composite="${product.is_composite}">${product.name}${compositeBadge}</option>`;
+                        });
+                        $productSelect.html(options).prop('disabled', false);
+                        const nowExists = $productSelect.find('option[value="' + productId + '"]').length > 0;
+                        if (nowExists) {
+                            console.log('Product found after refetch, setting:', productId);
+                            $productSelect.val(productId).trigger('change');
+                        } else {
+                            // Last resort: append an option so change handler fires and variants can load
+                            console.log('Appending fallback option for product:', productId);
+                            $productSelect.append(`<option value="${productId}">#${productId}</option>`);
+                            $productSelect.val(productId).trigger('change');
+                        }
+                    })
+                    .catch(function() {
+                        console.warn('Refetch products failed, appending fallback option for product:', productId);
+                        $productSelect.append(`<option value="${productId}">#${productId}</option>`);
+                        $productSelect.val(productId).trigger('change');
+                    });
+            }
+            
             // Load order items
             if (orderData.items && orderData.items.length > 0) {
                 orderData.items.forEach(function(item, index) {
@@ -1745,76 +1806,48 @@ $(document).ready(function() {
                     // Set category
                     console.log(`Setting category ${item.category_id} for item ${index}`);
                     $row.find('.category-select').val(item.category_id).trigger('change');
+
+                    // Inject prefill price so product handler uses it instead of variant default
+                    const $priceInput = $row.find('.price-input');
+                    if (typeof item.price !== 'undefined' && item.price !== null) {
+                        $priceInput.attr('data-prefill-price', item.price);
+                    }
+                    // Also set visible value as a fallback
+                    $priceInput.val(item.price);
                     
-                    // Wait for products to load, then set product
-                    setTimeout(function() {
-                        console.log(`Setting product ${item.product_id} for item ${index}`);
-                        console.log('Available products in dropdown:', $row.find('.product-select option').length);
-                        console.log('Product options:', $row.find('.product-select option').map(function() { return $(this).val() + ': ' + $(this).text(); }).get());
-                        
-                        // Check if the product exists in the dropdown
-                        const productExists = $row.find('.product-select option[value="' + item.product_id + '"]').length > 0;
-                        console.log('Product exists in dropdown:', productExists);
-                        
-                        if (productExists) {
-                            $row.find('.product-select').val(item.product_id).trigger('change');
-                        } else {
-                            console.log('Product not found in dropdown, retrying...');
-                            // Retry after a longer delay
-                            setTimeout(function() {
-                                console.log('Retry: Setting product', item.product_id);
-                                $row.find('.product-select').val(item.product_id).trigger('change');
-                            }, 1000);
-                        }
-                        
-                        // Wait for variants to load, then set quantities
-                        setTimeout(function() {
-                            console.log(`Checking if variants loaded for item ${index}`);
-                            console.log('Available hidden inputs:', $row.find('input[type="hidden"]').length);
-                            console.log('Available quantity inputs:', $row.find('input[type="number"]').length);
-                            if (item.variants && item.variants.length > 0) {
-                                console.log(`Setting variants for item ${index}:`, item.variants);
-                                
-                                // Function to set quantities with retry mechanism
-                                function setQuantities(retryCount = 0) {
-                                    let allFound = true;
-                                    
-                                    item.variants.forEach(function(variant) {
-                                        // Find the quantity input by looking for the hidden input with the variant ID
-                                        const $hiddenInput = $row.find(`input[type="hidden"][value="${variant.product_id}"]`);
-                                        console.log(`Looking for variant ${variant.product_id}, found:`, $hiddenInput.length);
-                                        
-                                        if ($hiddenInput.length) {
-                                            const $quantityInput = $hiddenInput.siblings('input[type="number"]');
-                                            console.log(`Setting quantity ${variant.quantity} for variant ${variant.product_id}`);
-                                            if ($quantityInput.length) {
-                                                $quantityInput.val(variant.quantity);
-                                            }
-                                        } else {
-                                            allFound = false;
-                                        }
-                                    });
-                                    
-                                    // If not all variants found and we haven't exceeded retry limit, try again
-                                    if (!allFound && retryCount < 5) {
-                                        console.log(`Retrying to find variants (attempt ${retryCount + 1})`);
-                                        setTimeout(function() {
-                                            setQuantities(retryCount + 1);
-                                        }, 500);
-                                    } else if (!allFound) {
-                                        console.log('Could not find all variants after retries');
+                    // Listen for variants-ready event, then set quantities
+                    $row.one('variants-ready', function() {
+                        console.log(`variants-ready fired for item ${index}`);
+                        if (item.variants && item.variants.length > 0) {
+                            console.log(`Setting variants for item ${index}:`, item.variants);
+                            
+                            item.variants.forEach(function(variant) {
+                                // Find the quantity input by matching hidden input with variant id
+                                let $quantityInput = null;
+                                const $hiddenInput = $row.find(`input[type="hidden"][value="${variant.product_id}"]`);
+                                console.log(`Looking for variant ${variant.product_id}, found hidden:`, $hiddenInput.length);
+                                if ($hiddenInput.length) {
+                                    $quantityInput = $hiddenInput.siblings('input[type="number"]');
+                                } else {
+                                    // Fallback for single-variant products (has_variants=false)
+                                    const qtyInputs = $row.find('input.quantity-input');
+                                    if (qtyInputs.length === 1) {
+                                        console.log('Using single quantity input fallback for variant', variant.product_id);
+                                        $quantityInput = qtyInputs.eq(0);
                                     }
                                 }
-                                
-                                setQuantities();
-                            }
-                            
-                            // Set price
-                            $row.find('.price-input').val(item.price);
-                            
+                                if ($quantityInput && $quantityInput.length) {
+                                    console.log(`Setting quantity ${variant.quantity} for variant ${variant.product_id}`);
+                                    $quantityInput.val(variant.quantity);
+                                }
+                            });
+                            // Recompute totals after setting quantities
                             updateTotals();
-                        }, 1500);
-                    }, 1000);
+                        }
+                    });
+                    
+                    // Set product deterministically with retries; this will trigger variants-ready when ready
+                    setProductWithRetry($row, item.product_id, 0);
                 });
             }
             

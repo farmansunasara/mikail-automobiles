@@ -76,10 +76,17 @@ class InvoiceController extends Controller
         $order = null;
         $orderData = null;
         if ($request->has('order_id')) {
-            $order = \App\Models\Order::with(['customer', 'items.product.category', 'items.colorVariant'])->find($request->order_id);
+            $order = \App\Models\Order::with([
+                'customer',
+                'items' => function($query) {
+                    $query->orderBy('id', 'asc');
+                },
+                'items.product.category',
+                'items.colorVariant'
+            ])->find($request->order_id);
             if ($order) {
-                // Group order items by product_id
-                $groupedItems = $order->items->groupBy('product_id');
+                // Group order items by product_id while maintaining insertion order
+                $groupedItems = $order->items->sortBy('id')->groupBy('product_id');
                 $items = [];
                 
                 foreach ($groupedItems as $productId => $orderItems) {
@@ -221,10 +228,17 @@ class InvoiceController extends Controller
         $order = null;
         $orderData = null;
         if ($request->has('order_id')) {
-            $order = \App\Models\Order::with(['customer', 'items.product.category', 'items.colorVariant'])->find($request->order_id);
+            $order = \App\Models\Order::with([
+                'customer',
+                'items' => function($query) {
+                    $query->orderBy('id', 'asc');
+                },
+                'items.product.category',
+                'items.colorVariant'
+            ])->find($request->order_id);
             if ($order) {
-                // Group order items by product_id
-                $groupedItems = $order->items->groupBy('product_id');
+                // Group order items by product_id while maintaining insertion order
+                $groupedItems = $order->items->sortBy('id')->groupBy('product_id');
                 $items = [];
                 
                 foreach ($groupedItems as $productId => $orderItems) {
@@ -318,39 +332,87 @@ class InvoiceController extends Controller
 
     public function showGst(Invoice $invoice)
     {
-        $invoice->load('customer', 'items.product.category', 'items.product.subcategory', 'items.colorVariant');
+        $invoice->load([
+            'customer',
+            'items' => function($query) {
+                $query->orderBy('id', 'asc');
+            },
+            'items.product.category',
+            'items.product.subcategory',
+            'items.colorVariant'
+        ]);
         return view('invoices.show', compact('invoice'))->with('invoice_type', 'gst');
     }
 
     public function showNonGst(Invoice $invoice)
     {
-        $invoice->load('customer', 'items.product.category', 'items.product.subcategory', 'items.colorVariant');
+        $invoice->load([
+            'customer',
+            'items' => function($query) {
+                $query->orderBy('id', 'asc');
+            },
+            'items.product.category',
+            'items.product.subcategory',
+            'items.colorVariant'
+        ]);
         return view('invoices.show_non_gst', compact('invoice'))->with('invoice_type', 'non_gst');
     }
 
     public function downloadPdfGst(Invoice $invoice)
     {
-        $invoice->load('customer', 'items.product.category', 'items.product.subcategory', 'items.colorVariant');
+        $invoice->load([
+            'customer',
+            'items' => function($query) {
+                $query->orderBy('id', 'asc');
+            },
+            'items.product.category',
+            'items.product.subcategory',
+            'items.colorVariant'
+        ]);
         $pdf = Pdf::loadView('invoices.pdf', compact('invoice'));
         return $pdf->download('invoice-' . $invoice->invoice_number . '.pdf');
     }
 
     public function downloadPdfNonGst(Invoice $invoice)
     {
-        $invoice->load('customer', 'items.product.category', 'items.product.subcategory', 'items.colorVariant');
+        $invoice->load([
+            'customer',
+            'items' => function($query) {
+                $query->orderBy('id', 'asc');
+            },
+            'items.product.category',
+            'items.product.subcategory',
+            'items.colorVariant'
+        ]);
         $pdf = Pdf::loadView('invoices.pdf_non_gst', compact('invoice'));
         return $pdf->download('invoice-' . $invoice->invoice_number . '.pdf');
     }
 
     public function previewGst(Invoice $invoice)
     {
-        $invoice->load('customer', 'items.product.category', 'items.product.subcategory', 'items.colorVariant');
+        $invoice->load([
+            'customer',
+            'items' => function($query) {
+                $query->orderBy('id', 'asc');
+            },
+            'items.product.category',
+            'items.product.subcategory',
+            'items.colorVariant'
+        ]);
         return view('invoices.pdf', compact('invoice'));
     }
 
     public function previewNonGst(Invoice $invoice)
     {
-        $invoice->load('customer', 'items.product.category', 'items.product.subcategory', 'items.colorVariant');
+        $invoice->load([
+            'customer',
+            'items' => function($query) {
+                $query->orderBy('id', 'asc');
+            },
+            'items.product.category',
+            'items.product.subcategory',
+            'items.colorVariant'
+        ]);
         return view('invoices.pdf_non_gst', compact('invoice'));
     }
 
@@ -371,11 +433,18 @@ class InvoiceController extends Controller
             ->pluck('name');
 
         // Load invoice with relationships
-        $invoice->load('customer', 'items.product.category', 'items.colorVariant');
+        $invoice->load([
+            'customer',
+            'items' => function($query) {
+                $query->orderBy('id', 'asc');
+            },
+            'items.product.category',
+            'items.colorVariant'
+        ]);
 
         // Get all color variants for each product in the invoice
         $productVariants = [];
-        $groupedItems = $invoice->items->groupBy('product_id');
+        $groupedItems = $invoice->items->sortBy('id')->groupBy('product_id');
         foreach ($groupedItems as $productId => $items) {
             $product = $items->first()->product;
             $allVariants = ProductColorVariant::where('product_id', $productId)
